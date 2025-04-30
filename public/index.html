@@ -11,16 +11,6 @@
 <body class="bg-gray-100 p-4">
   <div class="max-w-5xl mx-auto">
 
-    <!-- لوحة المسؤول (للحصول على التوكن) -->
-    <div id="adminPanel" class="bg-white p-6 rounded-lg shadow mb-8">
-      <h2 class="text-2xl font-bold mb-4">لوحة المسؤول</h2>
-      <input id="adminCode" type="text" placeholder="رمز المسؤول" class="w-full mb-3 border px-3 py-2 rounded"/>
-      <input id="adminPass" type="password" placeholder="كلمة مرور المسؤول" class="w-full mb-3 border px-3 py-2 rounded"/>
-      <button onclick="adminLogin()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
-        دخول كمسؤول
-      </button>
-    </div>
-
     <!-- تسجيل دخول الموظف -->
     <div id="loginSection" class="bg-white p-6 rounded-lg shadow mb-8">
       <h2 class="text-2xl font-bold mb-4">تسجيل دخول الموظف</h2>
@@ -89,8 +79,7 @@
 
   <script>
     const { jsPDF } = window.jspdf;
-    const API_BASE = 'http://localhost:3000/api';
-    let apiToken = null;
+    const API_BASE = 'https://your-deployed-domain.com/api'; // ضع هنا رابط API العمومي
     let headersUsr = [], usersData = [];
     let headersAtt = [], attendanceData = [];
     let currentUser = null;
@@ -103,46 +92,21 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // 1) تسجيل دخول المشرف للحصول على توكن
-    async function adminLogin() {
-      const code = document.getElementById('adminCode').value.trim();
-      const pass = document.getElementById('adminPass').value.trim();
-      try {
-        const res = await fetch(`${API_BASE}/admin/login`, {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ code, password: pass })
-        });
-        if (!res.ok) throw new Error();
-        const { token } = await res.json();
-        apiToken = token;
-        alert('تم تسجيل دخول المسؤول بنجاح');
-        // إظهار حقول الموظف بعد حصول التوكن
-        document.getElementById('loginSection').classList.remove('hidden');
-        document.getElementById('adminPanel').classList.add('hidden');
-      } catch {
-        alert('بيانات المسؤول خاطئة');
-      }
-    }
-
-    // 2) جلب البيانات من API
+    // 1) جلب البيانات من API بدون مصادقة
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
-        fetch(`${API_BASE}/users`,      { headers:{ Authorization:`Bearer ${apiToken}` }}),
-        fetch(`${API_BASE}/attendance`, { headers:{ Authorization:`Bearer ${apiToken}` }})
+        fetch(`${API_BASE}/users`),
+        fetch(`${API_BASE}/attendance`)
       ]);
-      if (!uRes.ok || !aRes.ok) {
-        throw new Error('فشل جلب البيانات');
-      }
+      if (!uRes.ok || !aRes.ok) throw new Error('فشل جلب البيانات');
       ({ headers: headersUsr, data: usersData }      = await uRes.json());
       ({ headers: headersAtt, data: attendanceData } = await aRes.json());
     }
 
-    // 3) تسجيل دخول الموظف
+    // 2) تسجيل دخول الموظف مباشرة
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
-      if (!apiToken) return alert('يرجى تسجيل دخول المسؤول أولاً');
       try {
         await fetchData();
         const idxC = headersUsr.indexOf('رقم الموظف');
@@ -157,7 +121,6 @@
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
         renderRecords(code);
-        // تعبئة KPI
         document.getElementById('prodIncentivePercent').textContent = rec[12] ?? '--';
         document.getElementById('adminLeavesCounted').textContent   = rec[13] ?? '--';
         document.getElementById('adminLeavesRemaining').textContent = rec[14] ?? '--';
@@ -166,7 +129,7 @@
       }
     }
 
-    // 4) عرض السجلات
+    // 3) عرض السجلات
     function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
@@ -205,7 +168,7 @@
       document.getElementById('noDataMsg').classList.toggle('hidden', count>0);
     }
 
-    // 5) حفظ PDF
+    // 4) حفظ PDF
     async function savePDF() {
       const element = document.getElementById('records');
       const canvas  = await html2canvas(element,{ scale:2 });
