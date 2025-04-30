@@ -4,39 +4,65 @@
 require('dotenv').config();
 
 const express = require('express');
-const multer  = require('multer');
-const XLSX    = require('xlsx');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 const jwt     = require('jsonwebtoken');
 const cors    = require('cors');
-const fs      = require('fs');
 const path    = require('path');
+const fs      = require('fs');
 
-// 2) قراءة الإعدادات من .env
-const PORT       = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET;
-const ADMIN_CODE = process.env.ADMIN_CODE || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'password';
+// 2) إعداد المتغيّرات من .env
+const PORT             = process.env.PORT           || 3000;
+const JWT_SECRET       = process.env.JWT_SECRET;
+const ADMIN_CODE       = process.env.ADMIN_CODE     || 'admin';
+const ADMIN_PASS       = process.env.ADMIN_PASS     || 'password';
+const SHEET_ID         = process.env.GOOGLE_SHEET_ID;
+const CREDENTIALS_PATH = process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
 if (!JWT_SECRET) {
   console.error('🚨 JWT_SECRET غير موجود في .env');
   process.exit(1);
 }
+if (!SHEET_ID) {
+  console.error('🚨 GOOGLE_SHEET_ID غير موجود في .env');
+  process.exit(1);
+}
+if (!CREDENTIALS_PATH || !fs.existsSync(path.resolve(CREDENTIALS_PATH))) {
+  console.error('🚨 ملف مفاتيح الخدمة غير موجود أو مساره خاطئ في GOOGLE_APPLICATION_CREDENTIALS');
+  process.exit(1);
+}
 
+// 3) تحميل مفاتيح Service Account
+const creds = require(path.resolve(CREDENTIALS_PATH));
+
+// 4) تهيئة Express
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// 3) خدمة الملفات الثابتة من مجلّد public/
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 4) إعداد Multer لرفع ملف Excel
-const upload = multer({ dest: path.join(__dirname, 'uploads') });
+// 5) دالة للوصول إلى Google Sheet
+async function accessSheet() {
+  const doc = new GoogleSpreadsheet(SHEET_ID);
+  await doc.useServiceAccountAuth(creds);
+  await doc.loadInfo();
+  return doc;
+}
 
-// 5) مخازن البيانات في الذاكرة
-let usersHeaders      = [], usersData      = [];
-let attendanceHeaders = [], attendanceData = [];
+// 6) دالة قراءة شيت حسب عنوانه
+async function readSheet(title) {
+  const doc = await accessSheet();
+  const sheet = doc.sheetsByTitle[title];
+  if (!sheet) {
+    throw new Error(`الشيت "${title}" غير موجود`);
+  }
+  await sheet.loadHeaderRow();
+  const headers = sheet.headerValues;
+  const rows    = await sheet.getRows();
+  const data    = rows.map(r => headers.map(h => r[h] || ''));
+  return { headers, data };
+}
 
-// 6) Middleware للتحقق من JWT
+// 7) Middleware للتحقق من JWT
 function auth(req, res, next) {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/, '');
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
@@ -49,55 +75,37 @@ function auth(req, res, next) {
   }
 }
 
-// 7) API: تسجيل دخول المشرف
+// 8) API: تسجيل دخول المشرف
 app.post('/api/admin/login', (req, res) => {
   const { code, password } = req.body;
   if (code === ADMIN_CODE && password === ADMIN_PASS) {
     const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '1h' });
     return res.json({ token });
   }
-  res.status(401).json({ error: 'Invalid admin credentials' });
+  res.status(401).json({ error: 'بيانات المسؤول غير صحيحة' });
 });
 
-// 8) API: رفع وقراءة ملف Excel
-app.post('/api/upload', auth, upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
+// 9) API: جلب بيانات Users من Google Sheet
+app.get('/api/users', auth, async (req, res) => {
   try {
-    const wb    = XLSX.readFile(req.file.path);
-    const shUsr = wb.Sheets['Users'];
-    const shAtt = wb.Sheets['Attendance'];
-    if (!shUsr || !shAtt) throw new Error('Missing sheets "Users" or "Attendance"');
-
-    // قراءة Users
-    const jdUsr = XLSX.utils.sheet_to_json(shUsr, { header: 1 });
-    usersHeaders = jdUsr[0].map(h => String(h).trim());
-    usersData    = jdUsr.slice(1);
-
-    // قراءة Attendance
-    const jdAtt = XLSX.utils.sheet_to_json(shAtt, { header: 1 });
-    attendanceHeaders = jdAtt[0].map(h => String(h).trim());
-    attendanceData    = jdAtt.slice(1);
-
-    fs.unlinkSync(req.file.path);
-    res.json({ message: 'File parsed successfully' });
+    const result = await readSheet('Users');
+    res.json(result);
   } catch (err) {
-    fs.unlink(req.file.path, () => {});
     res.status(400).json({ error: err.message });
   }
 });
 
-// 9) API: جلب بيانات Users
-app.get('/api/users', auth, (req, res) => {
-  res.json({ headers: usersHeaders, data: usersData });
+// 10) API: جلب بيانات Attendance من Google Sheet
+app.get('/api/attendance', auth, async (req, res) => {
+  try {
+    const result = await readSheet('Attendance');
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
-// 10) API: جلب بيانات Attendance
-app.get('/api/attendance', auth, (req, res) => {
-  res.json({ headers: attendanceHeaders, data: attendanceData });
-});
-
-// 11) أي طلب GET آخر → fallback عبر RegExp (يتجنّب path-to-regexp)
+// 11) أي طلب GET آخر → صفحة الواجهة (SPA fallback)
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
