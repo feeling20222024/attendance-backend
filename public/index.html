@@ -11,23 +11,14 @@
 <body class="bg-gray-100 p-4">
   <div class="max-w-5xl mx-auto">
 
-    <!-- لوحة المسؤول -->
+    <!-- لوحة المسؤول (للحصول على التوكن) -->
     <div id="adminPanel" class="bg-white p-6 rounded-lg shadow mb-8">
       <h2 class="text-2xl font-bold mb-4">لوحة المسؤول</h2>
-      <input id="adminCode" type="text" placeholder="ADMIN" class="w-full mb-3 border px-3 py-2 rounded"/>
-      <input id="adminPass" type="password" placeholder="admin123" class="w-full mb-3 border px-3 py-2 rounded"/>
+      <input id="adminCode" type="text" placeholder="رمز المسؤول" class="w-full mb-3 border px-3 py-2 rounded"/>
+      <input id="adminPass" type="password" placeholder="كلمة مرور المسؤول" class="w-full mb-3 border px-3 py-2 rounded"/>
       <button onclick="adminLogin()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
         دخول كمسؤول
       </button>
-      <div id="adminUpload" class="mt-4 hidden space-y-2">
-        <div>
-          <label class="block mb-1 font-medium">اختر ملف Excel:</label>
-          <input type="file" id="fileInput" accept=".xlsx,.xls" class="w-full"/>
-        </div>
-        <button onclick="refreshData()" class="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600">
-          تحديث البيانات
-        </button>
-      </div>
     </div>
 
     <!-- تسجيل دخول الموظف -->
@@ -89,8 +80,7 @@
               <th class="px-4 py-2">الأيام المحتسبة ≤ ساعة/ساعيات</th>
             </tr>
           </thead>
-          <tbody id="attendanceBody" class="divide-y divide-gray-100">
-          </tbody>
+          <tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody>
         </table>
       </div>
     </div>
@@ -101,12 +91,19 @@
     const { jsPDF } = window.jspdf;
     const API_BASE = 'http://localhost:3000/api';
     let apiToken = null;
-
-    let headersAtt = [], attendanceData = [];
     let headersUsr = [], usersData = [];
+    let headersAtt = [], attendanceData = [];
     let currentUser = null;
 
-    // 1) تسجيل دخول المشرف
+    const caseMapping = {
+      1: "غياب غير مبرر (بدون إذن رسمي)",
+      2: "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
+      3: "خروج مبكر (أو عدم مهر البصمة مساءً)",
+      4: "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
+      5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
+    };
+
+    // 1) تسجيل دخول المشرف للحصول على توكن
     async function adminLogin() {
       const code = document.getElementById('adminCode').value.trim();
       const pass = document.getElementById('adminPass').value.trim();
@@ -116,82 +113,61 @@
           headers:{ 'Content-Type':'application/json' },
           body: JSON.stringify({ code, password: pass })
         });
-        if (!res.ok) throw '';
+        if (!res.ok) throw new Error();
         const { token } = await res.json();
         apiToken = token;
-        document.getElementById('adminUpload').classList.remove('hidden');
+        alert('تم تسجيل دخول المسؤول بنجاح');
+        // إظهار حقول الموظف بعد حصول التوكن
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('adminPanel').classList.add('hidden');
       } catch {
         alert('بيانات المسؤول خاطئة');
       }
     }
 
-    // 2) رفع الملف
-    document.getElementById('fileInput').addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return;
-      const form = new FormData();
-      form.append('file', file);
-      try {
-        const res = await fetch(`${API_BASE}/upload`, {
-          method:'POST',
-          headers: { 'Authorization': `Bearer ${apiToken}` },
-          body: form
-        });
-        if (!res.ok) throw '';
-        alert('تم رفع وتخزين البيانات على الخادم');
-        await fetchData();
-      } catch {
-        alert('فشل في رفع الملف');
-      }
-    });
-
-    // 3) تحديث البيانات
-    async function refreshData() {
-      if (!apiToken) return alert('ليس مسموحاً');
-      await fetchData();
-      alert('تم تحديث البيانات');
-    }
-
-    // 4) جلب Users و Attendance
+    // 2) جلب البيانات من API
     async function fetchData() {
-      const [uRes,aRes] = await Promise.all([
+      const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`,      { headers:{ Authorization:`Bearer ${apiToken}` }}),
         fetch(`${API_BASE}/attendance`, { headers:{ Authorization:`Bearer ${apiToken}` }})
       ]);
-      if (uRes.ok && aRes.ok) {
-        ({ headers: headersUsr, data: usersData }      = await uRes.json());
-        ({ headers: headersAtt, data: attendanceData } = await aRes.json());
+      if (!uRes.ok || !aRes.ok) {
+        throw new Error('فشل جلب البيانات');
       }
+      ({ headers: headersUsr, data: usersData }      = await uRes.json());
+      ({ headers: headersAtt, data: attendanceData } = await aRes.json());
     }
 
-    // 5) تسجيل دخول الموظف
+    // 3) تسجيل دخول الموظف
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
-      if (!usersData.length) return alert('يرجى رفع ملف الإكسل أولاً');
-      const idxC = headersUsr.indexOf('رقم الموظف');
-      const idxP = headersUsr.indexOf('كلمة المرور');
-      const idxName = headersAtt.indexOf('الاسم');
-      const recUser = usersData.find(r=>String(r[idxC])===code && String(r[idxP])===pass);
-      if (!recUser) return alert('بيانات الدخول خاطئة');
-
-      currentUser = code;
-      // أحتاج أول سجل للـ KPI
-      const rec = attendanceData.find(r=> String(r[idxC])===code) || [];
-      document.getElementById('welcomeMsg').textContent = `مرحباً ${rec[idxName]||''}`;
-      document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
-
-      // أعمدة رقم 13 و14 و15 في Excel هي الفهرس 12,13,14
-      document.getElementById('prodIncentivePercent').textContent = rec[12] ?? '--';
-      document.getElementById('adminLeavesCounted').textContent   = rec[13] ?? '--';
-      document.getElementById('adminLeavesRemaining').textContent = rec[14] ?? '--';
-
-      document.getElementById('loginSection').classList.add('hidden');
-      document.getElementById('records').classList.remove('hidden');
-      renderRecords();
+      if (!apiToken) return alert('يرجى تسجيل دخول المسؤول أولاً');
+      try {
+        await fetchData();
+        const idxC = headersUsr.indexOf('رقم الموظف');
+        const idxP = headersUsr.indexOf('كلمة المرور');
+        const idxName = headersAtt.indexOf('الاسم');
+        const user = usersData.find(r => String(r[idxC])===code && String(r[idxP])===pass);
+        if (!user) return alert('بيانات الدخول خاطئة');
+        currentUser = code;
+        const rec = attendanceData.find(r => String(r[idxC])===code) || [];
+        document.getElementById('welcomeMsg').textContent = `مرحباً ${rec[idxName]||code}`;
+        document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('records').classList.remove('hidden');
+        renderRecords(code);
+        // تعبئة KPI
+        document.getElementById('prodIncentivePercent').textContent = rec[12] ?? '--';
+        document.getElementById('adminLeavesCounted').textContent   = rec[13] ?? '--';
+        document.getElementById('adminLeavesRemaining').textContent = rec[14] ?? '--';
+      } catch (err) {
+        alert(err.message);
+      }
     }
 
-    // 6) عرض السجلات
-    function renderRecords(){
+    // 4) عرض السجلات
+    function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
       const idx = {
@@ -208,8 +184,8 @@
         days: headersAtt.indexOf('عدد الأيام المحتسبة')
       };
       let count = 0;
-      attendanceData.forEach(r=>{
-        if (!r.length || String(r[idx.code])!==currentUser) return;
+      attendanceData.forEach(r => {
+        if (String(r[idx.code]) !== code) return;
         count++;
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -229,8 +205,8 @@
       document.getElementById('noDataMsg').classList.toggle('hidden', count>0);
     }
 
-    // 7) حفظ PDF
-    async function savePDF(){
+    // 5) حفظ PDF
+    async function savePDF() {
       const element = document.getElementById('records');
       const canvas  = await html2canvas(element,{ scale:2 });
       const img     = canvas.toDataURL('image/png');
@@ -243,7 +219,7 @@
 
     function showAbout(){ alert('فكرة وتصميم عمر الماضي - اتصالات دمشق'); }
     function logout(){
-      currentUser=null;
+      currentUser = null;
       document.getElementById('records').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
     }
