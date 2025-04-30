@@ -99,11 +99,14 @@
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
         fetch(`${API_BASE}/attendance`)
-      ]);
-      if (!uRes.ok || !aRes.ok) throw new Error('فشل جلب البيانات');
-      ({ headers: headersUsr, data: usersData }      = await uRes.json());
-      ({ headers: headersAtt, data: attendanceData } = await aRes.json());
-    }
+      ]);if (!uRes.ok) {
+  const err = await uRes.json().catch(()=>({error:uRes.statusText}));
+  throw new Error(`Users API: ${err.error || uRes.statusText}`);
+}
+if (!aRes.ok) {
+  const err = await aRes.json().catch(()=>({error:aRes.statusText}));
+  throw new Error(`Attendance API: ${err.error || aRes.statusText}`);
+}
 
     // 2) تسجيل دخول الموظف مباشرة
     async function login() {
