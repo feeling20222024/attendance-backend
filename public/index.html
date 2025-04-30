@@ -79,7 +79,9 @@
 
   <script>
     const { jsPDF } = window.jspdf;
-    const API_BASE = 'https://your-deployed-domain.com/api'; // ضع هنا رابط API العمومي
+    // استخدم مساراً نسبياً حتى يعمل محلياً وعلى الخادم
+    const API_BASE = '/api';
+
     let headersUsr = [], usersData = [];
     let headersAtt = [], attendanceData = [];
     let currentUser = null;
@@ -112,18 +114,18 @@
         const idxC = headersUsr.indexOf('رقم الموظف');
         const idxP = headersUsr.indexOf('كلمة المرور');
         const idxName = headersAtt.indexOf('الاسم');
-        const user = usersData.find(r => String(r[idxC])===code && String(r[idxP])===pass);
+        const user = usersData.find(r => String(r[idxC]) === code && String(r[idxP]) === pass);
         if (!user) return alert('بيانات الدخول خاطئة');
         currentUser = code;
-        const rec = attendanceData.find(r => String(r[idxC])===code) || [];
-        document.getElementById('welcomeMsg').textContent = `مرحباً ${rec[idxName]||code}`;
-        document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
+        const rec = attendanceData.find(r => String(r[idxC]) === code) || [];
+        document.getElementById('welcomeMsg').textContent   = `مرحباً ${rec[idxName] || code}`;
+        document.getElementById('welcomeName').textContent  = `(الكود: ${code})`;
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
         renderRecords(code);
-        document.getElementById('prodIncentivePercent').textContent = rec[12] ?? '--';
-        document.getElementById('adminLeavesCounted').textContent   = rec[13] ?? '--';
-        document.getElementById('adminLeavesRemaining').textContent = rec[14] ?? '--';
+        document.getElementById('prodIncentivePercent').textContent   = rec[12] ?? '--';
+        document.getElementById('adminLeavesCounted').textContent     = rec[13] ?? '--';
+        document.getElementById('adminLeavesRemaining').textContent   = rec[14] ?? '--';
       } catch (err) {
         alert(err.message);
       }
@@ -134,17 +136,17 @@
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
       const idx = {
-        code: headersAtt.indexOf('رقم الموظف'),
-        date: headersAtt.indexOf('التاريخ'),
+        code:   headersAtt.indexOf('رقم الموظف'),
+        date:   headersAtt.indexOf('التاريخ'),
         status: headersAtt.indexOf('رمز الحالة'),
-        in: headersAtt.indexOf('دخول'),
-        out: headersAtt.indexOf('خروج'),
-        sFrom: headersAtt.indexOf('ساعية (من الساعة)'),
-        sTo: headersAtt.indexOf('ساعية (إلى الساعة)'),
-        mFrom: headersAtt.indexOf('مهمة (من الساعة)'),
-        mTo: headersAtt.indexOf('مهمة (إلى الساعة)'),
-        notes: headersAtt.indexOf('ملاحظات'),
-        days: headersAtt.indexOf('عدد الأيام المحتسبة')
+        in:     headersAtt.indexOf('دخول'),
+        out:    headersAtt.indexOf('خروج'),
+        sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
+        sTo:    headersAtt.indexOf('ساعية (إلى الساعة)'),
+        mFrom:  headersAtt.indexOf('مهمة (من الساعة)'),
+        mTo:    headersAtt.indexOf('مهمة (إلى الساعة)'),
+        notes:  headersAtt.indexOf('ملاحظات'),
+        days:   headersAtt.indexOf('عدد الأيام المحتسبة')
       };
       let count = 0;
       attendanceData.forEach(r => {
@@ -152,36 +154,36 @@
         count++;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-4 py-2">${r[idx.date]||''}</td>
-          <td class="px-4 py-2">${caseMapping[r[idx.status]]||r[idx.status]||''}</td>
-          <td class="px-4 py-2">${r[idx.in]||''}</td>
-          <td class="px-4 py-2">${r[idx.out]||''}</td>
-          <td class="px-4 py-2">${r[idx.sFrom]||''}</td>
-          <td class="px-4 py-2">${r[idx.sTo]||''}</td>
-          <td class="px-4 py-2">${r[idx.mFrom]||''}</td>
-          <td class="px-4 py-2">${r[idx.mTo]||''}</td>
-          <td class="px-4 py-2">${r[idx.notes]||''}</td>
-          <td class="px-4 py-2">${r[idx.days]||''}</td>
+          <td class="px-4 py-2">${r[idx.date]   || ''}</td>
+          <td class="px-4 py-2">${caseMapping[r[idx.status]] || r[idx.status] || ''}</td>
+          <td class="px-4 py-2">${r[idx.in]     || ''}</td>
+          <td class="px-4 py-2">${r[idx.out]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.sFrom]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.sTo]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.mFrom]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.mTo]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.notes]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.days]   || ''}</td>
         `;
         tbody.appendChild(tr);
       });
-      document.getElementById('noDataMsg').classList.toggle('hidden', count>0);
+      document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
     }
 
     // 4) حفظ PDF
     async function savePDF() {
       const element = document.getElementById('records');
-      const canvas  = await html2canvas(element,{ scale:2 });
+      const canvas  = await html2canvas(element, { scale: 2 });
       const img     = canvas.toDataURL('image/png');
-      const pdf     = new jsPDF('l','pt','a4');
+      const pdf     = new jsPDF('l', 'pt', 'a4');
       const w       = pdf.internal.pageSize.getWidth();
-      const h       = (canvas.height * w)/canvas.width;
-      pdf.addImage(img,'PNG',0,20,w,h);
+      const h       = (canvas.height * w) / canvas.width;
+      pdf.addImage(img, 'PNG', 0, 20, w, h);
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    function showAbout(){ alert('فكرة وتصميم عمر الماضي - اتصالات دمشق'); }
-    function logout(){
+    function showAbout()  { alert('فكرة وتصميم عمر الماضي - اتصالات دمشق'); }
+    function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
