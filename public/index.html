@@ -100,19 +100,19 @@
         fetch(`${API_BASE}/attendance`)
       ]);
       if (!uRes.ok) {
-        const err = await uRes.json().catch(()=>({error:uRes.statusText}));
+        const err = await uRes.json().catch(() => ({ error: uRes.statusText }));
         throw new Error(`Users API: ${err.error || uRes.statusText}`);
       }
       if (!aRes.ok) {
-        const err = await aRes.json().catch(()=>({error:aRes.statusText}));
+        const err = await aRes.json().catch(() => ({ error: aRes.statusText }));
         throw new Error(`Attendance API: ${err.error || aRes.statusText}`);
       }
       const uJson = await uRes.json();
       const aJson = await aRes.json();
-      headersUsr      = uJson.headers;
-      usersData       = uJson.data;
-      headersAtt      = aJson.headers;
-      attendanceData  = aJson.data;
+      headersUsr     = uJson.headers;
+      usersData      = uJson.data;
+      headersAtt     = aJson.headers;
+      attendanceData = aJson.data;
     }
 
     // 2) تسجيل دخول الموظف
@@ -124,13 +124,13 @@
         const idxC    = headersUsr.indexOf('رقم الموظف');
         const idxP    = headersUsr.indexOf('كلمة المرور');
         const idxName = headersAtt.indexOf('الاسم');
-        const user = usersData.find(r => String(r[idxC])===code && String(r[idxP])===pass);
+        const user = usersData.find(r => String(r[idxC]) === code && String(r[idxP]) === pass);
         if (!user) return alert('بيانات الدخول خاطئة');
 
         currentUser = code;
-        const rec = attendanceData.find(r => String(r[idxC])===code) || [];
+        const rec = attendanceData.find(r => String(r[idxC]) === code) || [];
 
-        document.getElementById('welcomeMsg').textContent  = `مرحباً ${rec[idxName]||code}`;
+        document.getElementById('welcomeMsg').textContent   = `مرحباً ${rec[idxName] || code}`;
         document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
@@ -169,7 +169,7 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="px-4 py-2">${r[idx.date]   || ''}</td>
-          <td class="px-4 py-2">${caseMapping[r[idx.status]]||r[idx.status]||''}</td>
+          <td class="px-4 py-2">${caseMapping[r[idx.status]] || r[idx.status] || ''}</td>
           <td class="px-4 py-2">${r[idx.in]     || ''}</td>
           <td class="px-4 py-2">${r[idx.out]    || ''}</td>
           <td class="px-4 py-2">${r[idx.sFrom]  || ''}</td>
@@ -181,23 +181,23 @@
         `;
         tbody.appendChild(tr);
       });
-      document.getElementById('noDataMsg').classList.toggle('hidden', count>0);
+      document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
     }
 
     // 4) حفظ PDF
     async function savePDF() {
       const element = document.getElementById('records');
-      const canvas  = await html2canvas(element, { scale:2 });
+      const canvas  = await html2canvas(element, { scale: 2 });
       const img     = canvas.toDataURL('image/png');
-      const pdf     = new jsPDF('l','pt','a4');
+      const pdf     = new jsPDF('l', 'pt', 'a4');
       const w       = pdf.internal.pageSize.getWidth();
-      const h       = (canvas.height*w)/canvas.width;
-      pdf.addImage(img,'PNG',0,20,w,h);
+      const h       = (canvas.height * w) / canvas.width;
+      pdf.addImage(img, 'PNG', 0, 20, w, h);
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    function showAbout(){ alert('فكرة وتصميم عمر الماضي - اتصالات دمشق'); }
-    function logout(){
+    function showAbout()  { alert('فكرة وتصميم عمر الماضي - اتصالات دمشق'); }
+    function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
