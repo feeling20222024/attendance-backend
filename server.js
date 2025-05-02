@@ -1,13 +1,11 @@
-// server.js
-
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
 
 const express = require('express');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
-const path    = require('path');
+const path = require('path');
 
-const PORT     = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
 // التحقق من وجود المتغيرات البيئية المطلوبة
@@ -16,13 +14,19 @@ if (!SHEET_ID) {
   process.exit(1);
 }
 
-if (!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
-  console.error('🚨 GOOGLE_APPLICATION_CREDENTIALS_JSON غير موجود في .env');
+if (!process.env.GOOGLE_SERVICE_KEY) {
+  console.error('🚨 GOOGLE_SERVICE_KEY غير موجود في .env');
   process.exit(1);
 }
 
-// تهيئة بيانات الاعتماد من المتغيرات البيئية
-const creds = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+// تهيئة بيانات الاعتماد من المتغير البيئي
+let creds;
+try {
+  creds = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
+} catch (e) {
+  console.error('🚨 فشل في قراءة GOOGLE_SERVICE_KEY. تأكد من التنسيق الصحيح في .env');
+  process.exit(1);
+}
 
 // 2) تهيئة Express
 const app = express();
@@ -43,8 +47,8 @@ async function readSheet(title) {
   if (!sheet) throw new Error(`الشيت "${title}" غير موجود`);
   await sheet.loadHeaderRow();
   const headers = sheet.headerValues;
-  const rows    = await sheet.getRows();
-  const data    = rows.map(r => headers.map(h => r[h] ?? ''));
+  const rows = await sheet.getRows();
+  const data = rows.map(r => headers.map(h => r[h] ?? ''));
   return { headers, data };
 }
 
@@ -77,10 +81,11 @@ app.get(/.*/, (req, res) => {
 // 6) تشغيل الخادم
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
-  // اختبار الاتصال عند بدء التشغيل
-  accessSheet().then(() => {
-    console.log('✅ تم الاتصال بنجاح مع Google Sheets');
-  }).catch(err => {
-    console.error('🚨 خطأ في الاتصال مع Google Sheets:', err);
-  });
+  accessSheet()
+    .then(() => {
+      console.log('✅ تم الاتصال بنجاح مع Google Sheets');
+    })
+    .catch(err => {
+      console.error('🚨 خطأ في الاتصال مع Google Sheets:', err);
+    });
 });
