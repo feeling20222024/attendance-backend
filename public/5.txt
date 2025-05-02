@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تطبيق مراقبة الدوام</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 p-4">
+  <div class="max-w-5xl mx-auto">
+
+    <!-- تسجيل دخول الموظف -->
+    <div id="loginSection" class="bg-white p-6 rounded-lg shadow mb-8">
+      <h2 class="text-2xl font-bold mb-4">تسجيل دخول الموظف</h2>
+      <input id="codeInput" type="text" placeholder="كود الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
+      <input id="passwordInput" type="password" placeholder="كلمة المرور" class="w-full mb-3 border px-3 py-2 rounded"/>
+      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        دخول
+      </button>
+    </div>
+
+    <!-- السجلات -->
+    <div id="records" class="hidden bg-white p-6 rounded-lg shadow">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 id="welcomeMsg" class="text-2xl font-bold">مرحباً</h2>
+          <p id="welcomeName" class="text-gray-600 text-lg mt-1"></p>
+        </div>
+        <div class="flex gap-4">
+          <button onclick="showAbout()" class="text-blue-500 hover:underline">حول التطبيق</button>
+          <button onclick="savePDF()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">حفظ PDF</button>
+          <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">خروج</button>
+        </div>
+      </div>
+
+      <!-- الحقول الإحصائية -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <p class="font-semibold mb-2">نسبة الحوافز الإنتاجية</p>
+          <span id="prodIncentivePercent">--</span>%
+        </div>
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <p class="font-semibold mb-2">الإجازات الإدارية المحتسبة</p>
+          <span id="adminLeavesCounted">--</span>
+        </div>
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <p class="font-semibold mb-2">الإجازات الإدارية المتبقية</p>
+          <span id="adminLeavesRemaining">--</span>
+        </div>
+      </div>
+
+      <p id="noDataMsg" class="text-center text-gray-600 hidden">لا توجد بيانات متاحة.</p>
+
+      <!-- جدول الحضور -->
+      <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4">
+        <table class="table-auto w-full text-center divide-y divide-gray-200">
+          <thead class="bg-gray-50 text-gray-700 text-sm">
+            <tr>
+              <th class="px-4 py-2">التاريخ</th>
+              <th class="px-4 py-2">الحالة</th>
+              <th class="px-4 py-2">دخول</th>
+              <th class="px-4 py-2">خروج</th>
+              <th class="px-4 py-2">ساعية (من)</th>
+              <th class="px-4 py-2">ساعية (إلى)</th>
+              <th class="px-4 py-2">مهمة (من)</th>
+              <th class="px-4 py-2">مهمة (إلى)</th>
+              <th class="px-4 py-2">ملاحظات</th>
+              <th class="px-4 py-2">الأيام المحتسبة ≤ ساعة/ساعيات</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { jsPDF } = window.jspdf;
+    const API_BASE = '/api';  // مسار نسبي
+
+    let headersUsr = [], usersData = [];
+    let headersAtt = [], attendanceData = [];
+    let currentUser = null;
+
+    const caseMapping = {
+      1: "غياب غير مبرر (بدون إذن رسمي)",
+      2: "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
+      3: "خروج مبكر (أو عدم مهر البصمة مساءً)",
+      4: "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
+      5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
+    };
+
+    // 1) جلب البيانات من API بدون مصادقة
+    async function fetchData() {
+      const [uRes, aRes] = await Promise.all([
+        fetch(`${API_BASE}/users`),
+        fetch(`${API_BASE}/attendance`)
+      ]);
+      if (!uRes.ok) {
+        const err = await uRes.json().catch(()=>({error:uRes.statusText}));
+        throw new Error(`Users API: ${err.error || uRes.statusText}`);
+      }
+      if (!aRes.ok) {
+        const err = await aRes.json().catch(()=>({error:aRes.statusText}));
+        throw new Error(`Attendance API: ${err.error || aRes.statusText}`);
+      }
+      const uJson = await uRes.json();
+      const aJson = await aRes.json();
+      headersUsr      = uJson.headers;
+      usersData       = uJson.data;
+      headersAtt      = aJson.headers;
+      attendanceData  = aJson.data;
+    }
+
+    // 2) تسجيل دخول الموظف
+    async function login() {
+      const code = document.getElementById('codeInput').value.trim();
+      const pass = document.getElementById('passwordInput').value.trim();
+      try {
+        await fetchData();
+        const idxC    = headersUsr.indexOf('رقم الموظف');
+        const idxP    = headersUsr.indexOf('كلمة المرور');
+        const idxName = headersAtt.indexOf('الاسم');
+        const user = usersData.find(r => String(r[idxC])===code && String(r[idxP])===pass);
+        if (!user) return alert('بيانات الدخول خاطئة');
+
+        currentUser = code;
+        const rec = attendanceData.find(r => String(r[idxC])===code) || [];
+
+        document.getElementById('welcomeMsg').textContent  = `مرحباً ${rec[idxName]||code}`;
+        document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('records').classList.remove('hidden');
+
+        document.getElementById('prodIncentivePercent').textContent = rec[12] ?? '--';
+        document.getElementById('adminLeavesCounted').textContent   = rec[13] ?? '--';
+        document.getElementById('adminLeavesRemaining').textContent = rec[14] ?? '--';
+
+        renderRecords(code);
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    // 3) عرض السجلات
+    function renderRecords(code) {
+      const tbody = document.getElementById('attendanceBody');
+      tbody.innerHTML = '';
+      const idx = {
+        code:   headersAtt.indexOf('رقم الموظف'),
+        date:   headersAtt.indexOf('التاريخ'),
+        status: headersAtt.indexOf('رمز الحالة'),
+        in:     headersAtt.indexOf('دخول'),
+        out:    headersAtt.indexOf('خروج'),
+        sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
+        sTo:    headersAtt.indexOf('ساعية (إلى الساعة)'),
+        mFrom:  headersAtt.indexOf('مهمة (من الساعة)'),
+        mTo:    headersAtt.indexOf('مهمة (إلى الساعة)'),
+        notes:  headersAtt.indexOf('ملاحظات'),
+        days:   headersAtt.indexOf('عدد الأيام المحتسبة')
+      };
+      let count = 0;
+      attendanceData.forEach(r => {
+        if (String(r[idx.code]) !== code) return;
+        count++;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-4 py-2">${r[idx.date]   || ''}</td>
+          <td class="px-4 py-2">${caseMapping[r[idx.status]]||r[idx.status]||''}</td>
+          <td class="px-4 py-2">${r[idx.in]     || ''}</td>
+          <td class="px-4 py-2">${r[idx.out]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.sFrom]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.sTo]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.mFrom]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.mTo]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.notes]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.days]   || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('noDataMsg').classList.toggle('hidden', count>0);
+    }
+
+    // 4) حفظ PDF
+    async function savePDF() {
+      const element = document.getElementById('records');
+      const canvas  = await html2canvas(element, { scale:2 });
+      const img     = canvas.toDataURL('image/png');
+      const pdf     = new jsPDF('l','pt','a4');
+      const w       = pdf.internal.pageSize.getWidth();
+      const h       = (canvas.height*w)/canvas.width;
+      pdf.addImage(img,'PNG',0,20,w,h);
+      pdf.save(`attendance_${currentUser}.pdf`);
+    }
+
+    function showAbout(){ alert('فكرة وتصميم عمر الماضي - اتصالات دمشق'); }
+    function logout(){
+      currentUser = null;
+      document.getElementById('records').classList.add('hidden');
+      document.getElementById('loginSection').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
