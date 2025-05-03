@@ -16,9 +16,7 @@
       <h2 class="text-2xl font-bold mb-4">تسجيل دخول الموظف</h2>
       <input id="codeInput" type="text" placeholder="كود الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
       <input id="passwordInput" type="password" placeholder="كلمة المرور" class="w-full mb-3 border px-3 py-2 rounded"/>
-      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-        دخول
-      </button>
+      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">دخول</button>
     </div>
 
     <!-- السجلات -->
@@ -38,15 +36,15 @@
       <!-- الحقول الإحصائية -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">نسبة الحوافز الإنتاجية</p>
+          <p class="font-semibold mb-2">نسبة الدوام للحوافز الإنتاجية</p>
           <span id="prodIncentivePercent">--</span>%
         </div>
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">الإجازات الإدارية المحتسبة</p>
+          <p class="font-semibold mb-2">عدد الإجازات الإدارية المحتسبة</p>
           <span id="adminLeavesCounted">--</span>
         </div>
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">الإجازات الإدارية المتبقية</p>
+          <p class="font-semibold mb-2">عدد الإجازات الإدارية المتبقية</p>
           <span id="adminLeavesRemaining">--</span>
         </div>
       </div>
@@ -79,7 +77,7 @@
 
   <script>
     const { jsPDF } = window.jspdf;
-    const API_BASE = '/api';  // مسار نسبي
+    const API_BASE = '/api';
 
     let headersUsr = [], usersData = [];
     let headersAtt = [], attendanceData = [];
@@ -93,78 +91,86 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // 1) جلب البيانات من API بدون مصادقة
+    // جلب البيانات من الـ API
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
         fetch(`${API_BASE}/attendance`)
       ]);
-      if (!uRes.ok) {
-        const err = await uRes.json().catch(() => ({ error: uRes.statusText }));
-        throw new Error(`Users API: ${err.error || uRes.statusText}`);
-      }
-      if (!aRes.ok) {
-        const err = await aRes.json().catch(() => ({ error: aRes.statusText }));
-        throw new Error(`Attendance API: ${err.error || aRes.statusText}`);
-      }
+      if (!uRes.ok) throw new Error('فشل جلب بيانات المستخدمين');
+      if (!aRes.ok) throw new Error('فشل جلب بيانات الحضور');
       const uJson = await uRes.json();
       const aJson = await aRes.json();
       headersUsr     = uJson.headers;
       usersData      = uJson.data;
       headersAtt     = aJson.headers;
       attendanceData = aJson.data;
+      console.log('headersAtt:', headersAtt);
     }
 
-    // 2) تسجيل دخول الموظف
+    // تسجيل دخول الموظف
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
       try {
         await fetchData();
-        const idxC    = headersUsr.indexOf('رقم الموظف');
-        const idxP    = headersUsr.indexOf('كلمة المرور');
-        const idxName = headersAtt.indexOf('الاسم');
-        const user = usersData.find(r => String(r[idxC]) === code && String(r[idxP]) === pass);
-        if (!user) return alert('بيانات الدخول خاطئة');
+
+        // هنا نعرّف الفهارس بناءً على الأسماء الكاملة في الشيت
+        const idx = {
+          code:            headersUsr.indexOf('رقم الموظف'),
+          pass:            headersUsr.indexOf('كلمة المرور'),
+          name:            headersAtt.indexOf('الاسم'),
+          date:            headersAtt.indexOf('التاريخ'),
+          status:          headersAtt.indexOf('رمز الحالة'),
+          in:              headersAtt.indexOf('دخول'),
+          out:             headersAtt.indexOf('خروج'),
+          sFrom:           headersAtt.indexOf('ساعية (من الساعة)'),
+          sTo:             headersAtt.indexOf('ساعية (إلى الساعة)'),
+          mFrom:           headersAtt.indexOf('مهمة (من الساعة)'),
+          mTo:             headersAtt.indexOf('مهمة (إلى الساعة)'),
+          notes:           headersAtt.indexOf('ملاحظات'),
+          days:            headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
+          leavesCounted:   headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
+          leavesRemaining: headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
+          incentivePercent:headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')
+        };
+
+        // بحث المستخدم
+        const user = usersData.find(r => 
+          String(r[idx.code]) === code && String(r[idx.pass]) === pass
+        );
+        if (!user) {
+          return alert('بيانات الدخول خاطئة');
+        }
 
         currentUser = code;
-        const rec = attendanceData.find(r => String(r[idxC]) === code) || [];
 
-        document.getElementById('welcomeMsg').textContent   = `مرحباً ${rec[idxName] || code}`;
-        document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
+        // صف أول لتعبئة KPIs
+        const rec = attendanceData.find(r => String(r[idx.code]) === code) || [];
+
+        document.getElementById('welcomeMsg').textContent   = `مرحباً ${rec[idx.name]||code}`;
+        document.getElementById('welcomeName').textContent  = `(الكود: ${code})`;
+        document.getElementById('prodIncentivePercent').textContent = rec[idx.incentivePercent] ?? '--';
+        document.getElementById('adminLeavesCounted').textContent   = rec[idx.leavesCounted]   ?? '--';
+        document.getElementById('adminLeavesRemaining').textContent = rec[idx.leavesRemaining] ?? '--';
+
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
 
-        document.getElementById('prodIncentivePercent').textContent = rec[12] ?? '--';
-        document.getElementById('adminLeavesCounted').textContent   = rec[13] ?? '--';
-        document.getElementById('adminLeavesRemaining').textContent = rec[14] ?? '--';
-
-        renderRecords(code);
+        renderRecords(idx);
       } catch (err) {
         alert(err.message);
       }
     }
 
-    // 3) عرض السجلات
-    function renderRecords(code) {
+    // عرض السجلات في الجدول
+    function renderRecords(idx) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
-      const idx = {
-        code:   headersAtt.indexOf('رقم الموظف'),
-        date:   headersAtt.indexOf('التاريخ'),
-        status: headersAtt.indexOf('رمز الحالة'),
-        in:     headersAtt.indexOf('دخول'),
-        out:    headersAtt.indexOf('خروج'),
-        sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
-        sTo:    headersAtt.indexOf('ساعية (إلى الساعة)'),
-        mFrom:  headersAtt.indexOf('مهمة (من الساعة)'),
-        mTo:    headersAtt.indexOf('مهمة (إلى الساعة)'),
-        notes:  headersAtt.indexOf('ملاحظات'),
-        days:   headersAtt.indexOf('عدد الأيام المحتسبة')
-      };
       let count = 0;
+
       attendanceData.forEach(r => {
-        if (String(r[idx.code]) !== code) return;
+        if (String(r[idx.code]) !== currentUser) return;
         count++;
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -181,22 +187,24 @@
         `;
         tbody.appendChild(tr);
       });
+
+      // إظهار رسالة لا توجد بيانات إذا count===0
       document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
     }
 
-    // 4) حفظ PDF
+    // حفظ PDF
     async function savePDF() {
-      const element = document.getElementById('records');
-      const canvas  = await html2canvas(element, { scale: 2 });
-      const img     = canvas.toDataURL('image/png');
-      const pdf     = new jsPDF('l', 'pt', 'a4');
-      const w       = pdf.internal.pageSize.getWidth();
-      const h       = (canvas.height * w) / canvas.width;
-      pdf.addImage(img, 'PNG', 0, 20, w, h);
+      const elm = document.getElementById('records');
+      const canvas = await html2canvas(elm, { scale: 2 });
+      const img    = canvas.toDataURL('image/png');
+      const pdf    = new jsPDF('l','pt','a4');
+      const w      = pdf.internal.pageSize.getWidth();
+      const h      = (canvas.height * w) / canvas.width;
+      pdf.addImage(img,'PNG',0,20,w,h);
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    function showAbout()  { alert('فكرة وتصميم عمر الماضي - اتصالات دمشق'); }
+    function showAbout() { alert('فكرة وتصميم عمر الماضي – اتصالات دمشق'); }
     function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
