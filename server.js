@@ -1,3 +1,5 @@
+// server.js
+
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
 
@@ -5,7 +7,7 @@ const express = require('express');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const path = require('path');
 
-const PORT = process.env.PORT || 3000;
+const PORT     = process.env.PORT || 3000;
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
 // التحقق من وجود المتغيرات البيئية المطلوبة
@@ -13,13 +15,12 @@ if (!SHEET_ID) {
   console.error('🚨 GOOGLE_SHEET_ID غير موجود في .env');
   process.exit(1);
 }
-
 if (!process.env.GOOGLE_SERVICE_KEY) {
   console.error('🚨 GOOGLE_SERVICE_KEY غير موجود في .env');
   process.exit(1);
 }
 
-// تهيئة بيانات الاعتماد من المتغير البيئي
+// 2) تهيئة بيانات الاعتماد من المتغير البيئي
 let creds;
 try {
   creds = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
@@ -28,15 +29,18 @@ try {
   process.exit(1);
 }
 
-// 2) تهيئة Express
+// 3) تهيئة Express
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 3) دوال الوصول إلى Google Sheet
+// 4) دوال الوصول إلى Google Sheet
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
-  await doc.useServiceAccountAuth(creds);
+  await doc.useServiceAccountAuth({
+    client_email: creds.client_email,
+    private_key: creds.private_key.replace(/\\n/g, '\n'),
+  });
   await doc.loadInfo();
   return doc;
 }
@@ -47,18 +51,18 @@ async function readSheet(title) {
   if (!sheet) throw new Error(`الشيت "${title}" غير موجود`);
   await sheet.loadHeaderRow();
   const headers = sheet.headerValues;
-  const rows = await sheet.getRows();
-  const data = rows.map(r => headers.map(h => r[h] ?? ''));
+  const rows    = await sheet.getRows();
+  const data    = rows.map(r => headers.map(h => r[h] ?? ''));
   return { headers, data };
 }
 
-// 4) API بلا مصادقة
+// 5) API بلا مصادقة
 app.get('/api/users', async (req, res) => {
   try {
     const result = await readSheet('Users');
     res.json(result);
   } catch (err) {
-    console.error('خطأ في جلب بيانات المستخدمين:', err);
+    console.error('خطأ في جلب بيانات المستخدمين:', err.message);
     res.status(400).json({ error: err.message });
   }
 });
@@ -68,24 +72,21 @@ app.get('/api/attendance', async (req, res) => {
     const result = await readSheet('Attendance');
     res.json(result);
   } catch (err) {
-    console.error('خطأ في جلب بيانات الحضور:', err);
+    console.error('خطأ في جلب بيانات الحضور:', err.message);
     res.status(400).json({ error: err.message });
   }
 });
 
-// 5) توجيه باقي الطلبات للواجهة
+// 6) توجيه باقي الطلبات للواجهة (SPA fallback)
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 6) تشغيل الخادم
+// 7) تشغيل الخادم
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
+  // اختبار الاتصال عند بدء التشغيل
   accessSheet()
-    .then(() => {
-      console.log('✅ تم الاتصال بنجاح مع Google Sheets');
-    })
-    .catch(err => {
-      console.error('🚨 خطأ في الاتصال مع Google Sheets:', err);
-    });
+    .then(() => console.log('✅ تم الاتصال بنجاح مع Google Sheets'))
+    .catch(err => console.error('🚨 خطأ في الاتصال مع Google Sheets:', err.message));
 });
