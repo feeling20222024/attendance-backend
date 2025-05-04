@@ -57,8 +57,8 @@
           <thead class="bg-gray-50 text-gray-700 text-sm">
             <tr>
               <th class="px-4 py-2">رقم الموظف</th>
-              <th class="px-4 py-2">الاسم</th
-              <th class="px-4 py-2">رمز الحالة</th>
+              <th class="px-4 py-2">الاسم</th>
+              <th class="px-4 py-2">الحالة</th>
               <th class="px-4 py-2">التاريخ</th>
               <th class="px-4 py-2">دخول</th>
               <th class="px-4 py-2">خروج</th>
@@ -66,7 +66,7 @@
               <th class="px-4 py-2">ساعية (إلى الساعة)</th>
               <th class="px-4 py-2">مهمة (من الساعة)</th>
               <th class="px-4 py-2">مهمة (إلى الساعة)</th>
-              <th class="px-4 py-2">عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة</th>
+              <th class="px-4 py-2">عدد الأيام المحتسبة (ساعيات/تأخر)</th>
               <th class="px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
@@ -93,7 +93,7 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // 1) جلب البيانات من شيت Users و Attendance
+    // 1) جلب بيانات شيت Users و Attendance
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -115,25 +115,31 @@
       const pass = document.getElementById('passwordInput').value.trim();
       try {
         await fetchData();
-        const idxC    = headersUsr.indexOf('رقم الموظف');
-        const idxP    = headersUsr.indexOf('كلمة المرور');
+        // أعمدة البحث في شيت Users
+        const idxC = headersUsr.indexOf('رقم الموظف');
+        const idxP = headersUsr.indexOf('كلمة المرور');
+        // وعمود الاسم في شيت Attendance
         const idxName = headersAtt.indexOf('الاسم');
-        // أول تحقق من sheet Users
+        // التحقق من وجود الكود/الباس في شيت Users
         const user = usersData.find(r => String(r[idxC]) === code && String(r[idxP]) === pass);
         if (!user) return alert('بيانات الدخول خاطئة');
 
         currentUser = code;
-        // نبحث سجل المستخدم في Attendance
-        const rec = attendanceData.find(r => String(r[idxC]) === code) || [];
-        // اسم المستخدم من عمود "الاسم" بشيت Attendance
-        document.getElementById('welcomeMsg').textContent   = `مرحباً ${rec[idxName] || code}`;
-        document.getElementById('welcomeName').textContent  = `(الكود: ${code})`;
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('records').classList.remove('hidden');
-        // تعبئة KPI من نهاية الصفوف
+        // جلب أول سجل مطابق في شيت Attendance
+        const idxCode = headersAtt.indexOf('رقم الموظف');
+        const rec = attendanceData.find(r => String(r[idxCode]) === code) || [];
+
+        // عرض الترحيب بالاسم من عمود "الاسم"
+        document.getElementById('welcomeMsg').textContent = `مرحباً ${rec[idxName] || code}`;
+        document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
+
+        // تعبئة KPI من الأعمدة المطابقة
         document.getElementById('prodIncentivePercent').textContent = rec[headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')] ?? '--';
         document.getElementById('adminLeavesCounted').textContent   = rec[headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل')] ?? '--';
         document.getElementById('adminLeavesRemaining').textContent = rec[headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل')] ?? '--';
+
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('records').classList.remove('hidden');
 
         renderRecords(code);
       } catch (err) {
@@ -141,14 +147,15 @@
       }
     }
 
-    // 3) عرض السجلات
+    // 3) عرض سجلات الحضور
     function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
       const idx = {
         code:   headersAtt.indexOf('رقم الموظف'),
-        date:   headersAtt.indexOf('التاريخ'),
+        name:   headersAtt.indexOf('الاسم'),
         status: headersAtt.indexOf('رمز الحالة'),
+        date:   headersAtt.indexOf('التاريخ'),
         in:     headersAtt.indexOf('دخول'),
         out:    headersAtt.indexOf('خروج'),
         sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
@@ -164,8 +171,10 @@
         count++;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-4 py-2">${r[idx.date]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.code]}</td>
+          <td class="px-4 py-2">${r[idx.name]}</td>
           <td class="px-4 py-2">${caseMapping[r[idx.status]] || r[idx.status] || ''}</td>
+          <td class="px-4 py-2">${r[idx.date]  || ''}</td>
           <td class="px-4 py-2">${r[idx.in]    || ''}</td>
           <td class="px-4 py-2">${r[idx.out]   || ''}</td>
           <td class="px-4 py-2">${r[idx.sFrom] || ''}</td>
@@ -192,7 +201,7 @@
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    function showAbout() { alert('فكرة وتصميم عمر الماضي – اتصالات دمشق'); }
+    function showAbout() { alert('فكرة وإعداد وتصميم عمر الماضي – اتصالات دمشق - دائرة الموارد البشرية'); }
     function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
