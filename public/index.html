@@ -36,16 +36,16 @@
       <!-- الحقول الإحصائية -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">عدد الإجازات الإدارية المحتسبة</p>
+          <p class="font-semibold mb-2">نسبة الدوام للحوافز الإنتاجية</p>
+          <span id="prodIncentivePercent">--</span>%
+        </div>
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <p class="font-semibold mb-2">الإجازات الإدارية المحتسبة</p>
           <span id="adminLeavesCounted">--</span>
         </div>
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">عدد الإجازات الإدارية المتبقية</p>
+          <p class="font-semibold mb-2">الإجازات الإدارية المتبقية</p>
           <span id="adminLeavesRemaining">--</span>
-        </div>
-        <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">نسبة الدوام للحوافز الإنتاجية</p>
-          <span id="prodIncentivePercent">--</span>%
         </div>
       </div>
 
@@ -57,7 +57,7 @@
           <thead class="bg-gray-50 text-gray-700 text-sm">
             <tr>
               <th class="px-4 py-2">التاريخ</th>
-              <th class="px-4 py-2">رمز الحالة</th>
+              <th class="px-4 py-2">الحالة</th>
               <th class="px-4 py-2">دخول</th>
               <th class="px-4 py-2">خروج</th>
               <th class="px-4 py-2">ساعية (من الساعة)</th>
@@ -91,7 +91,7 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // جلب البيانات
+    // 1) جلب البيانات من شيت Users و Attendance
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -107,7 +107,7 @@
       attendanceData = aJson.data;
     }
 
-    // تسجيل دخول الموظف
+    // 2) تسجيل دخول الموظف
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
@@ -115,35 +115,38 @@
         await fetchData();
         const idxC    = headersUsr.indexOf('رقم الموظف');
         const idxP    = headersUsr.indexOf('كلمة المرور');
-        const idxName = headersUsr.indexOf('الاسم');
-        // تحقق من بيانات الدخول
+        const idxName = headersAtt.indexOf('الاسم');
+        // أول تحقق من sheet Users
         const user = usersData.find(r => String(r[idxC]) === code && String(r[idxP]) === pass);
         if (!user) return alert('بيانات الدخول خاطئة');
 
         currentUser = code;
-        // سجل واحد لكل KPI مأخوذ من usersData
-        document.getElementById('adminLeavesCounted').textContent = user[ headersUsr.indexOf('عدد الإجازات الإدارية المحتسبة للعامل') ] || '--';
-        document.getElementById('adminLeavesRemaining').textContent = user[ headersUsr.indexOf('عدد الإجازات الإدارية المتبقية للعامل') ] || '--';
-        document.getElementById('prodIncentivePercent').textContent = user[ headersUsr.indexOf('نسبة الدوام للحوافز الإنتاجية') ] || '--';
-
-        // عرض السجلات اليومية
+        // نبحث سجل المستخدم في Attendance
+        const rec = attendanceData.find(r => String(r[idxC]) === code) || [];
+        // اسم المستخدم من عمود "الاسم" بشيت Attendance
+        document.getElementById('welcomeMsg').textContent   = `مرحباً ${rec[idxName] || code}`;
+        document.getElementById('welcomeName').textContent  = `(الكود: ${code})`;
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
+        // تعبئة KPI من نهاية الصفوف
+        document.getElementById('prodIncentivePercent').textContent = rec[headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')] ?? '--';
+        document.getElementById('adminLeavesCounted').textContent   = rec[headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل')] ?? '--';
+        document.getElementById('adminLeavesRemaining').textContent = rec[headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل')] ?? '--';
+
         renderRecords(code);
       } catch (err) {
         alert(err.message);
       }
     }
 
-    // عرض السجلات اليومية
+    // 3) عرض السجلات
     function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
-
       const idx = {
         code:   headersAtt.indexOf('رقم الموظف'),
-        status: headersAtt.indexOf('رمز الحالة'),
         date:   headersAtt.indexOf('التاريخ'),
+        status: headersAtt.indexOf('رمز الحالة'),
         in:     headersAtt.indexOf('دخول'),
         out:    headersAtt.indexOf('خروج'),
         sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
@@ -153,30 +156,29 @@
         days:   headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
         notes:  headersAtt.indexOf('ملاحظات')
       };
-
       let count = 0;
       attendanceData.forEach(r => {
         if (String(r[idx.code]) !== code) return;
         count++;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-4 py-2">${r[idx.date]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.date]  || ''}</td>
           <td class="px-4 py-2">${caseMapping[r[idx.status]] || r[idx.status] || ''}</td>
-          <td class="px-4 py-2">${r[idx.in]     || ''}</td>
-          <td class="px-4 py-2">${r[idx.out]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.sFrom]  || ''}</td>
-          <td class="px-4 py-2">${r[idx.sTo]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.mFrom]  || ''}</td>
-          <td class="px-4 py-2">${r[idx.mTo]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.days]   || ''}</td>
-          <td class="px-4 py-2">${r[idx.notes]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.in]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.out]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.sFrom] || ''}</td>
+          <td class="px-4 py-2">${r[idx.sTo]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.mFrom] || ''}</td>
+          <td class="px-4 py-2">${r[idx.mTo]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.days]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.notes] || ''}</td>
         `;
         tbody.appendChild(tr);
       });
       document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
     }
 
-    // حفظ PDF
+    // 4) حفظ PDF
     async function savePDF() {
       const elm = document.getElementById('records');
       const canvas = await html2canvas(elm, { scale: 2 });
@@ -188,7 +190,7 @@
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    function showAbout()  { alert('فكرة وتصميم عمر الماضي – اتصالات دمشق'); }
+    function showAbout() { alert('فكرة وتصميم عمر الماضي – اتصالات دمشق'); }
     function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
