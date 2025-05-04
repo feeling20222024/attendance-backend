@@ -15,6 +15,7 @@
     <div id="loginSection" class="bg-white p-6 rounded-lg shadow mb-8">
       <h2 class="text-2xl font-bold mb-4">تسجيل دخول الموظف</h2>
       <input id="codeInput" type="text" placeholder="رقم الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
+      <input id="passwordInput" type="password" placeholder="كلمة المرور" class="w-full mb-3 border px-3 py-2 rounded"/>
       <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">دخول</button>
     </div>
 
@@ -67,10 +68,10 @@
     const { jsPDF } = window.jspdf;
     const API_BASE = '/api';
 
+    let headersUsr = [], usersData = [];
     let headersAtt = [], attendanceData = [];
     let currentUser = null;
 
-    // رموز الحالة إلى نص
     const caseMapping = {
       1: "غياب غير مبرر (بدون إذن رسمي)",
       2: "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
@@ -79,24 +80,29 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // 1) جلب البيانات من API
+    // جلب بيانات Users و Attendance
     async function fetchData() {
-      const res = await fetch(`${API_BASE}/attendance`);
-      if (!res.ok) throw new Error('فشل جلب بيانات الحضور');
-      const json = await res.json();
-      headersAtt = json.headers;
-      attendanceData = json.data;
+      const [uRes, aRes] = await Promise.all([
+        fetch(`${API_BASE}/users`),
+        fetch(`${API_BASE}/attendance`)
+      ]);
+      if (!uRes.ok) throw new Error('فشل جلب بيانات المستخدمين');
+      if (!aRes.ok) throw new Error('فشل جلب بيانات الحضور');
+      const uJson = await uRes.json();
+      const aJson = await aRes.json();
+      headersUsr     = uJson.headers;
+      usersData      = uJson.data;
+      headersAtt     = aJson.headers;
+      attendanceData = aJson.data;
     }
 
-    // 2) بناء رؤوس الجدول ديناميكياً بحسب الترتيب الثابت أدناه
+    // بناء رؤوس جدول الحضور بالترتيب المطلوب
     function buildHeader() {
-      const headerRow = document.getElementById('tableHeader');
-      headerRow.innerHTML = '';
-      // الترتيب الذي تريده في العرض:
-      const cols = [
-        'التاريخ',
+      const titles = [
+        'رقم الموظف',
         'الاسم',
         'الحالة',
+        'التاريخ',
         'دخول',
         'خروج',
         'ساعية (من الساعة)',
@@ -106,35 +112,46 @@
         'عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة',
         'ملاحظات'
       ];
-      cols.forEach(title => {
+      const headerRow = document.getElementById('tableHeader');
+      headerRow.innerHTML = '';
+      titles.forEach(t => {
         const th = document.createElement('th');
         th.className = 'px-4 py-2';
-        th.textContent = title;
+        th.textContent = t;
         headerRow.appendChild(th);
       });
     }
 
-    // 3) تسجيل دخول الموظف (بدون كلمة مرور)
+    // تسجيل دخول الموظف
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
-      if (!code) return alert('الرجاء إدخال رقم الموظف');
+      const pass = document.getElementById('passwordInput').value.trim();
+      if (!code || !pass) return alert('الرجاء إدخال رقم الموظف وكلمة المرور');
       try {
         await fetchData();
-        buildHeader();
-        // العثور على أول سجل يناظر رقم الموظف
-        const idxCode = headersAtt.indexOf('رقم الموظف');
-        const idxName = headersAtt.indexOf('الاسم');
-        const idxStatus = headersAtt.indexOf('الحالة');
-        const firstRec = attendanceData.find(r => String(r[idxCode]) === code);
-        if (!firstRec) return alert('لم يتم العثور على بيانات لهذا الموظف');
+        const idxC = headersUsr.indexOf('رقم الموظف');
+        const idxP = headersUsr.indexOf('كلمة المرور');
+        const idxN = headersUsr.indexOf('الاسم');
+        const user = usersData.find(r =>
+          String(r[idxC]) === code && String(r[idxP]) === pass
+        );
+        if (!user) return alert('بيانات الدخول خاطئة');
 
         currentUser = code;
-        document.getElementById('welcomeMsg').textContent  = `مرحباً ${firstRec[idxName] || code}`;
+        const name = user[idxN] || code;
+        document.getElementById('welcomeMsg').textContent  = `مرحباً ${name}`;
         document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
-        // تعبئة KPI من أول سجل
-        document.getElementById('prodIncentivePercent').textContent = firstRec[ headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية') ] || '--';
-        document.getElementById('adminLeavesCounted').textContent   = firstRec[ headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل') ] || '--';
-        document.getElementById('adminLeavesRemaining').textContent = firstRec[ headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل') ] || '--';
+
+        // بناء رأس الجدول وملء KPI
+        buildHeader();
+        const idxAcode    = headersAtt.indexOf('رقم الموظف');
+        const idxAdminCnt = headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل');
+        const idxAdminRem = headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل');
+        const idxIncent   = headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية');
+        const firstRec    = attendanceData.find(r => String(r[idxAcode]) === code) || [];
+        document.getElementById('adminLeavesCounted').textContent   = firstRec[idxAdminCnt] || '--';
+        document.getElementById('adminLeavesRemaining').textContent = firstRec[idxAdminRem] || '--';
+        document.getElementById('prodIncentivePercent').textContent = firstRec[idxIncent]   || '--';
 
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
@@ -144,34 +161,34 @@
       }
     }
 
-    // 4) عرض سجلات الموظف
+    // عرض سجلات الدوام لشخص واحد
     function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
-      // احفظ الفهارس محلياً
       const idx = {
-        date:    headersAtt.indexOf('التاريخ'),
-        name:    headersAtt.indexOf('الاسم'),
-        status:  headersAtt.indexOf('الحالة'),
-        in:      headersAtt.indexOf('دخول'),
-        out:     headersAtt.indexOf('خروج'),
-        sFrom:   headersAtt.indexOf('ساعية (من الساعة)'),
-        sTo:     headersAtt.indexOf('ساعية (إلى الساعة)'),
-        mFrom:   headersAtt.indexOf('مهمة (من الساعة)'),
-        mTo:     headersAtt.indexOf('مهمة (إلى الساعة)'),
-        days:    headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
-        notes:   headersAtt.indexOf('ملاحظات'),
-        code:    headersAtt.indexOf('رقم الموظف')
+        code:   headersAtt.indexOf('رقم الموظف'),
+        name:   headersAtt.indexOf('الاسم'),
+        status: headersAtt.indexOf('الحالة'),
+        date:   headersAtt.indexOf('التاريخ'),
+        in:     headersAtt.indexOf('دخول'),
+        out:    headersAtt.indexOf('خروج'),
+        sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
+        sTo:    headersAtt.indexOf('ساعية (إلى الساعة)'),
+        mFrom:  headersAtt.indexOf('مهمة (من الساعة)'),
+        mTo:    headersAtt.indexOf('مهمة (إلى الساعة)'),
+        days:   headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
+        notes:  headersAtt.indexOf('ملاحظات')
       };
-      let count = 0;
+      let found = false;
       attendanceData.forEach(r => {
         if (String(r[idx.code]) !== code) return;
-        count++;
+        found = true;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-4 py-2">${r[idx.date]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.code]   || ''}</td>
           <td class="px-4 py-2">${r[idx.name]   || ''}</td>
           <td class="px-4 py-2">${caseMapping[r[idx.status]] || r[idx.status] || ''}</td>
+          <td class="px-4 py-2">${r[idx.date]   || ''}</td>
           <td class="px-4 py-2">${r[idx.in]     || ''}</td>
           <td class="px-4 py-2">${r[idx.out]    || ''}</td>
           <td class="px-4 py-2">${r[idx.sFrom]  || ''}</td>
@@ -183,10 +200,10 @@
         `;
         tbody.appendChild(tr);
       });
-      document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
+      document.getElementById('noDataMsg').classList.toggle('hidden', found);
     }
 
-    // 5) حفظ PDF
+    // حفظ PDF
     async function savePDF() {
       const elm = document.getElementById('records');
       const canvas = await html2canvas(elm, { scale:2 });
