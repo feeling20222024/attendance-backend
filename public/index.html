@@ -36,16 +36,16 @@
       <!-- الحقول الإحصائية -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">نسبة الدوام للحوافز الإنتاجية</p>
-          <span id="prodIncentivePercent">--</span>%
-        </div>
-        <div class="bg-gray-50 p-4 rounded shadow">
           <p class="font-semibold mb-2">عدد الإجازات الإدارية المحتسبة</p>
           <span id="adminLeavesCounted">--</span>
         </div>
         <div class="bg-gray-50 p-4 rounded shadow">
           <p class="font-semibold mb-2">عدد الإجازات الإدارية المتبقية</p>
           <span id="adminLeavesRemaining">--</span>
+        </div>
+        <div class="bg-gray-50 p-4 rounded shadow">
+          <p class="font-semibold mb-2">نسبة الدوام للحوافز الإنتاجية</p>
+          <span id="prodIncentivePercent">--</span>%
         </div>
       </div>
 
@@ -57,15 +57,15 @@
           <thead class="bg-gray-50 text-gray-700 text-sm">
             <tr>
               <th class="px-4 py-2">التاريخ</th>
-              <th class="px-4 py-2">الحالة</th>
+              <th class="px-4 py-2">رمز الحالة</th>
               <th class="px-4 py-2">دخول</th>
               <th class="px-4 py-2">خروج</th>
-              <th class="px-4 py-2">ساعية (من)</th>
-              <th class="px-4 py-2">ساعية (إلى)</th>
-              <th class="px-4 py-2">مهمة (من)</th>
-              <th class="px-4 py-2">مهمة (إلى)</th>
+              <th class="px-4 py-2">ساعية (من الساعة)</th>
+              <th class="px-4 py-2">ساعية (إلى الساعة)</th>
+              <th class="px-4 py-2">مهمة (من الساعة)</th>
+              <th class="px-4 py-2">مهمة (إلى الساعة)</th>
+              <th class="px-4 py-2">عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة</th>
               <th class="px-4 py-2">ملاحظات</th>
-              <th class="px-4 py-2">الأيام المحتسبة ≤ ساعة/ساعيات</th>
             </tr>
           </thead>
           <tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody>
@@ -91,7 +91,7 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // جلب البيانات من الـ API
+    // جلب البيانات
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -105,7 +105,6 @@
       usersData      = uJson.data;
       headersAtt     = aJson.headers;
       attendanceData = aJson.data;
-      console.log('headersAtt:', headersAtt);
     }
 
     // تسجيل دخول الموظف
@@ -114,63 +113,50 @@
       const pass = document.getElementById('passwordInput').value.trim();
       try {
         await fetchData();
-
-        // هنا نعرّف الفهارس بناءً على الأسماء الكاملة في الشيت
-        const idx = {
-          code:            headersUsr.indexOf('رقم الموظف'),
-          pass:            headersUsr.indexOf('كلمة المرور'),
-          name:            headersAtt.indexOf('الاسم'),
-          date:            headersAtt.indexOf('التاريخ'),
-          status:          headersAtt.indexOf('رمز الحالة'),
-          in:              headersAtt.indexOf('دخول'),
-          out:             headersAtt.indexOf('خروج'),
-          sFrom:           headersAtt.indexOf('ساعية (من الساعة)'),
-          sTo:             headersAtt.indexOf('ساعية (إلى الساعة)'),
-          mFrom:           headersAtt.indexOf('مهمة (من الساعة)'),
-          mTo:             headersAtt.indexOf('مهمة (إلى الساعة)'),
-          notes:           headersAtt.indexOf('ملاحظات'),
-          days:            headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
-          leavesCounted:   headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
-          leavesRemaining: headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
-          incentivePercent:headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')
-        };
-
-        // بحث المستخدم
-        const user = usersData.find(r => 
-          String(r[idx.code]) === code && String(r[idx.pass]) === pass
-        );
-        if (!user) {
-          return alert('بيانات الدخول خاطئة');
-        }
+        const idxC    = headersUsr.indexOf('رقم الموظف');
+        const idxP    = headersUsr.indexOf('كلمة المرور');
+        const idxName = headersUsr.indexOf('الاسم');
+        // تحقق من بيانات الدخول
+        const user = usersData.find(r => String(r[idxC]) === code && String(r[idxP]) === pass);
+        if (!user) return alert('بيانات الدخول خاطئة');
 
         currentUser = code;
+        // سجل واحد لكل KPI مأخوذ من usersData
+        document.getElementById('adminLeavesCounted').textContent = user[ headersUsr.indexOf('عدد الإجازات الإدارية المحتسبة للعامل') ] || '--';
+        document.getElementById('adminLeavesRemaining').textContent = user[ headersUsr.indexOf('عدد الإجازات الإدارية المتبقية للعامل') ] || '--';
+        document.getElementById('prodIncentivePercent').textContent = user[ headersUsr.indexOf('نسبة الدوام للحوافز الإنتاجية') ] || '--';
 
-        // صف أول لتعبئة KPIs
-        const rec = attendanceData.find(r => String(r[idx.code]) === code) || [];
-
-        document.getElementById('welcomeMsg').textContent   = `مرحباً ${rec[idx.name]||code}`;
-        document.getElementById('welcomeName').textContent  = `(الكود: ${code})`;
-        document.getElementById('prodIncentivePercent').textContent = rec[idx.incentivePercent] ?? '--';
-        document.getElementById('adminLeavesCounted').textContent   = rec[idx.leavesCounted]   ?? '--';
-        document.getElementById('adminLeavesRemaining').textContent = rec[idx.leavesRemaining] ?? '--';
-
+        // عرض السجلات اليومية
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
-
-        renderRecords(idx);
+        renderRecords(code);
       } catch (err) {
         alert(err.message);
       }
     }
 
-    // عرض السجلات في الجدول
-    function renderRecords(idx) {
+    // عرض السجلات اليومية
+    function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
-      let count = 0;
 
+      const idx = {
+        code:   headersAtt.indexOf('رقم الموظف'),
+        status: headersAtt.indexOf('رمز الحالة'),
+        date:   headersAtt.indexOf('التاريخ'),
+        in:     headersAtt.indexOf('دخول'),
+        out:    headersAtt.indexOf('خروج'),
+        sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
+        sTo:    headersAtt.indexOf('ساعية (إلى الساعة)'),
+        mFrom:  headersAtt.indexOf('مهمة (من الساعة)'),
+        mTo:    headersAtt.indexOf('مهمة (إلى الساعة)'),
+        days:   headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
+        notes:  headersAtt.indexOf('ملاحظات')
+      };
+
+      let count = 0;
       attendanceData.forEach(r => {
-        if (String(r[idx.code]) !== currentUser) return;
+        if (String(r[idx.code]) !== code) return;
         count++;
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -182,13 +168,11 @@
           <td class="px-4 py-2">${r[idx.sTo]    || ''}</td>
           <td class="px-4 py-2">${r[idx.mFrom]  || ''}</td>
           <td class="px-4 py-2">${r[idx.mTo]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.notes]  || ''}</td>
           <td class="px-4 py-2">${r[idx.days]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.notes]  || ''}</td>
         `;
         tbody.appendChild(tr);
       });
-
-      // إظهار رسالة لا توجد بيانات إذا count===0
       document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
     }
 
@@ -204,7 +188,7 @@
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    function showAbout() { alert('فكرة وتصميم عمر الماضي – اتصالات دمشق'); }
+    function showAbout()  { alert('فكرة وتصميم عمر الماضي – اتصالات دمشق'); }
     function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
