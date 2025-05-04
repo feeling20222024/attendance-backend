@@ -81,6 +81,7 @@
 
     // 1) جلب البيانات من الخادم
     async function fetchData() {
+      console.log('⏳ جلب البيانات...');
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
         fetch(`${API_BASE}/attendance`)
@@ -93,11 +94,17 @@
       usersData      = uJson.data;
       headersAtt     = aJson.headers;
       attendanceData = aJson.data;
+      console.log('🔖 headersUsr =', headersUsr);
+      console.log('🔖 headersAtt =', headersAtt);
+      console.log('📊 attendanceData sample =', attendanceData.slice(0,3));
     }
 
     // 2) بناء رأس جدول الحضور
     function buildHeader() {
-      const titles = [
+      // نستخدم رؤوس الحقول نفسها من الشيت
+      const headerRow = document.getElementById('tableHeader');
+      headerRow.innerHTML = '';
+      [
         'رقم الموظف',
         'الاسم',
         'الحالة',
@@ -110,10 +117,7 @@
         'مهمة (إلى الساعة)',
         'عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة',
         'ملاحظات'
-      ];
-      const headerRow = document.getElementById('tableHeader');
-      headerRow.innerHTML = '';
-      titles.forEach(t => {
+      ].forEach(t => {
         const th = document.createElement('th');
         th.className = 'px-4 py-2';
         th.textContent = t;
@@ -128,13 +132,14 @@
       if (!code || !pass) return alert('الرجاء إدخال رقم الموظف وكلمة المرور');
       try {
         await fetchData();
-        // تحقق من وجود المستخدم
+        // تحقق من وجود المستخدم في شيت Users
         const idxC = headersUsr.indexOf('رقم الموظف');
         const idxP = headersUsr.indexOf('كلمة المرور');
         const idxN = headersUsr.indexOf('الاسم');
         const user = usersData.find(r =>
           String(r[idxC]) === code && String(r[idxP]) === pass
         );
+        console.log('🔍 محاولة تسجيل دخول:', code, pass, '→', user);
         if (!user) return alert('بيانات الدخول خاطئة');
 
         currentUser = code;
@@ -162,7 +167,7 @@
       }
     }
 
-    // 4) عرض سجلات الحضور الخاصة بالموظف الحالي
+    // 4) عرض سجلات الحضور
     function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
@@ -180,6 +185,7 @@
         days:   headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
         notes:  headersAtt.indexOf('ملاحظات')
       };
+      console.log('🔢 فهارس الأعمدة للحضور:', idx);
       let found = false;
       attendanceData.forEach(r => {
         if (String(r[idx.code]) !== code) return;
@@ -201,6 +207,7 @@
         `;
         tbody.appendChild(tr);
       });
+      console.log('🔍 records found:', found);
       document.getElementById('noDataMsg').classList.toggle('hidden', found);
     }
 
