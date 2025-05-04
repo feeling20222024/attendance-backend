@@ -14,7 +14,8 @@
     <!-- تسجيل دخول الموظف -->
     <div id="loginSection" class="bg-white p-6 rounded-lg shadow mb-8">
       <h2 class="text-2xl font-bold mb-4">تسجيل دخول الموظف</h2>
-      <input id="codeInput" type="text" placeholder="أدخل كود الموظف" class="w-full mb-4 border px-3 py-2 rounded"/>
+      <input id="codeInput" type="text" placeholder="كود الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
+      <input id="passwordInput" type="password" placeholder="كلمة المرور" class="w-full mb-3 border px-3 py-2 rounded"/>
       <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
         دخول
       </button>
@@ -92,7 +93,7 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // جلب البيانات من API
+    // جلب بيانات المستخدمين والحضور
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -108,30 +109,35 @@
       attendanceData = aJson.data;
     }
 
-    // تسجيل دخول الموظف (بمعرفة الكود فقط)
+    // تسجيل دخول الموظف والتحقق من الكود + كلمة المرور
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
-      if (!code) return alert('يرجى إدخال كود الموظف');
+      const pass = document.getElementById('passwordInput').value.trim();
+      if (!code || !pass) return alert('يرجى إدخال كود الموظف وكلمة المرور');
       try {
         await fetchData();
-        // العمود رقم الموظف في شيت Users (إذا استخدمته) أو Attendance
-        const idxCode  = headersAtt.indexOf('رقم الموظف');
-        const idxName  = headersAtt.indexOf('الاسم');
-        // تحقق أن الكود موجود في أي صف
-        const rec = attendanceData.find(r => String(r[idxCode]) === code);
-        if (!rec) return alert('كود الموظف غير موجود أو لا توجد بيانات له');
+        // العثور على المستخدم في شيت Users
+        const idxUcode = headersUsr.indexOf('رقم الموظف');
+        const idxUpass = headersUsr.indexOf('كلمة المرور');
+        const user = usersData.find(r =>
+          String(r[idxUcode]) === code && String(r[idxUpass]) === pass
+        );
+        if (!user) return alert('كود الموظف أو كلمة المرور خاطئة');
 
         currentUser = code;
-        // عرض الترحيب
-        document.getElementById('welcomeMsg').textContent  = `مرحباً ${rec[idxName] || code}`;
+        // بعد النجاح، عرض اسمه وترحيله إلى صفحة الحضور
+        const idxNameA = headersAtt.indexOf('الاسم');
+        const recA     = attendanceData.find(r =>
+          String(r[headersAtt.indexOf('رقم الموظف')]) === code
+        ) || [];
+        document.getElementById('welcomeMsg').textContent  = `مرحباً ${recA[idxNameA] || code}`;
         document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
 
-        // تعبئة KPI
-        document.getElementById('prodIncentivePercent').textContent = rec[14] ?? '--';
-        document.getElementById('adminLeavesCounted').textContent   = rec[12] ?? '--';
-        document.getElementById('adminLeavesRemaining').textContent = rec[13] ?? '--';
+        // تعبئة المؤشرات
+        document.getElementById('prodIncentivePercent').textContent = recA[14] ?? '--';
+        document.getElementById('adminLeavesCounted').textContent   = recA[12] ?? '--';
+        document.getElementById('adminLeavesRemaining').textContent = recA[13] ?? '--';
 
-        // إظهار السجلات
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
         renderRecords(code);
@@ -140,7 +146,7 @@
       }
     }
 
-    // عرض جدول حضور الموظف
+    // عرض سجلات الحضور للكود الحالي
     function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
@@ -164,7 +170,7 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="px-4 py-2">${r[idx.date]   || ''}</td>
-          <td class="px-4 py-2">${caseMapping[r[idx.status]] || r[idx.status] || ''}</td>
+          <td class="px-4 py-2">${caseMapping[r[idx.status]]||r[idx.status]||''}</td>
           <td class="px-4 py-2">${r[idx.in]     || ''}</td>
           <td class="px-4 py-2">${r[idx.out]    || ''}</td>
           <td class="px-4 py-2">${r[idx.sFrom]  || ''}</td>
@@ -196,6 +202,7 @@
       alert('فكرة وإعداد عمر الماضي – دائرة الموارد البشرية – اتصالات دمشق');
     }
 
+    // خروج
     function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
