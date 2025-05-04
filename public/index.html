@@ -14,14 +14,12 @@
     <!-- تسجيل دخول الموظف -->
     <div id="loginSection" class="bg-white p-6 rounded-lg shadow mb-8">
       <h2 class="text-2xl font-bold mb-4">تسجيل دخول الموظف</h2>
-      <input id="codeInput" type="text" placeholder="كود الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
+      <input id="codeInput" type="text" placeholder="رقم الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
       <input id="passwordInput" type="password" placeholder="كلمة المرور" class="w-full mb-3 border px-3 py-2 rounded"/>
-      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-        دخول
-      </button>
+      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">دخول</button>
     </div>
 
-    <!-- السجلات -->
+    <!-- عرض السجلات -->
     <div id="records" class="hidden bg-white p-6 rounded-lg shadow">
       <div class="flex justify-between items-center mb-6">
         <div>
@@ -35,18 +33,18 @@
         </div>
       </div>
 
-      <!-- الحقول الإحصائية -->
+      <!-- مؤشرات KPI -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
         <div class="bg-gray-50 p-4 rounded shadow">
           <p class="font-semibold mb-2">نسبة الدوام للحوافز الإنتاجية</p>
           <span id="prodIncentivePercent">--</span>%
         </div>
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">الإجازات الإدارية المحتسبة</p>
+          <p class="font-semibold mb-2">عدد الإجازات الإدارية المحتسبة</p>
           <span id="adminLeavesCounted">--</span>
         </div>
         <div class="bg-gray-50 p-4 rounded shadow">
-          <p class="font-semibold mb-2">الإجازات الإدارية المتبقية</p>
+          <p class="font-semibold mb-2">عدد الإجازات الإدارية المتبقية</p>
           <span id="adminLeavesRemaining">--</span>
         </div>
       </div>
@@ -62,10 +60,10 @@
               <th class="px-4 py-2">الحالة</th>
               <th class="px-4 py-2">دخول</th>
               <th class="px-4 py-2">خروج</th>
-              <th class="px-4 py-2">ساعية (من)</th>
-              <th class="px-4 py-2">ساعية (إلى)</th>
-              <th class="px-4 py-2">مهمة (من)</th>
-              <th class="px-4 py-2">مهمة (إلى)</th>
+              <th class="px-4 py-2">ساعية (من الساعة)</th>
+              <th class="px-4 py-2">ساعية (إلى الساعة)</th>
+              <th class="px-4 py-2">مهمة (من الساعة)</th>
+              <th class="px-4 py-2">مهمة (إلى الساعة)</th>
               <th class="px-4 py-2">عدد الأيام المحتسبة</th>
               <th class="px-4 py-2">ملاحظات</th>
             </tr>
@@ -85,6 +83,7 @@
     let headersAtt = [], attendanceData = [];
     let currentUser = null;
 
+    // ترجمة رموز الحالة إلى نصوص
     const caseMapping = {
       1: "غياب غير مبرر (بدون إذن رسمي)",
       2: "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
@@ -93,7 +92,7 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // جلب بيانات المستخدمين والحضور
+    // جلب بيانات المستخدمين والحضور من الـ API
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -101,59 +100,61 @@
       ]);
       if (!uRes.ok) throw new Error('فشل جلب بيانات المستخدمين');
       if (!aRes.ok) throw new Error('فشل جلب بيانات الحضور');
-      const uJson = await uRes.json();
-      const aJson = await aRes.json();
-      headersUsr     = uJson.headers;
-      usersData      = uJson.data;
-      headersAtt     = aJson.headers;
-      attendanceData = aJson.data;
+      ({ headers: headersUsr, data: usersData } = await uRes.json());
+      ({ headers: headersAtt, data: attendanceData } = await aRes.json());
     }
 
-    // تسجيل دخول الموظف والتحقق من الكود + كلمة المرور
+    // تسجيل دخول الموظف
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
-      if (!code || !pass) return alert('يرجى إدخال كود الموظف وكلمة المرور');
+      if (!code || !pass) return alert('يرجى إدخال رقم الموظف وكلمة المرور');
       try {
         await fetchData();
-        // العثور على المستخدم في شيت Users
-        const idxUcode = headersUsr.indexOf('رقم الموظف');
-        const idxUpass = headersUsr.indexOf('كلمة المرور');
-        const user = usersData.find(r =>
-          String(r[idxUcode]) === code && String(r[idxUpass]) === pass
+        // إيجاد أعمدة مصادقة الموظف
+        const idxCode = headersUsr.indexOf('رقم الموظف');
+        const idxPass = headersUsr.indexOf('كلمة المرور');
+        const userRow = usersData.find(r=>
+          String(r[idxCode]) === code && String(r[idxPass]) === pass
         );
-        if (!user) return alert('كود الموظف أو كلمة المرور خاطئة');
+        if (!userRow) return alert('بيانات الدخول غير صحيحة');
 
         currentUser = code;
-        // بعد النجاح، عرض اسمه وترحيله إلى صفحة الحضور
-        const idxNameA = headersAtt.indexOf('الاسم');
-        const recA     = attendanceData.find(r =>
-          String(r[headersAtt.indexOf('رقم الموظف')]) === code
+        // أول سجل من Attendance لعرض KPI
+        const idxName      = headersAtt.indexOf('الاسم');
+        const idxIncentive = headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية');
+        const idxCounted   = headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل');
+        const idxRemaining = headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل');
+        const recA         = attendanceData.find(r=>
+          String(r[ headersAtt.indexOf('رقم الموظف') ]) === code
         ) || [];
-        document.getElementById('welcomeMsg').textContent  = `مرحباً ${recA[idxNameA] || code}`;
+
+        document.getElementById('welcomeMsg').textContent  = `مرحباً ${recA[idxName] || code}`;
         document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
 
-        // تعبئة المؤشرات
-        document.getElementById('prodIncentivePercent').textContent = recA[14] ?? '--';
-        document.getElementById('adminLeavesCounted').textContent   = recA[12] ?? '--';
-        document.getElementById('adminLeavesRemaining').textContent = recA[13] ?? '--';
+        document.getElementById('prodIncentivePercent').textContent = recA[idxIncentive] ?? '--';
+        document.getElementById('adminLeavesCounted').textContent   = recA[idxCounted]   ?? '--';
+        document.getElementById('adminLeavesRemaining').textContent = recA[idxRemaining] ?? '--';
 
+        // إظهار الواجهة
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
         renderRecords(code);
+
       } catch (err) {
         alert(err.message);
       }
     }
 
-    // عرض سجلات الحضور للكود الحالي
+    // عرض سجلات الحضور الخاصة بالموظف
     function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
+      // تحديد فهارس الأعمدة
       const idx = {
         code:   headersAtt.indexOf('رقم الموظف'),
-        date:   headersAtt.indexOf('التاريخ'),
         status: headersAtt.indexOf('رمز الحالة'),
+        date:   headersAtt.indexOf('التاريخ'),
         in:     headersAtt.indexOf('دخول'),
         out:    headersAtt.indexOf('خروج'),
         sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
@@ -164,46 +165,46 @@
         notes:  headersAtt.indexOf('ملاحظات')
       };
       let count = 0;
-      attendanceData.forEach(r => {
+      attendanceData.forEach(r=>{
         if (String(r[idx.code]) !== code) return;
         count++;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-4 py-2">${r[idx.date]   || ''}</td>
-          <td class="px-4 py-2">${caseMapping[r[idx.status]]||r[idx.status]||''}</td>
-          <td class="px-4 py-2">${r[idx.in]     || ''}</td>
-          <td class="px-4 py-2">${r[idx.out]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.sFrom]  || ''}</td>
-          <td class="px-4 py-2">${r[idx.sTo]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.mFrom]  || ''}</td>
-          <td class="px-4 py-2">${r[idx.mTo]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.days]   || ''}</td>
-          <td class="px-4 py-2">${r[idx.notes]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.date]    || ''}</td>
+          <td class="px-4 py-2">${caseMapping[r[idx.status]] || r[idx.status] || ''}</td>
+          <td class="px-4 py-2">${r[idx.in]      || ''}</td>
+          <td class="px-4 py-2">${r[idx.out]     || ''}</td>
+          <td class="px-4 py-2">${r[idx.sFrom]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.sTo]     || ''}</td>
+          <td class="px-4 py-2">${r[idx.mFrom]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.mTo]     || ''}</td>
+          <td class="px-4 py-2">${r[idx.days]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.notes]   || ''}</td>
         `;
         tbody.appendChild(tr);
       });
       document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
     }
 
-    // حفظ PDF
+    // حفظ الصفحة كـ PDF
     async function savePDF() {
-      const elm = document.getElementById('records');
-      const canvas = await html2canvas(elm, { scale: 2 });
+      const elm    = document.getElementById('records');
+      const canvas = await html2canvas(elm,{scale:2});
       const img    = canvas.toDataURL('image/png');
       const pdf    = new jsPDF('l','pt','a4');
       const w      = pdf.internal.pageSize.getWidth();
-      const h      = (canvas.height * w) / canvas.width;
+      const h      = (canvas.height * w)/canvas.width;
       pdf.addImage(img,'PNG',0,20,w,h);
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    // حول التطبيق
-    function showAbout() {
+    // نافذة "حول التطبيق"
+    function showAbout(){
       alert('فكرة وإعداد عمر الماضي – دائرة الموارد البشرية – اتصالات دمشق');
     }
 
-    // خروج
-    function logout() {
+    // تسجيل خروج
+    function logout(){
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
