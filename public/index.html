@@ -67,7 +67,6 @@
   <script>
     const { jsPDF } = window.jspdf;
     const API_BASE = '/api';
-
     let headersUsr = [], usersData = [];
     let headersAtt = [], attendanceData = [];
     let currentUser = null;
@@ -80,14 +79,14 @@
       5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // جلب بيانات Users و Attendance
+    // 1) جلب البيانات من الخادم
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
         fetch(`${API_BASE}/attendance`)
       ]);
-      if (!uRes.ok) throw new Error('فشل جلب بيانات المستخدمين');
-      if (!aRes.ok) throw new Error('فشل جلب بيانات الحضور');
+      if (!uRes.ok)  throw new Error('فشل جلب بيانات المستخدمين');
+      if (!aRes.ok)  throw new Error('فشل جلب بيانات الحضور');
       const uJson = await uRes.json();
       const aJson = await aRes.json();
       headersUsr     = uJson.headers;
@@ -96,7 +95,7 @@
       attendanceData = aJson.data;
     }
 
-    // بناء رؤوس جدول الحضور بالترتيب المطلوب
+    // 2) بناء رأس جدول الحضور
     function buildHeader() {
       const titles = [
         'رقم الموظف',
@@ -122,13 +121,14 @@
       });
     }
 
-    // تسجيل دخول الموظف
+    // 3) تسجيل دخول الموظف
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
       if (!code || !pass) return alert('الرجاء إدخال رقم الموظف وكلمة المرور');
       try {
         await fetchData();
+        // تحقق من وجود المستخدم
         const idxC = headersUsr.indexOf('رقم الموظف');
         const idxP = headersUsr.indexOf('كلمة المرور');
         const idxN = headersUsr.indexOf('الاسم');
@@ -144,11 +144,12 @@
 
         // بناء رأس الجدول وملء KPI
         buildHeader();
-        const idxAcode    = headersAtt.indexOf('رقم الموظف');
+        const idxACode    = headersAtt.indexOf('رقم الموظف');
         const idxAdminCnt = headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل');
         const idxAdminRem = headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل');
         const idxIncent   = headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية');
-        const firstRec    = attendanceData.find(r => String(r[idxAcode]) === code) || [];
+        const firstRec    = attendanceData.find(r => String(r[idxACode]) === code) || [];
+
         document.getElementById('adminLeavesCounted').textContent   = firstRec[idxAdminCnt] || '--';
         document.getElementById('adminLeavesRemaining').textContent = firstRec[idxAdminRem] || '--';
         document.getElementById('prodIncentivePercent').textContent = firstRec[idxIncent]   || '--';
@@ -161,7 +162,7 @@
       }
     }
 
-    // عرض سجلات الدوام لشخص واحد
+    // 4) عرض سجلات الحضور الخاصة بالموظف الحالي
     function renderRecords(code) {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
@@ -203,14 +204,14 @@
       document.getElementById('noDataMsg').classList.toggle('hidden', found);
     }
 
-    // حفظ PDF
+    // 5) حفظ PDF
     async function savePDF() {
       const elm = document.getElementById('records');
       const canvas = await html2canvas(elm, { scale:2 });
-      const img = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('l','pt','a4');
-      const w = pdf.internal.pageSize.getWidth();
-      const h = (canvas.height * w) / canvas.width;
+      const img    = canvas.toDataURL('image/png');
+      const pdf    = new jsPDF('l','pt','a4');
+      const w      = pdf.internal.pageSize.getWidth();
+      const h      = (canvas.height * w) / canvas.width;
       pdf.addImage(img,'PNG',0,20,w,h);
       pdf.save(`attendance_${currentUser}.pdf`);
     }
