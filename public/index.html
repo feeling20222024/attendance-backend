@@ -14,9 +14,11 @@
     <!-- تسجيل دخول الموظف -->
     <div id="loginSection" class="bg-white p-6 rounded-lg shadow mb-8">
       <h2 class="text-2xl font-bold mb-4">تسجيل دخول الموظف</h2>
-      <input id="codeInput" type="text" placeholder="رقم الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
+      <input id="codeInput" type="text" placeholder="كود الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
       <input id="passwordInput" type="password" placeholder="كلمة المرور" class="w-full mb-3 border px-3 py-2 rounded"/>
-      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">دخول</button>
+      <button onclick="login()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        دخول
+      </button>
     </div>
 
     <!-- السجلات -->
@@ -55,7 +57,20 @@
       <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4">
         <table class="table-auto w-full text-center divide-y divide-gray-200">
           <thead class="bg-gray-50 text-gray-700 text-sm">
-            <tr id="tableHeader"></tr>
+            <tr>
+              <th class="px-4 py-2">رقم الموظف</th>
+              <th class="px-4 py-2">الاسم</th>
+              <th class="px-4 py-2">الحالة</th>
+              <th class="px-4 py-2">التاريخ</th>
+              <th class="px-4 py-2">دخول</th>
+              <th class="px-4 py-2">خروج</th>
+              <th class="px-4 py-2">ساعية (من الساعة)</th>
+              <th class="px-4 py-2">ساعية (إلى الساعة)</th>
+              <th class="px-4 py-2">مهمة (من الساعة)</th>
+              <th class="px-4 py-2">مهمة (إلى الساعة)</th>
+              <th class="px-4 py-2">الأيام المحتسبة</th>
+              <th class="px-4 py-2">ملاحظات</th>
+            </tr>
           </thead>
           <tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody>
         </table>
@@ -67,154 +82,124 @@
   <script>
     const { jsPDF } = window.jspdf;
     const API_BASE = '/api';
+
     let headersUsr = [], usersData = [];
     let headersAtt = [], attendanceData = [];
     let currentUser = null;
 
+    // ترميز الحالة
     const caseMapping = {
-      1: "غياب غير مبرر (بدون إذن رسمي)",
-      2: "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
-      3: "خروج مبكر (أو عدم مهر البصمة مساءً)",
-      4: "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
-      5: "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
+      '1': "غياب غير مبرر (بدون إذن رسمي)",
+      '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
+      '3': "خروج مبكر (أو عدم مهر البصمة مساءً)",
+      '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
+      '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // 1) جلب البيانات من الخادم
+    // 1) جلب البيانات
     async function fetchData() {
-      console.log('⏳ جلب البيانات...');
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
         fetch(`${API_BASE}/attendance`)
       ]);
-      if (!uRes.ok)  throw new Error('فشل جلب بيانات المستخدمين');
-      if (!aRes.ok)  throw new Error('فشل جلب بيانات الحضور');
+      if (!uRes.ok) throw new Error('فشل جلب بيانات المستخدمين');
+      if (!aRes.ok) throw new Error('فشل جلب بيانات الحضور');
       const uJson = await uRes.json();
       const aJson = await aRes.json();
       headersUsr     = uJson.headers;
       usersData      = uJson.data;
       headersAtt     = aJson.headers;
       attendanceData = aJson.data;
-      console.log('🔖 headersUsr =', headersUsr);
-      console.log('🔖 headersAtt =', headersAtt);
-      console.log('📊 attendanceData sample =', attendanceData.slice(0,3));
     }
 
-    // 2) بناء رأس جدول الحضور
-    function buildHeader() {
-      // نستخدم رؤوس الحقول نفسها من الشيت
-      const headerRow = document.getElementById('tableHeader');
-      headerRow.innerHTML = '';
-      [
-        'رقم الموظف',
-        'الاسم',
-        'الحالة',
-        'التاريخ',
-        'دخول',
-        'خروج',
-        'ساعية (من الساعة)',
-        'ساعية (إلى الساعة)',
-        'مهمة (من الساعة)',
-        'مهمة (إلى الساعة)',
-        'عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة',
-        'ملاحظات'
-      ].forEach(t => {
-        const th = document.createElement('th');
-        th.className = 'px-4 py-2';
-        th.textContent = t;
-        headerRow.appendChild(th);
-      });
-    }
-
-    // 3) تسجيل دخول الموظف
+    // 2) تسجيل دخول الموظف
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
-      if (!code || !pass) return alert('الرجاء إدخال رقم الموظف وكلمة المرور');
+
       try {
         await fetchData();
-        // تحقق من وجود المستخدم في شيت Users
-        const idxC = headersUsr.indexOf('رقم الموظف');
-        const idxP = headersUsr.indexOf('كلمة المرور');
-        const idxN = headersUsr.indexOf('الاسم');
-        const user = usersData.find(r =>
-          String(r[idxC]) === code && String(r[idxP]) === pass
+
+        // تحقق من المستخدم في شيت Users
+        const idxUc = headersUsr.indexOf('رقم الموظف');
+        const idxUp = headersUsr.indexOf('كلمة المرور');
+        const user  = usersData.find(r =>
+          String(r[idxUc]).trim() === code &&
+          String(r[idxUp]).trim() === pass
         );
-        console.log('🔍 محاولة تسجيل دخول:', code, pass, '→', user);
         if (!user) return alert('بيانات الدخول خاطئة');
 
         currentUser = code;
-        const name = user[idxN] || code;
-        document.getElementById('welcomeMsg').textContent  = `مرحباً ${name}`;
-        document.getElementById('welcomeName').textContent = `(الكود: ${code})`;
-
-        // بناء رأس الجدول وملء KPI
-        buildHeader();
-        const idxACode    = headersAtt.indexOf('رقم الموظف');
-        const idxAdminCnt = headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل');
-        const idxAdminRem = headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل');
-        const idxIncent   = headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية');
-        const firstRec    = attendanceData.find(r => String(r[idxACode]) === code) || [];
-
-        document.getElementById('adminLeavesCounted').textContent   = firstRec[idxAdminCnt] || '--';
-        document.getElementById('adminLeavesRemaining').textContent = firstRec[idxAdminRem] || '--';
-        document.getElementById('prodIncentivePercent').textContent = firstRec[idxIncent]   || '--';
-
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
-        renderRecords(code);
+
+        // عرض السجلات وحقول KPI
+        renderRecords();
       } catch (err) {
         alert(err.message);
       }
     }
 
-    // 4) عرض سجلات الحضور
-    function renderRecords(code) {
+    // 3) عرض السجلات
+    function renderRecords() {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
+
+      // فهارس الأعمدة في الـ Attendance
       const idx = {
-        code:   headersAtt.indexOf('رقم الموظف'),
-        name:   headersAtt.indexOf('الاسم'),
-        status: headersAtt.indexOf('الحالة'),
-        date:   headersAtt.indexOf('التاريخ'),
-        in:     headersAtt.indexOf('دخول'),
-        out:    headersAtt.indexOf('خروج'),
-        sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
-        sTo:    headersAtt.indexOf('ساعية (إلى الساعة)'),
-        mFrom:  headersAtt.indexOf('مهمة (من الساعة)'),
-        mTo:    headersAtt.indexOf('مهمة (إلى الساعة)'),
-        days:   headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
-        notes:  headersAtt.indexOf('ملاحظات')
+        code:    headersAtt.indexOf('رقم الموظف'),
+        name:    headersAtt.indexOf('الاسم'),
+        status:  headersAtt.indexOf('الحالة'),
+        date:    headersAtt.indexOf('التاريخ'),
+        in:      headersAtt.indexOf('دخول'),
+        out:     headersAtt.indexOf('خروج'),
+        sFrom:   headersAtt.indexOf('ساعية (من الساعة)'),
+        sTo:     headersAtt.indexOf('ساعية (إلى الساعة)'),
+        mFrom:   headersAtt.indexOf('مهمة (من الساعة)'),
+        mTo:     headersAtt.indexOf('مهمة (إلى الساعة)'),
+        days:    headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
+        notes:   headersAtt.indexOf('ملاحظات'),
+        adminC:  headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
+        adminR:  headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
+        pct:     headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')
       };
-      console.log('🔢 فهارس الأعمدة للحضور:', idx);
-      let found = false;
+
+      let count = 0, firstRec = null;
       attendanceData.forEach(r => {
-        if (String(r[idx.code]) !== code) return;
-        found = true;
+        if (String(r[idx.code]).trim() !== currentUser) return;
+        count++;
+        if (!firstRec) firstRec = r;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-4 py-2">${r[idx.code]   || ''}</td>
-          <td class="px-4 py-2">${r[idx.name]   || ''}</td>
-          <td class="px-4 py-2">${caseMapping[r[idx.status]] || r[idx.status] || ''}</td>
-          <td class="px-4 py-2">${r[idx.date]   || ''}</td>
-          <td class="px-4 py-2">${r[idx.in]     || ''}</td>
-          <td class="px-4 py-2">${r[idx.out]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.sFrom]  || ''}</td>
-          <td class="px-4 py-2">${r[idx.sTo]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.mFrom]  || ''}</td>
-          <td class="px-4 py-2">${r[idx.mTo]    || ''}</td>
-          <td class="px-4 py-2">${r[idx.days]   || ''}</td>
-          <td class="px-4 py-2">${r[idx.notes]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.code]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.name]  || ''}</td>
+          <td class="px-4 py-2">${caseMapping[String(r[idx.status]).trim()] || r[idx.status] || ''}</td>
+          <td class="px-4 py-2">${r[idx.date]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.in]    || ''}</td>
+          <td class="px-4 py-2">${r[idx.out]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.sFrom] || ''}</td>
+          <td class="px-4 py-2">${r[idx.sTo]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.mFrom] || ''}</td>
+          <td class="px-4 py-2">${r[idx.mTo]   || ''}</td>
+          <td class="px-4 py-2">${r[idx.days]  || ''}</td>
+          <td class="px-4 py-2">${r[idx.notes] || ''}</td>
         `;
         tbody.appendChild(tr);
       });
-      console.log('🔍 records found:', found);
-      document.getElementById('noDataMsg').classList.toggle('hidden', found);
+
+      // إذا وجدنا سجل واحد على الأقل نعرض KPI من أول صف
+      if (firstRec) {
+        document.getElementById('prodIncentivePercent').textContent = firstRec[idx.pct]  || '--';
+        document.getElementById('adminLeavesCounted').textContent   = firstRec[idx.adminC] || '--';
+        document.getElementById('adminLeavesRemaining').textContent = firstRec[idx.adminR] || '--';
+      }
+      document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
     }
 
-    // 5) حفظ PDF
+    // 4) حفظ PDF
     async function savePDF() {
       const elm = document.getElementById('records');
-      const canvas = await html2canvas(elm, { scale:2 });
+      const canvas = await html2canvas(elm, { scale: 2 });
       const img    = canvas.toDataURL('image/png');
       const pdf    = new jsPDF('l','pt','a4');
       const w      = pdf.internal.pageSize.getWidth();
@@ -223,10 +208,10 @@
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    function showAbout(){
-      alert('فكرة وإعداد عمر الماضي – دائرة الموارد البشرية – اتصالات دمشق');
+    function showAbout() {
+      alert('فكرة وإعداد عمر الماضي - دائرة الموارد البشرية - اتصالات دمشق');
     }
-    function logout(){
+    function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
