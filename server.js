@@ -56,7 +56,7 @@ async function readSheet(title) {
   return { headers, data };
 }
 
-// 5) API بلا مصادقة
+// 5) API: جلب بيانات Users
 app.get('/api/users', async (req, res) => {
   try {
     const result = await readSheet('Users');
@@ -67,6 +67,7 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// 6) API: جلب بيانات Attendance
 app.get('/api/attendance', async (req, res) => {
   try {
     const result = await readSheet('Attendance');
@@ -77,12 +78,23 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
-// 6) توجيه باقي الطلبات للواجهة (SPA fallback)
+// 7) API: جلب بيانات علامات الحوافز الإنتاجية من شيت "hwafez"
+app.get('/api/hwafez', async (req, res) => {
+  try {
+    const result = await readSheet('hwafez'); // تأكد من اسم الشيت بالضبط
+    res.json(result);
+  } catch (err) {
+    console.error('خطأ في جلب بيانات hwafez:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 8) أي طلب GET آخر → صفحة الواجهة (SPA fallback)
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 7) تشغيل الخادم
+// 9) تشغيل الخادم
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
   // اختبار الاتصال عند بدء التشغيل
