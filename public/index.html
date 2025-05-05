@@ -92,6 +92,36 @@
           <tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody>
         </table>
       </div>
+
+      <!-- جدول الحوافز الإنتاجية -->
+      <div id="hwafezSection" class="hidden mt-8 bg-white p-6 rounded-lg shadow">
+        <h3 class="text-xl font-bold mb-4">علامات الحوافز الإنتاجية</h3>
+        <p id="noHwafezMsg" class="text-center text-gray-600 hidden">لا توجد بيانات للحوافز.</p>
+        <div id="hwafezWrapper" class="overflow-x-auto">
+          <table class="table-auto w-full text-center divide-y divide-gray-200">
+            <thead class="bg-gray-50 text-gray-700 text-sm">
+              <tr>
+                <th class="border px-4 py-2">رقم الموظف</th>
+                <th class="border px-4 py-2">الاسم</th>
+                <th class="border px-4 py-2">حجم العمل</th>
+                <th class="border px-4 py-2">اتقان العمل وفعاليته</th>
+                <th class="border px-4 py-2">المهارات القيادية</th>
+                <th class="border px-4 py-2">مهارة الإدارة الذاتية</th>
+                <th class="border px-4 py-2">مهارات التواصل والتفاعل</th>
+                <th class="border px-4 py-2">المبادرة والتطوير الذاتي</th>
+                <th class="border px-4 py-2">الإستقلال والموثوقية</th>
+                <th class="border px-4 py-2">الإلتزام والمسؤولية</th>
+                <th class="border px-4 py-2">نسبة الدوام الفعلي للعامل</th>
+                <th class="border px-4 py-2">السويّة الوظيفيّة</th>
+                <th class="border px-4 py-2">مستوى التأهيل</th>
+                <th class="border px-4 py-2">سنوات الخبرة</th>
+              </tr>
+            </thead>
+            <tbody id="hwafezBody" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -120,8 +150,7 @@
         fetch(`${API_BASE}/attendance`)
       ]);
       if (!uRes.ok || !aRes.ok) throw new Error('فشل جلب البيانات');
-      const uJson = await uRes.json();
-      const aJson = await aRes.json();
+      const uJson = await uRes.json(), aJson = await aRes.json();
       headersUsr     = uJson.headers; usersData      = uJson.data;
       headersAtt     = aJson.headers; attendanceData = aJson.data;
     }
@@ -131,8 +160,7 @@
       const res = await fetch(`${API_BASE}/hwafez`);
       if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
       const json = await res.json();
-      headersHw  = json.headers;
-      hwafezData = json.data;
+      headersHw  = json.headers; hwafezData = json.data;
     }
 
     // تسجيل دخول
@@ -140,11 +168,12 @@
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
       await fetchData();
-
-      // تحقق
       const iUc = headersUsr.indexOf('رقم الموظف');
       const iUp = headersUsr.indexOf('كلمة المرور');
-      const user = usersData.find(r => String(r[iUc]).trim()===code && String(r[iUp]).trim()===pass);
+      const user = usersData.find(r =>
+        String(r[iUc]).trim() === code &&
+        String(r[iUp]).trim() === pass
+      );
       if (!user) return alert('بيانات الدخول خاطئة');
 
       currentUser = code;
@@ -153,7 +182,7 @@
 
       // ملاحظات
       loadSupervisorNotes();
-      if (currentUser===SUPERVISOR_CODE) {
+      if (currentUser === SUPERVISOR_CODE) {
         document.getElementById('supervisorNotes').removeAttribute('readonly');
         document.getElementById('saveNotesBtn').classList.remove('hidden');
         document.getElementById('saveNotesBtn').onclick = saveSupervisorNotes;
@@ -165,7 +194,7 @@
 
     function loadSupervisorNotes() {
       document.getElementById('supervisorNotes').value =
-        localStorage.getItem('supervisorNotes')||'';
+        localStorage.getItem('supervisorNotes') || '';
     }
     function saveSupervisorNotes() {
       localStorage.setItem('supervisorNotes',
@@ -175,4 +204,120 @@
 
     // عرض حضور
     function renderRecords() {
-      const t = document.getElementById('attendanceBody
+      const tbody = document.getElementById('attendanceBody');
+      tbody.innerHTML = '';
+
+      const idx = {
+        code:    headersAtt.indexOf('رقم الموظف'),
+        name:    headersAtt.indexOf('الاسم'),
+        status:  headersAtt.indexOf('الحالة'),
+        date:    headersAtt.indexOf('التاريخ'),
+        in:      headersAtt.indexOf('دخول'),
+        out:     headersAtt.indexOf('خروج'),
+        sFrom:   headersAtt.indexOf('ساعية (من الساعة)'),
+        sTo:     headersAtt.indexOf('ساعية (إلى الساعة)'),
+        mFrom:   headersAtt.indexOf('مهمة (من الساعة)'),
+        mTo:     headersAtt.indexOf('مهمة (إلى الساعة)'),
+        days:    headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
+        notes:   headersAtt.indexOf('ملاحظات'),
+        adminC:  headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
+        adminR:  headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
+        pct:     headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')
+      };
+
+      let firstRec = null;
+      const filtered = attendanceData.filter(r =>
+        String(r[idx.code]).trim() === currentUser
+      );
+
+      if (!filtered.length) {
+        document.getElementById('noDataMsg').classList.remove('hidden');
+      } else {
+        document.getElementById('noDataMsg').classList.add('hidden');
+        filtered.forEach(r => {
+          if (!firstRec) firstRec = r;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="border px-4 py-2">${r[idx.code]  || ''}</td>
+            <td class="border px-4 py-2">${r[idx.name]  || ''}</td>
+            <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]}</td>
+            <td class="border px-4 py-2">${r[idx.date]  || ''}</td>
+            <td class="border px-4 py-2">${r[idx.in]    || ''}</td>
+            <td class="border px-4 py-2">${r[idx.out]   || ''}</td>
+            <td class="border px-4 py-2">${r[idx.sFrom] || ''}</td>
+            <td class="border px-4 py-2">${r[idx.sTo]   || ''}</td>
+            <td class="border px-4 py-2">${r[idx.mFrom] || ''}</td>
+            <td class="border px-4 py-2">${r[idx.mTo]   || ''}</td>
+            <td class="border px-4 py-2">${r[idx.days]  || ''}</td>
+            <td class="border px-4 py-2">${r[idx.notes] || ''}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        // ملء KPI
+        document.getElementById('prodIncentivePercent').textContent = firstRec[idx.pct]  || '--';
+        document.getElementById('adminLeavesCounted').textContent   = firstRec[idx.adminC] || '--';
+        document.getElementById('adminLeavesRemaining').textContent = firstRec[idx.adminR] || '--';
+      }
+    }
+
+    // حفظ PDF
+    async function savePDF() {
+      const elm = document.getElementById('records');
+      const canvas = await html2canvas(elm, { scale: 2 });
+      const img    = canvas.toDataURL('image/png');
+      const pdf    = new jsPDF('l','pt','a4');
+      const w      = pdf.internal.pageSize.getWidth();
+      const h      = (canvas.height * w) / canvas.width;
+      pdf.addImage(img,'PNG',0,20,w,h);
+      pdf.save(`attendance_${currentUser}.pdf`);
+    }
+
+    // عرض hwafez
+    async function showHwafez() {
+      await fetchHwafez();
+      const tbody = document.getElementById('hwafezBody');
+      tbody.innerHTML = '';
+      const idx = {
+        code: headersHw.indexOf('رقم الموظف'),
+        name: headersHw.indexOf('الاسم'),
+        fields: [
+          'حجم العمل','اتقان العمل وفعاليته','المهارات القيادية','مهارة الإدارة الذاتية',
+          'مهارات التواصل والتفاعل','المبادرة والتطوير الذاتي','الإستقلال والموثوقية',
+          'الإلتزام والمسؤولية','نسبة الدوام الفعلي للعامل','السويّة الوظيفيّة',
+          'مستوى التأهيل','سنوات الخبرة'
+        ].map(h => headersHw.indexOf(h))
+      };
+      const rows = hwafezData.filter(r =>
+        String(r[idx.code]).trim() === currentUser
+      );
+      if (!rows.length) {
+        document.getElementById('noHwafezMsg').classList.remove('hidden');
+      } else {
+        document.getElementById('noHwafezMsg').classList.add('hidden');
+        rows.forEach(r => {
+          const cells = `
+            <td class="border px-4 py-2">${r[idx.code]||''}</td>
+            <td class="border px-4 py-2">${r[idx.name]||''}</td>
+            ${idx.fields.map(i=>`<td class="border px-4 py-2">${r[i]||''}</td>`).join('')}
+          `;
+          const tr = document.createElement('tr');
+          tr.innerHTML = cells;
+          tbody.appendChild(tr);
+        });
+        document.getElementById('hwafezSection').classList.remove('hidden');
+      }
+    }
+
+    function showAbout() {
+      alert('فكرة و تصميم و إعداد عمر الماضي - دائرة الموارد البشرية - اتصالات دمشق');
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('records').classList.add('hidden');
+      document.getElementById('loginSection').classList.remove('hidden');
+      document.getElementById('hwafezSection').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
