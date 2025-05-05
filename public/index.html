@@ -9,7 +9,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-gray-100 p-4">
-  <div class="max-w-5xl mx-auto">
+  <!-- غيّرنا هنا -->
+  <div class="w-full max-w-screen-xl mx-auto">
 
     <!-- تسجيل دخول الموظف -->
     <div id="loginSection" class="bg-white p-6 rounded-lg shadow mb-8">
@@ -144,7 +145,6 @@
       '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // جلب بيانات Users و Attendance
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -155,22 +155,21 @@
       ({ headers: headersAtt, data: attendanceData } = await aRes.json());
     }
 
-    // جلب بيانات hwafez
     async function fetchHwafez() {
       const res = await fetch(`${API_BASE}/hwafez`);
       if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
       ({ headers: headersHw, data: hwafezData } = await res.json());
     }
 
-    // تسجيل دخول
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
       await fetchData();
-
       const iUc = headersUsr.indexOf('رقم الموظف');
       const iUp = headersUsr.indexOf('كلمة المرور');
-      const user = usersData.find(r => String(r[iUc]).trim() === code && String(r[iUp]).trim() === pass);
+      const user = usersData.find(r =>
+        String(r[iUc]).trim() === code && String(r[iUp]).trim() === pass
+      );
       if (!user) return alert('بيانات الدخول خاطئة');
 
       currentUser = code;
@@ -179,29 +178,24 @@
 
       // عرض الاسم والرقم
       const idxName = headersUsr.indexOf('الاسم');
-      document.getElementById('welcomeMsg').textContent = `مرحباً ${usersData.find(r=>String(r[iUc])===code)[idxName]} (#${code})`;
+      document.getElementById('welcomeMsg').textContent =
+        `مرحباً ${user[idxName]} (#${code})`;
 
       // ملاحظات
-      loadSupervisorNotes();
+      const notes = localStorage.getItem('supervisorNotes') || '';
+      document.getElementById('supervisorNotes').value = notes;
       if (code === SUPERVISOR_CODE) {
         document.getElementById('supervisorNotes').removeAttribute('readonly');
         document.getElementById('saveNotesBtn').classList.remove('hidden');
-        document.getElementById('saveNotesBtn').onclick = saveSupervisorNotes;
+        document.getElementById('saveNotesBtn').onclick = () => {
+          localStorage.setItem('supervisorNotes', document.getElementById('supervisorNotes').value);
+          alert('تم حفظ الملاحظة');
+        };
       }
 
-      // عرض حضور و KPI
       renderRecords();
     }
 
-    function loadSupervisorNotes() {
-      document.getElementById('supervisorNotes').value = localStorage.getItem('supervisorNotes')||'';
-    }
-    function saveSupervisorNotes() {
-      localStorage.setItem('supervisorNotes', document.getElementById('supervisorNotes').value);
-      alert('تم حفظ الملاحظة');
-    }
-
-    // عرض حضور
     function renderRecords() {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
@@ -223,15 +217,20 @@
         pct:    headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')
       };
 
-      let firstRec = null;
-      const filtered = attendanceData.filter(r => String(r[idx.code]).trim() === currentUser);
+      const filtered = attendanceData.filter(r =>
+        String(r[idx.code]).trim() === currentUser
+      );
 
       if (!filtered.length) {
         document.getElementById('noDataMsg').classList.remove('hidden');
       } else {
         document.getElementById('noDataMsg').classList.add('hidden');
-        filtered.forEach(r => {
-          if (!firstRec) firstRec = r;
+        filtered.forEach((r, i) => {
+          if (i === 0) {
+            document.getElementById('prodIncentivePercent').textContent  = r[idx.pct]  || '--';
+            document.getElementById('adminLeavesCounted').textContent    = r[idx.adminC]|| '--';
+            document.getElementById('adminLeavesRemaining').textContent  = r[idx.adminR]|| '--';
+          }
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td class="border px-4 py-2">${r[idx.code]||''}</td>
@@ -249,17 +248,14 @@
           `;
           tbody.appendChild(tr);
         });
-        // ملء KPI
-        document.getElementById('prodIncentivePercent').textContent  = firstRec[idx.pct]  || '--';
-        document.getElementById('adminLeavesCounted').textContent    = firstRec[idx.adminC]|| '--';
-        document.getElementById('adminLeavesRemaining').textContent  = firstRec[idx.adminR]|| '--';
       }
     }
 
-    // حفظ PDF
     async function savePDF() {
       const elm = document.getElementById('records');
-      const canvas = await html2canvas(elm, { scale: 2 });
+      // نجمع ارتفاع القسم بالكامل
+      elm.style.width = '100%';
+      const canvas = await html2canvas(elm, { scale: 2, useCORS: true });
       const img    = canvas.toDataURL('image/png');
       const pdf    = new jsPDF('l','pt','a4');
       const w      = pdf.internal.pageSize.getWidth();
@@ -268,7 +264,6 @@
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    // عرض hwafez مع التمرير
     async function showHwafez() {
       await fetchHwafez();
       const tbody = document.getElementById('hwafezBody');
@@ -283,7 +278,9 @@
           'مستوى التأهيل','سنوات الخبرة'
         ].map(h => headersHw.indexOf(h))
       };
-      const rows = hwafezData.filter(r => String(r[idx.code]).trim() === currentUser);
+      const rows = hwafezData.filter(r =>
+        String(r[idx.code]).trim() === currentUser
+      );
       document.getElementById('hwafezSection').classList.remove('hidden');
       if (!rows.length) {
         document.getElementById('noHwafezMsg').classList.remove('hidden');
@@ -299,6 +296,7 @@
           tbody.appendChild(tr);
         });
       }
+      // تمرير آلي
       document.getElementById('hwafezSection').scrollIntoView({ behavior: 'smooth' });
     }
 
