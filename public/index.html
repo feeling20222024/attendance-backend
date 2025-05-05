@@ -9,7 +9,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-gray-100 p-4">
-  <!-- غيّرنا هنا -->
   <div class="w-full max-w-screen-xl mx-auto">
 
     <!-- تسجيل دخول الموظف -->
@@ -35,23 +34,23 @@
       </div>
 
       <!-- عنوان الترحيب مع الاسم والرقم -->
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h2 id="welcomeMsg" class="text-2xl font-bold">مرحباً</h2>
-          <p id="welcomeName" class="text-gray-600 text-lg mt-1"></p>
-        </div>
-        <div class="flex gap-4">
-          <button onclick="showAbout()" class="text-blue-500 hover:underline">حول التطبيق</button>
-          <button onclick="savePDF()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-            حفظ PDF
-          </button>
-          <button onclick="showHwafez()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-            علامات الحوافز الإنتاجية
-          </button>
-          <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-            خروج
-          </button>
-        </div>
+      <div class="mb-4">
+        <h2 id="welcomeMsg" class="text-2xl font-bold">مرحباً</h2>
+        <p id="welcomeName" class="text-gray-600 text-lg mt-1"></p>
+      </div>
+
+      <!-- أزرار التحكم أسفل الترحيب -->
+      <div class="flex items-center mb-6 gap-4">
+        <button id="aboutBtn" class="text-blue-500 hover:underline ml-4">حول التطبيق</button>
+        <button id="savePdfBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+          حفظ PDF
+        </button>
+        <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          علامات الحوافز الإنتاجية
+        </button>
+        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+          خروج
+        </button>
       </div>
 
       <!-- الحقول الإحصائية -->
@@ -145,6 +144,14 @@
       '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
+    document.getElementById('loginBtn')?.addEventListener('click', login);
+    document.getElementById('logoutBtn')?.addEventListener('click', logout);
+    document.getElementById('aboutBtn')?.addEventListener('click', () =>
+      alert('فكرة وإعداد عمر الماضي - دائرة الموارد البشرية - اتصالات دمشق')
+    );
+    document.getElementById('savePdfBtn')?.addEventListener('click', savePDF);
+    document.getElementById('hwafezBtn')?.addEventListener('click', showHwafez);
+
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -168,7 +175,8 @@
       const iUc = headersUsr.indexOf('رقم الموظف');
       const iUp = headersUsr.indexOf('كلمة المرور');
       const user = usersData.find(r =>
-        String(r[iUc]).trim() === code && String(r[iUp]).trim() === pass
+        String(r[iUc]).trim() === code &&
+        String(r[iUp]).trim() === pass
       );
       if (!user) return alert('بيانات الدخول خاطئة');
 
@@ -182,15 +190,19 @@
         `مرحباً ${user[idxName]} (#${code})`;
 
       // ملاحظات
-      const notes = localStorage.getItem('supervisorNotes') || '';
-      document.getElementById('supervisorNotes').value = notes;
+      const notesArea = document.getElementById('supervisorNotes');
+      const saveBtn   = document.getElementById('saveNotesBtn');
+      notesArea.value = localStorage.getItem('supervisorNotes')||'';
       if (code === SUPERVISOR_CODE) {
-        document.getElementById('supervisorNotes').removeAttribute('readonly');
-        document.getElementById('saveNotesBtn').classList.remove('hidden');
-        document.getElementById('saveNotesBtn').onclick = () => {
-          localStorage.setItem('supervisorNotes', document.getElementById('supervisorNotes').value);
+        notesArea.removeAttribute('readonly');
+        saveBtn.classList.remove('hidden');
+        saveBtn.onclick = () => {
+          localStorage.setItem('supervisorNotes', notesArea.value);
           alert('تم حفظ الملاحظة');
         };
+      } else {
+        notesArea.setAttribute('readonly','');
+        saveBtn.classList.add('hidden');
       }
 
       renderRecords();
@@ -225,7 +237,7 @@
         document.getElementById('noDataMsg').classList.remove('hidden');
       } else {
         document.getElementById('noDataMsg').classList.add('hidden');
-        filtered.forEach((r, i) => {
+        filtered.forEach((r,i) => {
           if (i === 0) {
             document.getElementById('prodIncentivePercent').textContent  = r[idx.pct]  || '--';
             document.getElementById('adminLeavesCounted').textContent    = r[idx.adminC]|| '--';
@@ -252,8 +264,9 @@
     }
 
     async function savePDF() {
+      let filename = prompt("ادخل اسم الملف:", `attendance_${currentUser}`);
+      if (!filename) return;
       const elm = document.getElementById('records');
-      // نجمع ارتفاع القسم بالكامل
       elm.style.width = '100%';
       const canvas = await html2canvas(elm, { scale: 2, useCORS: true });
       const img    = canvas.toDataURL('image/png');
@@ -261,7 +274,7 @@
       const w      = pdf.internal.pageSize.getWidth();
       const h      = (canvas.height * w) / canvas.width;
       pdf.addImage(img,'PNG',0,20,w,h);
-      pdf.save(`attendance_${currentUser}.pdf`);
+      pdf.save(`${filename}.pdf`);
     }
 
     async function showHwafez() {
@@ -296,12 +309,7 @@
           tbody.appendChild(tr);
         });
       }
-      // تمرير آلي
       document.getElementById('hwafezSection').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function showAbout() {
-      alert('فكرة وإعداد عمر الماضي - دائرة الموارد البشرية - اتصالات دمشق');
     }
 
     function logout() {
