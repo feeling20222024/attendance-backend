@@ -22,7 +22,17 @@
     </div>
 
     <!-- السجلات -->
-    <div id="records" class="hidden bg-white p-6 rounded-lg shadow mb-8">
+    <div id="records" class="hidden bg-white p-6 rounded-lg shadow">
+
+      <!-- تنبيهات مراقب الدوام -->
+      <div class="mb-6">
+        <h3 class="text-xl font-bold mb-2">تنبيهات مراقب الدوام</h3>
+        <textarea id="supervisorNotes" rows="3" class="w-full border rounded p-2 bg-gray-50" readonly></textarea>
+        <button id="saveNotesBtn" class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">
+          حفظ الملاحظة
+        </button>
+      </div>
+
       <div class="flex justify-between items-center mb-6">
         <div>
           <h2 id="welcomeMsg" class="text-2xl font-bold">مرحباً</h2>
@@ -31,9 +41,6 @@
         <div class="flex gap-4">
           <button onclick="showAbout()" class="text-blue-500 hover:underline">حول التطبيق</button>
           <button onclick="savePDF()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">حفظ PDF</button>
-          <button onclick="showHwafez()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            علامات الحوافز الإنتاجية
-          </button>
           <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">خروج</button>
         </div>
       </div>
@@ -79,47 +86,18 @@
         </table>
       </div>
     </div>
-
-    <!-- قسم علامات الحوافز الإنتاجية (نافذة منفصلة) -->
-    <div id="hwafezSection" class="hidden bg-white p-6 rounded-lg shadow mb-8">
-      <h3 class="text-xl font-bold mb-4">علامات الحوافز الإنتاجية</h3>
-      <p id="noHwafezMsg" class="text-center text-gray-600 hidden">لا توجد بيانات للحوافز.</p>
-      <div class="overflow-x-auto">
-        <table class="table-auto w-full text-center divide-y divide-gray-200">
-          <thead class="bg-gray-50 text-gray-700 text-sm">
-            <tr>
-              <th class="border px-4 py-2">رقم الموظف</th>
-              <th class="border px-4 py-2">الاسم</th>
-              <th class="border px-4 py-2">حجم العمل</th>
-              <th class="border px-4 py-2">اتقان العمل وفعاليته</th>
-              <th class="border px-4 py-2">المهارات القيادية</th>
-              <th class="border px-4 py-2">مهارة الإدارة الذاتية</th>
-              <th class="border px-4 py-2">مهارات التواصل والتفاعل</th>
-              <th class="border px-4 py-2">المبادرة والتطوير الذاتي</th>
-              <th class="border px-4 py-2">الإستقلال والموثوقية</th>
-              <th class="border px-4 py-2">الإلتزام والمسؤولية</th>
-              <th class="border px-4 py-2">نسبة الدوام الفعلي للعامل</th>
-              <th class="border px-4 py-2">السويّة الوظيفيّة</th>
-              <th class="border px-4 py-2">مستوى التأهيل</th>
-              <th class="border px-4 py-2">سنوات الخبرة</th>
-            </tr>
-          </thead>
-          <tbody id="hwafezBody" class="divide-y divide-gray-100"></tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 
   <script>
     const { jsPDF } = window.jspdf;
     const API_BASE = '/api';
+    const SUPERVISOR_CODE = '35190';
 
     let headersUsr = [], usersData = [];
     let headersAtt = [], attendanceData = [];
-    let headersHw  = [], hwafezData    = [];
     let currentUser = null;
 
+    // ترميز الحالة
     const caseMapping = {
       '1': "غياب غير مبرر (بدون إذن رسمي)",
       '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
@@ -128,7 +106,7 @@
       '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // جلب Users و Attendance
+    // 1) جلب البيانات
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -144,58 +122,79 @@
       attendanceData = aJson.data;
     }
 
-    // جلب hwafez
-    async function fetchHwafez() {
-      const res = await fetch(`${API_BASE}/hwafez`);
-      if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
-      const json = await res.json();
-      headersHw   = json.headers;
-      hwafezData  = json.data;
-    }
-
-    // تسجيل دخول الموظف
+    // 2) تسجيل دخول الموظف
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
+
       try {
         await fetchData();
-        // تأكيد اليوزر
+
+        // تحقق من المستخدم في شيت Users
         const idxUc = headersUsr.indexOf('رقم الموظف');
         const idxUp = headersUsr.indexOf('كلمة المرور');
-        const user  = usersData.find(r=>
+        const user  = usersData.find(r =>
           String(r[idxUc]).trim() === code &&
           String(r[idxUp]).trim() === pass
         );
         if (!user) return alert('بيانات الدخول خاطئة');
+
         currentUser = code;
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
+
+        // قمّ بعرض الملاحظات
+        loadSupervisorNotes();
+
+        // عرض السجلات وحقول KPI
         renderRecords();
+
+        // إذا كان هذا هو المراقب، فعّل إمكانية التعديل
+        if (currentUser === SUPERVISOR_CODE) {
+          document.getElementById('supervisorNotes').removeAttribute('readonly');
+          document.getElementById('saveNotesBtn').classList.remove('hidden');
+          document.getElementById('saveNotesBtn').onclick = saveSupervisorNotes;
+        }
       } catch (err) {
         alert(err.message);
       }
     }
 
-    // عرض حضور
+    // 3) تحميل ملاحظات المراقب من localStorage
+    function loadSupervisorNotes() {
+      const txt = localStorage.getItem('supervisorNotes') || '';
+      document.getElementById('supervisorNotes').value = txt;
+    }
+
+    // 4) حفظ الملاحظات
+    function saveSupervisorNotes() {
+      const val = document.getElementById('supervisorNotes').value;
+      localStorage.setItem('supervisorNotes', val);
+      alert('تم حفظ الملاحظة');
+    }
+
+    // 5) عرض السجلات
     function renderRecords() {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
+
+      // فهارس الأعمدة في الـ Attendance
       const idx = {
-        code:   headersAtt.indexOf('رقم الموظف'),
-        name:   headersAtt.indexOf('الاسم'),
-        status: headersAtt.indexOf('الحالة'),
-        date:   headersAtt.indexOf('التاريخ'),
-        in:     headersAtt.indexOf('دخول'),
-        out:    headersAtt.indexOf('خروج'),
-        sFrom:  headersAtt.indexOf('ساعية (من الساعة)'),
-        sTo:    headersAtt.indexOf('ساعية (إلى الساعة)'),
-        mFrom:  headersAtt.indexOf('مهمة (من الساعة)'),
-        mTo:    headersAtt.indexOf('مهمة (إلى الساعة)'),
-        days:   headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
-        notes:  headersAtt.indexOf('ملاحظات'),
-        adminC: headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
-        adminR: headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
-        pct:    headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')
+        code:    headersAtt.indexOf('رقم الموظف'),
+        name:    headersAtt.indexOf('الاسم'),
+        status:  headersAtt.indexOf('الحالة'),
+        date:    headersAtt.indexOf('التاريخ'),
+        in:      headersAtt.indexOf('دخول'),
+        out:     headersAtt.indexOf('خروج'),
+        sFrom:   headersAtt.indexOf('ساعية (من الساعة)'),
+        sTo:     headersAtt.indexOf('ساعية (إلى الساعة)'),
+        mFrom:   headersAtt.indexOf('مهمة (من الساعة)'),
+        mTo:     headersAtt.indexOf('مهمة (إلى الساعة)'),
+        days:    headersAtt.indexOf('عدد الأيام المحتسبة خاص بتقرير الساعيات والتأخر أقل من ساعة'),
+        notes:   headersAtt.indexOf('ملاحظات'),
+        adminC:  headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
+        adminR:  headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
+        pct:     headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')
       };
 
       let count = 0, firstRec = null;
@@ -207,7 +206,7 @@
         tr.innerHTML = `
           <td class="border px-4 py-2">${r[idx.code]  || ''}</td>
           <td class="border px-4 py-2">${r[idx.name]  || ''}</td>
-          <td class="border whitespace-normal px-4 py-2">${caseMapping[String(r[idx.status]).trim()]}</td>
+          <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()] || ''}</td>
           <td class="border px-4 py-2">${r[idx.date]  || ''}</td>
           <td class="border px-4 py-2">${r[idx.in]    || ''}</td>
           <td class="border px-4 py-2">${r[idx.out]   || ''}</td>
@@ -221,6 +220,7 @@
         tbody.appendChild(tr);
       });
 
+      // عرض KPI من أول صف
       if (firstRec) {
         document.getElementById('prodIncentivePercent').textContent = firstRec[idx.pct]  || '--';
         document.getElementById('adminLeavesCounted').textContent   = firstRec[idx.adminC] || '--';
@@ -229,60 +229,7 @@
       document.getElementById('noDataMsg').classList.toggle('hidden', count > 0);
     }
 
-    // إظهار hwafez
-    async function showHwafez() {
-      try {
-        await fetchHwafez();
-        const rows = hwafezData.filter(r=>
-          String(r[ headersHw.indexOf('رقم الموظف') ]).trim() === currentUser
-        );
-        if (!rows.length) {
-          document.getElementById('noHwafezMsg').classList.remove('hidden');
-        } else {
-          document.getElementById('noHwafezMsg').classList.add('hidden');
-          renderHwafez(rows);
-        }
-        document.getElementById('hwafezSection').classList.remove('hidden');
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-      } catch (err) {
-        alert(err.message);
-      }
-    }
-
-    function renderHwafez(rows) {
-      const tbody = document.getElementById('hwafezBody');
-      tbody.innerHTML = '';
-      const idx = {
-        code: headersHw.indexOf('رقم الموظف'),
-        name: headersHw.indexOf('الاسم'),
-        fields: [
-          'حجم العمل',
-          'اتقان العمل وفعاليته',
-          'المهارات القيادية',
-          'مهارة الإدارة الذاتية',
-          'مهارات التواصل والتفاعل',
-          'المبادرة والتطوير الذاتي',
-          'الإستقلال والموثوقية',
-          'الإلتزام والمسؤولية',
-          'نسبة الدوام الفعلي للعامل',
-          'السويّة الوظيفيّة',
-          'مستوى التأهيل',
-          'سنوات الخبرة'
-        ].map(h => headersHw.indexOf(h))
-      };
-      rows.forEach(r => {
-        const cells = [
-          `<td class="border px-4 py-2">${r[idx.code]||''}</td>`,
-          `<td class="border px-4 py-2">${r[idx.name]||''}</td>`,
-          ...idx.fields.map(i=>`<td class="border px-4 py-2">${r[i]||''}</td>`)
-        ].join('');
-        const tr = document.createElement('tr');
-        tr.innerHTML = cells;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // حفظ PDF
+    // 6) حفظ PDF
     async function savePDF() {
       const elm = document.getElementById('records');
       const canvas = await html2canvas(elm, { scale: 2 });
@@ -300,7 +247,6 @@
     function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
-      document.getElementById('hwafezSection').classList.add('hidden');
       document.getElementById('loginSection').classList.remove('hidden');
     }
   </script>
