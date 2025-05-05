@@ -33,18 +33,14 @@
         </button>
       </div>
 
-      <!-- عنوان الترحيب مع الاسم والرقم -->
+      <!-- عنوان الترحيب مع الاسم فقط -->
       <div class="mb-4">
         <h2 id="welcomeMsg" class="text-2xl font-bold">مرحباً</h2>
-        <p id="welcomeName" class="text-gray-600 text-lg mt-1"></p>
       </div>
 
       <!-- أزرار التحكم أسفل الترحيب -->
       <div class="flex items-center mb-6 gap-4">
         <button id="aboutBtn" class="text-blue-500 hover:underline ml-4">حول التطبيق</button>
-        <button id="savePdfBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-          حفظ PDF
-        </button>
         <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
           علامات الحوافز الإنتاجية
         </button>
@@ -86,7 +82,10 @@
               <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
               <th class="border px-4 py-2">مهمة (من الساعة)</th>
               <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
-              <th class="border px-4 py-2">الأيام المحتسبة</th>
+              <th class="border px-4 py-2">
+                الأيام المحتسبة<br/>
+                (تقرير الساعيات أو تأخر أقل من ساعة)
+              </th>
               <th class="border px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
@@ -127,7 +126,6 @@
   </div>
 
   <script>
-    const { jsPDF } = window.jspdf;
     const API_BASE = '/api';
     const SUPERVISOR_CODE = '35190';
 
@@ -144,13 +142,10 @@
       '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    document.getElementById('loginBtn')?.addEventListener('click', login);
-    document.getElementById('logoutBtn')?.addEventListener('click', logout);
-    document.getElementById('aboutBtn')?.addEventListener('click', () =>
-      alert('فكرة وإعداد عمر الماضي - دائرة الموارد البشرية - اتصالات دمشق')
-    );
-    document.getElementById('savePdfBtn')?.addEventListener('click', savePDF);
-    document.getElementById('hwafezBtn')?.addEventListener('click', showHwafez);
+    document.getElementById('loginSection').querySelector('button').onclick = login;
+    document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('aboutBtn').onclick  = () => alert('فكرة وإعداد عمر الماضي - دائرة الموارد البشرية - اتصالات دمشق');
+    document.getElementById('hwafezBtn').onclick  = showHwafez;
 
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
@@ -174,6 +169,7 @@
       await fetchData();
       const iUc = headersUsr.indexOf('رقم الموظف');
       const iUp = headersUsr.indexOf('كلمة المرور');
+      const idxName = headersUsr.indexOf('الاسم');
       const user = usersData.find(r =>
         String(r[iUc]).trim() === code &&
         String(r[iUp]).trim() === pass
@@ -184,15 +180,13 @@
       document.getElementById('loginSection').classList.add('hidden');
       document.getElementById('records').classList.remove('hidden');
 
-      // عرض الاسم والرقم
-      const idxName = headersUsr.indexOf('الاسم');
-      document.getElementById('welcomeMsg').textContent =
-        `مرحباً ${user[idxName]} (#${code})`;
+      // عرض الاسم فقط
+      document.getElementById('welcomeMsg').textContent = `مرحباً ${user[idxName]}`;
 
       // ملاحظات
       const notesArea = document.getElementById('supervisorNotes');
       const saveBtn   = document.getElementById('saveNotesBtn');
-      notesArea.value = localStorage.getItem('supervisorNotes')||'';
+      notesArea.value = localStorage.getItem('supervisorNotes') || '';
       if (code === SUPERVISOR_CODE) {
         notesArea.removeAttribute('readonly');
         saveBtn.classList.remove('hidden');
@@ -263,27 +257,13 @@
       }
     }
 
-    async function savePDF() {
-      let filename = prompt("ادخل اسم الملف:", `attendance_${currentUser}`);
-      if (!filename) return;
-      const elm = document.getElementById('records');
-      elm.style.width = '100%';
-      const canvas = await html2canvas(elm, { scale: 2, useCORS: true });
-      const img    = canvas.toDataURL('image/png');
-      const pdf    = new jsPDF('l','pt','a4');
-      const w      = pdf.internal.pageSize.getWidth();
-      const h      = (canvas.height * w) / canvas.width;
-      pdf.addImage(img,'PNG',0,20,w,h);
-      pdf.save(`${filename}.pdf`);
-    }
-
     async function showHwafez() {
       await fetchHwafez();
       const tbody = document.getElementById('hwafezBody');
       tbody.innerHTML = '';
       const idx = {
-        code:   headersHw.indexOf('رقم الموظف'),
-        name:   headersHw.indexOf('الاسم'),
+        code: headersHw.indexOf('رقم الموظف'),
+        name: headersHw.indexOf('الاسم'),
         fields: [
           'حجم العمل','اتقان العمل وفعاليته','المهارات القيادية','مهارة الإدارة الذاتية',
           'مهارات التواصل والتفاعل','المبادرة والتطوير الذاتي','الإستقلال والموثوقية',
