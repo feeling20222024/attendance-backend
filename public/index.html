@@ -160,22 +160,33 @@
       const pass = document.getElementById('passwordInput').value.trim();
       try {
         await fetchData();
-        const idxC = headersUsr.indexOf('رقم الموظف');
-        const idxP = headersUsr.indexOf('كلمة المرور');
+        const idxC    = headersUsr.indexOf('رقم الموظف');
+        const idxP    = headersUsr.indexOf('كلمة المرور');
         const idxName = headersAtt.indexOf('الاسم');
         const user = usersData.find(r => String(r[idxC])===code && String(r[idxP])===pass);
         if (!user) return alert('بيانات الدخول خاطئة');
         currentUser = code;
-        const rec = attendanceData.filter(r=>String(r[ idxC ])===code);
-        if (!rec.length) {
-          document.getElementById('noDataMsg').classList.remove('hidden');
-        } else {
-          document.getElementById('noDataMsg').classList.add('hidden');
-          renderAttendance(rec);
+
+        // صفوف الحضور الخاصة بالمستخدم
+        const recs = attendanceData.filter(r => String(r[idxC]) === code);
+
+        // إظهار أو إخفاء رسالة "لا توجد بيانات"
+        document.getElementById('noDataMsg').classList.toggle('hidden', recs.length > 0);
+        if (recs.length > 0) renderAttendance(recs);
+
+        // الإحصائيات: تأكد من وجود صف أوليّ
+        let prod = '--', cnt = '--', rem = '--';
+        if (recs.length > 0) {
+          const first = recs[0];
+          prod = first[ headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية') ] || '--';
+          cnt  = first[ headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل') ] || '--';
+          rem  = first[ headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل') ] || '--';
         }
-        document.getElementById('prodIncentivePercent').textContent = rec[0][ headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية') ] || '--';
-        document.getElementById('adminLeavesCounted').textContent   = rec[0][ headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل') ] || '--';
-        document.getElementById('adminLeavesRemaining').textContent = rec[0][ headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل') ] || '--';
+        document.getElementById('prodIncentivePercent').textContent = prod;
+        document.getElementById('adminLeavesCounted').textContent   = cnt;
+        document.getElementById('adminLeavesRemaining').textContent = rem;
+
+        // عرض الواجهة
         document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('records').classList.remove('hidden');
       } catch (err) {
@@ -220,17 +231,13 @@
       });
     }
 
-    // عرض علامات الحوافز
+    // عرض جدول الحوافز
     async function showHwafez() {
       try {
         await fetchHwafez();
         const rows = hwafezData.filter(r=>String(r[ headersHw.indexOf('رقم الموظف') ])===currentUser);
-        if (!rows.length) {
-          document.getElementById('noHwafezMsg').classList.remove('hidden');
-        } else {
-          document.getElementById('noHwafezMsg').classList.add('hidden');
-          renderHwafez(rows);
-        }
+        document.getElementById('noHwafezMsg').classList.toggle('hidden', rows.length > 0);
+        renderHwafez(rows);
         document.getElementById('hwafezSection').classList.remove('hidden');
       } catch (err) {
         alert(err.message);
@@ -258,13 +265,12 @@
         ].map(h => headersHw.indexOf(h))
       };
       rows.forEach(r => {
-        const cells = `
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
           <td class="border px-4 py-2">${r[mapIdx.code]||''}</td>
           <td class="border px-4 py-2">${r[mapIdx.name]||''}</td>
           ${mapIdx.fields.map(i=>`<td class="border px-4 py-2">${r[i]||''}</td>`).join('')}
         `;
-        const tr = document.createElement('tr');
-        tr.innerHTML = cells;
         tbody.appendChild(tr);
       });
     }
