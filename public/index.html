@@ -35,15 +35,17 @@
 
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h2 id="welcomeMsg" class="text-2xl font-bold">مرحباً</h2>
-          <p id="welcomeName" class="text-gray-600 text-lg mt-1"></p>
+          <h2 id="welcomeMsg" class="text-2xl font-bold flex items-baseline gap-2">
+            مرحباً 
+            <span id="welcomeName" class="text-blue-600 text-xl"></span>
+          </h2>
         </div>
         <div class="flex gap-4">
           <button onclick="showAbout()" class="text-blue-500 hover:underline">حول التطبيق</button>
           <button onclick="savePDF()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
             حفظ PDF
           </button>
-          <button onclick="showHwafez()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          <button onclick="showHwafez(); scrollToHwafez();" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
             علامات الحوافز الإنتاجية
           </button>
           <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
@@ -72,21 +74,21 @@
 
       <!-- جدول الحضور -->
       <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4">
-        <table class="table-auto w-full text-center divide-y divide-gray-200">
+        <table class="table-fixed w-full text-center divide-y divide-gray-200">
           <thead class="bg-gray-50 text-gray-700 text-sm">
             <tr>
-              <th class="border px-4 py-2">رقم الموظف</th>
-              <th class="border px-4 py-2">الاسم</th>
-              <th class="border px-4 py-2">الحالة</th>
-              <th class="border px-4 py-2">التاريخ</th>
-              <th class="border px-4 py-2">دخول</th>
-              <th class="border px-4 py-2">خروج</th>
-              <th class="border px-4 py-2">ساعية (من الساعة)</th>
-              <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
-              <th class="border px-4 py-2">مهمة (من الساعة)</th>
-              <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
-              <th class="border px-4 py-2">الأيام المحتسبة</th>
-              <th class="border px-4 py-2">ملاحظات</th>
+              <th class="w-1/12 border px-4 py-2">رقم الموظف</th>
+              <th class="w-1/12 border px-4 py-2">الاسم</th>
+              <th class="w-2/12 border px-4 py-2">الحالة</th>
+              <th class="w-1/12 border px-4 py-2">التاريخ</th>
+              <th class="w-1/12 border px-4 py-2">دخول</th>
+              <th class="w-1/12 border px-4 py-2">خروج</th>
+              <th class="w-1/12 border px-4 py-2">ساعية (من)</th>
+              <th class="w-1/12 border px-4 py-2">ساعية (إلى)</th>
+              <th class="w-1/12 border px-4 py-2">مهمة (من)</th>
+              <th class="w-1/12 border px-4 py-2">مهمة (إلى)</th>
+              <th class="w-1/12 border px-4 py-2">الأيام المحتسبة</th>
+              <th class="w-1/12 border px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
           <tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody>
@@ -98,7 +100,7 @@
         <h3 class="text-xl font-bold mb-4">علامات الحوافز الإنتاجية</h3>
         <p id="noHwafezMsg" class="text-center text-gray-600 hidden">لا توجد بيانات للحوافز.</p>
         <div id="hwafezWrapper" class="overflow-x-auto">
-          <table class="table-auto w-full text-center divide-y divide-gray-200">
+          <table class="table-fixed w-full text-center divide-y divide-gray-200">
             <thead class="bg-gray-50 text-gray-700 text-sm">
               <tr>
                 <th class="border px-4 py-2">رقم الموظف</th>
@@ -143,7 +145,6 @@
       '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
     };
 
-    // جلب بيانات Users و Attendance
     async function fetchData() {
       const [uRes, aRes] = await Promise.all([
         fetch(`${API_BASE}/users`),
@@ -155,7 +156,6 @@
       headersAtt     = aJson.headers; attendanceData = aJson.data;
     }
 
-    // جلب بيانات hwafez
     async function fetchHwafez() {
       const res = await fetch(`${API_BASE}/hwafez`);
       if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
@@ -163,11 +163,11 @@
       headersHw  = json.headers; hwafezData = json.data;
     }
 
-    // تسجيل دخول
     async function login() {
       const code = document.getElementById('codeInput').value.trim();
       const pass = document.getElementById('passwordInput').value.trim();
       await fetchData();
+
       const iUc = headersUsr.indexOf('رقم الموظف');
       const iUp = headersUsr.indexOf('كلمة المرور');
       const user = usersData.find(r =>
@@ -179,6 +179,7 @@
       currentUser = code;
       document.getElementById('loginSection').classList.add('hidden');
       document.getElementById('records').classList.remove('hidden');
+      document.getElementById('welcomeName').textContent = `${code} – ${user[headersUsr.indexOf('الاسم')]}`;
 
       // ملاحظات
       loadSupervisorNotes();
@@ -188,7 +189,6 @@
         document.getElementById('saveNotesBtn').onclick = saveSupervisorNotes;
       }
 
-      // عرض حضور و KPI
       renderRecords();
     }
 
@@ -202,11 +202,9 @@
       alert('تم حفظ الملاحظة');
     }
 
-    // عرض حضور
     function renderRecords() {
       const tbody = document.getElementById('attendanceBody');
       tbody.innerHTML = '';
-
       const idx = {
         code:    headersAtt.indexOf('رقم الموظف'),
         name:    headersAtt.indexOf('الاسم'),
@@ -225,42 +223,38 @@
         pct:     headersAtt.indexOf('نسبة الدوام للحوافز الإنتاجية')
       };
 
-      let firstRec = null;
-      const filtered = attendanceData.filter(r =>
+      const rows = attendanceData.filter(r =>
         String(r[idx.code]).trim() === currentUser
       );
-
-      if (!filtered.length) {
+      if (!rows.length) {
         document.getElementById('noDataMsg').classList.remove('hidden');
       } else {
         document.getElementById('noDataMsg').classList.add('hidden');
-        filtered.forEach(r => {
-          if (!firstRec) firstRec = r;
+        rows.forEach(r => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td class="border px-4 py-2">${r[idx.code]  || ''}</td>
-            <td class="border px-4 py-2">${r[idx.name]  || ''}</td>
+            <td class="border px-4 py-2">${r[idx.code] || ''}</td>
+            <td class="border px-4 py-2">${r[idx.name] || ''}</td>
             <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]}</td>
-            <td class="border px-4 py-2">${r[idx.date]  || ''}</td>
-            <td class="border px-4 py-2">${r[idx.in]    || ''}</td>
-            <td class="border px-4 py-2">${r[idx.out]   || ''}</td>
+            <td class="border px-4 py-2">${r[idx.date] || ''}</td>
+            <td class="border px-4 py-2">${r[idx.in] || ''}</td>
+            <td class="border px-4 py-2">${r[idx.out] || ''}</td>
             <td class="border px-4 py-2">${r[idx.sFrom] || ''}</td>
-            <td class="border px-4 py-2">${r[idx.sTo]   || ''}</td>
+            <td class="border px-4 py-2">${r[idx.sTo] || ''}</td>
             <td class="border px-4 py-2">${r[idx.mFrom] || ''}</td>
-            <td class="border px-4 py-2">${r[idx.mTo]   || ''}</td>
-            <td class="border px-4 py-2">${r[idx.days]  || ''}</td>
+            <td class="border px-4 py-2">${r[idx.mTo] || ''}</td>
+            <td class="border px-4 py-2">${r[idx.days] || ''}</td>
             <td class="border px-4 py-2">${r[idx.notes] || ''}</td>
           `;
           tbody.appendChild(tr);
         });
-        // ملء KPI
-        document.getElementById('prodIncentivePercent').textContent = firstRec[idx.pct]  || '--';
-        document.getElementById('adminLeavesCounted').textContent   = firstRec[idx.adminC] || '--';
-        document.getElementById('adminLeavesRemaining').textContent = firstRec[idx.adminR] || '--';
+        const first = rows[0];
+        document.getElementById('prodIncentivePercent').textContent = first[idx.pct]  || '--';
+        document.getElementById('adminLeavesCounted').textContent   = first[idx.adminC] || '--';
+        document.getElementById('adminLeavesRemaining').textContent = first[idx.adminR] || '--';
       }
     }
 
-    // حفظ PDF
     async function savePDF() {
       const elm = document.getElementById('records');
       const canvas = await html2canvas(elm, { scale: 2 });
@@ -269,10 +263,16 @@
       const w      = pdf.internal.pageSize.getWidth();
       const h      = (canvas.height * w) / canvas.width;
       pdf.addImage(img,'PNG',0,20,w,h);
+      pdf.addPage();
+      // hwafez part
+      await fetchHwafez();
+      const hwEl = document.getElementById('hwafezSection');
+      const canvas2 = await html2canvas(hwEl, { scale: 2 });
+      const img2    = canvas2.toDataURL('image/png');
+      pdf.addImage(img2,'PNG',0,20,w,(canvas2.height*w)/canvas2.width);
       pdf.save(`attendance_${currentUser}.pdf`);
     }
 
-    // عرض hwafez
     async function showHwafez() {
       await fetchHwafez();
       const tbody = document.getElementById('hwafezBody');
@@ -290,28 +290,26 @@
       const rows = hwafezData.filter(r =>
         String(r[idx.code]).trim() === currentUser
       );
-      if (!rows.length) {
-        document.getElementById('noHwafezMsg').classList.remove('hidden');
-      } else {
-        document.getElementById('noHwafezMsg').classList.add('hidden');
-        rows.forEach(r => {
-          const cells = `
-            <td class="border px-4 py-2">${r[idx.code]||''}</td>
-            <td class="border px-4 py-2">${r[idx.name]||''}</td>
-            ${idx.fields.map(i=>`<td class="border px-4 py-2">${r[i]||''}</td>`).join('')}
-          `;
-          const tr = document.createElement('tr');
-          tr.innerHTML = cells;
-          tbody.appendChild(tr);
-        });
-        document.getElementById('hwafezSection').classList.remove('hidden');
-      }
+      document.getElementById('noHwafezMsg').classList.toggle('hidden', rows.length>0);
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="border px-4 py-2">${r[idx.code]||''}</td>
+          <td class="border px-4 py-2">${r[idx.name]||''}</td>
+          ${idx.fields.map(i=>`<td class="border px-4 py-2">${r[i]||''}</td>`).join('')}
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('hwafezSection').classList.remove('hidden');
+    }
+
+    function scrollToHwafez() {
+      document.getElementById('hwafezSection').scrollIntoView({ behavior: 'smooth' });
     }
 
     function showAbout() {
-      alert('فكرة و تصميم و إعداد عمر الماضي - دائرة الموارد البشرية - اتصالات دمشق');
+      alert('فكرة وإعداد عمر الماضي - دائرة الموارد البشرية - اتصالات دمشق');
     }
-
     function logout() {
       currentUser = null;
       document.getElementById('records').classList.add('hidden');
