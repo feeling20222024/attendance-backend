@@ -4,6 +4,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const cors = require('cors');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const path = require('path');
 
@@ -31,6 +32,8 @@ try {
 
 // 3) تهيئة Express
 const app = express();
+// تمكين CORS للواجهة (مهم عند استدعاء من تطبيقات الهواتف)
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -78,10 +81,10 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
-// 7) API: جلب بيانات علامات الحوافز الإنتاجية من شيت "hwafez"
+// 7) API: جلب بيانات hwafez
 app.get('/api/hwafez', async (req, res) => {
   try {
-    const result = await readSheet('hwafez'); // تأكد من اسم الشيت بالضبط
+    const result = await readSheet('hwafez');
     res.json(result);
   } catch (err) {
     console.error('خطأ في جلب بيانات hwafez:', err.message);
@@ -89,7 +92,7 @@ app.get('/api/hwafez', async (req, res) => {
   }
 });
 
-// 8) أي طلب GET آخر → صفحة الواجهة (SPA fallback)
+// 8) SPA fallback لأي طلب GET آخر
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
