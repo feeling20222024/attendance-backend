@@ -1,5 +1,3 @@
-// server.js
-
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
 
@@ -26,14 +24,13 @@ let creds;
 try {
   creds = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
 } catch (e) {
-  console.error('🚨 فشل في قراءة GOOGLE_SERVICE_KEY. تأكد من التنسيق الصحيح في .env');
+  console.error('🚨 فشل في قراءة GOOGLE_SERVICE_KEY. تأكد من تنسيق JSON صحيح في .env');
   process.exit(1);
 }
 
 // 3) تهيئة Express
 const app = express();
-// تمكين CORS للواجهة (مهم عند استدعاء من تطبيقات الهواتف)
-app.use(cors());
+app.use(cors()); // تمكين CORS
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
