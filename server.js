@@ -1,3 +1,5 @@
+// server.js
+
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
 
@@ -91,12 +93,23 @@ app.get('/api/hwafez', async (req, res) => {
   }
 });
 
-// 8) SPA fallback لأي طلب GET آخر
+// 8) API: جلب بيانات Managers (EmployeeCode ↔ ManagerCode)
+app.get('/api/managers', async (req, res) => {
+  try {
+    const result = await readSheet('Managers');
+    res.json(result);
+  } catch (err) {
+    console.error('خطأ في جلب بيانات Managers:', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 9) SPA fallback لأي طلب GET آخر
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 9) تشغيل الخادم
+// 10) تشغيل الخادم
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
   // اختبار الاتصال عند بدء التشغيل
