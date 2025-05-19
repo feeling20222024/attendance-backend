@@ -3,7 +3,6 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-app.use(cors());
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const path = require('path');
 
@@ -31,7 +30,9 @@ try {
 
 // 3) تهيئة Express
 const app = express();
-app.use(cors()); // تمكين CORS
+
+// تفعيل CORS قبل أي راوتر
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
