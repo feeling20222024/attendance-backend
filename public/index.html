@@ -2,47 +2,66 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8"/>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' data: gap: https://dwam-app-by-omar.onrender.com/; 
+                 style-src 'self' 'unsafe-inline'; 
+                 script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>تطبيق مراقبة الدوام</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body class="bg-gray-100 p-4">
   <div class="w-full max-w-screen-xl mx-auto">
 
-    <!-- تسجيل دخول الموظف -->
+    <!-- تسجيل دخول -->
     <div id="loginSection" class="bg-white p-6 rounded-lg shadow mb-8">
       <h2 class="text-2xl font-bold mb-4">تسجيل دخول الموظف</h2>
-      <input id="codeInput" type="text" placeholder="كود الموظف" class="w-full mb-3 border px-3 py-2 rounded"/>
-      <input id="passwordInput" type="password" placeholder="كلمة المرور" class="w-full mb-3 border px-3 py-2 rounded"/>
-      <button id="loginBtn" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">دخول</button>
+      <input id="codeInput" type="text" placeholder="كود الموظف"
+             class="w-full mb-3 border px-3 py-2 rounded"/>
+      <input id="passwordInput" type="password" placeholder="كلمة المرور"
+             class="w-full mb-3 border px-3 py-2 rounded"/>
+      <button id="loginBtn"
+              class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        دخول
+      </button>
     </div>
 
     <!-- السجلات -->
     <div id="records" class="hidden bg-white p-6 rounded-lg shadow">
 
-      <!-- تنبيهات مراقب الدوام -->
+      <!-- تنبيهات -->
       <div class="mb-6">
         <h3 class="text-xl font-bold mb-2">تنبيهات مراقب الدوام</h3>
-        <textarea id="supervisorNotes" rows="3" class="w-full border rounded p-2 bg-gray-50" readonly></textarea>
-        <button id="saveNotesBtn" class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">حفظ الملاحظة</button>
+        <textarea id="supervisorNotes" rows="3"
+                  class="w-full border rounded p-2 bg-gray-50" readonly></textarea>
+        <button id="saveNotesBtn"
+                class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">
+          حفظ الملاحظة
+        </button>
       </div>
 
-      <!-- عنوان الترحيب -->
+      <!-- الترحيب -->
       <div class="mb-4">
         <h2 id="welcomeMsg" class="text-2xl font-bold">مرحباً</h2>
+        <p id="managerName" class="text-blue-600 mb-4"></p>
       </div>
 
-      <!-- أزرار التحكم أسفل الترحيب -->
+      <!-- أزرار التحكم -->
       <div class="flex items-center mb-6 gap-4">
         <button id="aboutBtn" class="text-blue-500 hover:underline">حول التطبيق</button>
-        <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">علامات الحوافز الإنتاجية</button>
-        <button id="employeesBtn" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 hidden">بيانات العاملين</button>
-        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">خروج</button>
+        <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          علامات الحوافز الإنتاجية
+        </button>
+        <button id="employeesBtn" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 hidden">
+          بيانات العاملين
+        </button>
+        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+          خروج
+        </button>
       </div>
 
-      <!-- الحقول الإحصائية -->
+      <!-- الإحصائيات -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
         <div class="bg-gray-50 p-4 rounded shadow border">
           <p class="font-semibold mb-2">الإجازات الإدارية المستحقة للعامل</p>
@@ -58,8 +77,9 @@
         </div>
       </div>
 
-      <!-- لا توجد بيانات -->
-      <p id="noDataMsg" class="text-center text-gray-600 hidden">لا توجد بيانات متاحة.</p>
+      <p id="noDataMsg" class="text-center text-gray-600 hidden">
+        لا توجد بيانات متاحة.
+      </p>
 
       <!-- جدول الحضور -->
       <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4">
@@ -76,7 +96,10 @@
               <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
               <th class="border px-4 py-2">مهمة (من الساعة)</th>
               <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
-              <th class="border px-4 py-2">الأيام المحتسبة<br>(تقرير الساعيات أو تأخر أقل من ساعة)</th>
+              <th class="border px-4 py-2">
+                الأيام المحتسبة<br/>
+                (تقرير الساعيات أو تأخر أقل من ساعة)
+              </th>
               <th class="border px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
@@ -87,7 +110,9 @@
       <!-- جدول الحوافز الإنتاجية -->
       <div id="hwafezSection" class="hidden mt-8 bg-white p-6 rounded-lg shadow">
         <h3 class="text-xl font-bold mb-4">علامات الحوافز الإنتاجية</h3>
-        <p id="noHwafezMsg" class="text-center text-gray-600 hidden">لا توجد بيانات للحوافز.</p>
+        <p id="noHwafezMsg" class="text-center text-gray-600 hidden">
+          لا توجد بيانات للحوافز.
+        </p>
         <div class="overflow-x-auto">
           <table class="table-auto w-full text-center divide-y divide-gray-200">
             <thead class="bg-gray-50 text-gray-700 text-sm">
@@ -116,7 +141,9 @@
       <!-- جدول بيانات العاملين -->
       <div id="employeesSection" class="hidden mt-8 bg-white p-6 rounded-lg shadow">
         <h3 class="text-xl font-bold mb-4">بيانات العاملين</h3>
-        <p id="noEmployeesMsg" class="text-center text-gray-600 hidden">لا توجد بيانات للعاملين.</p>
+        <p id="noEmployeesMsg" class="text-center text-gray-600 hidden">
+          لا توجد بيانات للعاملين.
+        </p>
         <div class="overflow-x-auto">
           <table class="table-auto w-full text-center divide-y divide-gray-200">
             <thead class="bg-gray-50 text-gray-700 text-sm">
