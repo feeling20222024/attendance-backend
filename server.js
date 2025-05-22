@@ -1,9 +1,8 @@
-// server.js
-
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
 
 const express = require('express');
+const cors = require('cors');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const path = require('path');
 
@@ -25,12 +24,15 @@ let creds;
 try {
   creds = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
 } catch (e) {
-  console.error('🚨 فشل في قراءة GOOGLE_SERVICE_KEY. تأكد من التنسيق الصحيح في .env');
+  console.error('🚨 فشل في قراءة GOOGLE_SERVICE_KEY. تأكد من تنسيق JSON صحيح في .env');
   process.exit(1);
 }
 
 // 3) تهيئة Express
 const app = express();
+
+// تفعيل CORS قبل أي راوتر
+app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -78,10 +80,10 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
-// 7) API: جلب بيانات علامات الحوافز الإنتاجية من شيت "hwafez"
+// 7) API: جلب بيانات hwafez
 app.get('/api/hwafez', async (req, res) => {
   try {
-    const result = await readSheet('hwafez'); // تأكد من اسم الشيت بالضبط
+    const result = await readSheet('hwafez');
     res.json(result);
   } catch (err) {
     console.error('خطأ في جلب بيانات hwafez:', err.message);
@@ -89,7 +91,7 @@ app.get('/api/hwafez', async (req, res) => {
   }
 });
 
-// 8) أي طلب GET آخر → صفحة الواجهة (SPA fallback)
+// 8) SPA fallback لأي طلب GET آخر
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -97,7 +99,6 @@ app.get(/.*/, (req, res) => {
 // 9) تشغيل الخادم
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
-  // اختبار الاتصال عند بدء التشغيل
   accessSheet()
     .then(() => console.log('✅ تم الاتصال بنجاح مع Google Sheets'))
     .catch(err => console.error('🚨 خطأ في الاتصال مع Google Sheets:', err.message));
