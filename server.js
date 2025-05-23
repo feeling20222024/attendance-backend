@@ -99,6 +99,7 @@ app.get(/.*/, (req, res) => {
 // 9) تشغيل الخادم
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
+  // اختبار الاتصال عند بدء التشغيل
   accessSheet()
     .then(() => console.log('✅ تم الاتصال بنجاح مع Google Sheets'))
     .catch(err => console.error('🚨 خطأ في الاتصال مع Google Sheets:', err.message));
