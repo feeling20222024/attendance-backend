@@ -1,6 +1,6 @@
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
-
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
