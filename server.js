@@ -90,7 +90,13 @@ app.get('/api/hwafez', async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
+// 8) API: إرسال إشعار للمستخدمين
+app.post('/api/notify-all', async (req, res) => {
+  const { title, body } = req.body;
+  console.log('🔔 إشعار مرسل:', title, body);
+  // مبدئيًا: طباعة فقط – يمكن ربطه لاحقًا بـ Firebase أو خدمة إشعارات
+  res.json({ success: true, message: 'هام يوجد تحديث للبيانات' });
+});
 // 8) SPA fallback لأي طلب GET آخر
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
