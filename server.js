@@ -1,10 +1,32 @@
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
 
+const admin = require('firebase-admin');
+const serviceAccount = require('./path/to/firebase-service-account.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 const express = require('express');
 const cors = require('cors');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const path = require('path');
+
+// مصفوفة مؤقتة لتخزين التوكنات؛ بالإمكان تعويضها بقاعدة بيانات
+const tokens = new Map();
+
+// استقبال التوكن وتخزينه
+app.post('/api/register-token', (req, res) => {
+  const { user, token } = req.body;
+  if (!user || !token) {
+    return res.status(400).json({ error: 'مفقود user أو token' });
+  }
+  // يمكنك هنا ربط التوكن بمعرّف المستخدم في قاعدة بياناتك
+  tokens.set(token, user);
+  console.log(`🔔 سجّل التوكن للمستخدم ${user}:`, token);
+  res.json({ success: true });
+});
 
 const PORT     = process.env.PORT || 3000;
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
