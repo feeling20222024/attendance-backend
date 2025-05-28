@@ -8,7 +8,6 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin = require('firebase-admin');
 
 // 2) تهيئة Firebase Admin
-const serviceAccount = require('./firebase-service-account.json');
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
