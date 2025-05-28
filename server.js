@@ -119,6 +119,25 @@ app.post('/api/notify-all', async (req, res) => {
   // مبدئيًا: طباعة فقط – يمكن ربطه لاحقًا بـ Firebase أو خدمة إشعارات
   res.json({ success: true, message: 'هام يوجد تحديث للبيانات' });
 });
+
+app.post('/api/notify-all', async (req, res) => {
+  const { title, body } = req.body;
+
+  const message = {
+    notification: { title, body },
+    tokens: Array.from(tokens.keys())
+  };
+
+  try {
+    const response = await admin.messaging().sendMulticast(message);
+    console.log('FCM multicast result:', response);
+    res.json({ success: true, sent: response.successCount });
+  } catch (err) {
+    console.error('FCM error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 8) SPA fallback لأي طلب GET آخر
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
