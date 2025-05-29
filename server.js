@@ -88,19 +88,26 @@ app.get('/api/hwafez',   async (req, res) => { try { res.json(await readSheet('h
 // 8) مسار إرسال الإشعار للمشرف (فقط عبر FCM)
 app.post('/api/notify-all', async (req, res) => {
   const { title, body } = req.body;
-  const message = {
-    notification: { title, body },
-    tokens:       Array.from(tokens.keys())
+  const tokensList = Array.from(tokens.keys());
+  console.log('🔔 notify-all called, tokens:', tokensList);
+
+  const payload = {
+    notification: { title, body }
   };
+
   try {
-    const response = await admin.messaging().sendMulticast(message);
-    console.log('FCM multicast result:', response);
-    res.json({ success: true, sent: response.successCount });
+    // بدل sendMulticast استخدم sendToDevice
+    const response = await admin.messaging().sendToDevice(tokensList, payload);
+    console.log('FCM sendToDevice result:', response);
+    // response.successCount ليس موجود، نعدّ بنفسنا
+    const successCount = response.results.filter(r => !r.error).length;
+    res.json({ success: true, sent: successCount });
   } catch (err) {
     console.error('FCM error:', err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // 9) SPA fallback
 app.get(/.*/, (req, res) => {
