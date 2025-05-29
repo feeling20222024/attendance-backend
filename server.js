@@ -1,5 +1,6 @@
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
+const admin = require('firebase-admin');
 const serviceAccount = {
   type:                        "service_account",
   project_id:                  "device-streaming-47cbe934",
