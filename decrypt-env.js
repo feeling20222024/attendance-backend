@@ -1,16 +1,36 @@
-const crypto = require("crypto");
-const fs = require("fs");
+const crypto = require('crypto');
+const fs = require('fs');
 
-const algorithm = "aes-256-cbc";
+// قراءة ملف env المشفر
+const encrypted = fs.readFileSync('.env.enc');
+
+// استخدام المفتاح من متغير بيئة ENV_SECRET_KEY
+if (!process.env.ENV_SECRET_KEY) {
+  console.error('❌ ENV_SECRET_KEY غير موجود في متغيرات البيئة.');
+  process.exit(1);
+}
+
 const key = Buffer.from(process.env.ENV_SECRET_KEY, 'base64');
 
-const encrypted = JSON.parse(fs.readFileSync(".env.enc", "utf8"));
-const iv = Buffer.from(encrypted.iv, "base64");
-const encryptedText = encrypted.data;
+// فصل IV عن باقي البيانات
+const iv = encrypted.slice(0, 16);
+const data = encrypted.slice(16);
 
-const decipher = crypto.createDecipheriv(algorithm, key, iv);
-let decrypted = decipher.update(encryptedText, "base64", "utf8");
-decrypted += decipher.final("utf8");
+// إنشاء الكائن لفك التشفير
+const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
 
-fs.writeFileSync(".env", decrypted);
-console.log("✅ تم فك التشفير وكتابة .env");
+let decrypted;
+try {
+  decrypted = Buffer.concat([
+    decipher.update(data),
+    decipher.final()
+  ]);
+} catch (err) {
+  console.error('❌ فشل فك التشفير: تأكد من صحة المفتاح.');
+  process.exit(1);
+}
+
+// كتابة ملف .env المفكوك
+fs.writeFileSync('.env', decrypted);
+console.log('✅ تم فك التشفير وكتابة .env');
+
