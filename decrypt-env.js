@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 
 const algorithm = "aes-256-cbc";
-const key = Buffer.from(fs.readFileSync("key.txt", "utf8"), "base64");
+const key = Buffer.from(process.env.ENV_SECRET_KEY, 'base64');
 
 const encrypted = JSON.parse(fs.readFileSync(".env.enc", "utf8"));
 const iv = Buffer.from(encrypted.iv, "base64");
