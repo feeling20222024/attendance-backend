@@ -1,5 +1,12 @@
 // 1) تحميل متغيّرات البيئة من .env
 require('dotenv').config();
+const fs               = require('fs');
+const express          = require('express');             // ← هنا
+const cors             = require('cors');
+const path             = require('path');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const admin            = require('firebase-admin');
+
 const admin = require('firebase-admin');
 const serviceAccount = {
   type:                        "service_account",
