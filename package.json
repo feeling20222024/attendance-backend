@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "description": "تطبيق مراقبة الدوام",
   "scripts": {
-    "start": "node decrypt-env.js && node server.js"
+    "start": "node decrypt-env.js && node server.js",
     "build:css": "npx tailwindcss -c tailwind.config.js -i www/css/style.src.css -o www/css/tailwind.css --minify",
     "copy": "npx cap copy",
     "build": "npm run build:css && npx cap copy"
-     
   },
   "dependencies": {
     "dotenv": "^16.0.0",
