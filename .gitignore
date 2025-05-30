@@ -1,4 +1,7 @@
 .env
 sheets-credentials.json
 node_modules/
+.env.enc
 key.txt
+decrypt-env.js
+encrypt-env.js
