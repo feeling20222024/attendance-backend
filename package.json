@@ -2,7 +2,8 @@
   "name": "attendance-app",
   "version": "1.0.0",
   "scripts": {
-    "start": "node server.js",
+    "decrypt-env": "node decrypt-env.js",
+    "start":       "npm run decrypt-env && node server.js"
     "build:css": "npx tailwindcss -c tailwind.config.js -i www/css/style.src.css -o www/css/tailwind.css --minify",
     "copy": "npx cap copy",
     "build": "npm run build:css && npx cap copy"
