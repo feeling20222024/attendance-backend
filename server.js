@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === Constants ===
+// === Config from env ===
 const JWT_SECRET      = process.env.JWT_SECRET;
 const SUPERVISOR_CODE = process.env.SUPERVISOR_CODE;
 const SHEET_ID        = process.env.GOOGLE_SHEET_ID;
@@ -26,16 +26,12 @@ const sheetCreds      = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
 
 // === JWT middleware ===
 function authenticate(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const h = req.headers.authorization;
+  if (!h?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
   try {
-    req.user = jwt.verify(auth.slice(7), JWT_SECRET);
+    req.user = jwt.verify(h.slice(7), JWT_SECRET);
     next();
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
-  }
+  } catch { res.status(401).json({ error: 'Invalid token' }); }
 }
 
 // === Login ===
@@ -44,16 +40,15 @@ app.post('/api/login', async (req, res) => {
   if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
   try {
     const { headers, data } = await readSheet('Users');
-    const iCode = headers.indexOf('كود الموظف');
-    const iPass = headers.indexOf('كلمة المرور');
-    const iName = headers.indexOf('الاسم');
+    const iC = headers.indexOf('كود الموظف');
+    const iP = headers.indexOf('كلمة المرور');
+    const iN = headers.indexOf('الاسم');
     const row = data.find(r =>
-      String(r[iCode]).trim() === code &&
-      String(r[iPass]).trim() === pass
+      String(r[iC]).trim() === code &&
+      String(r[iP]).trim() === pass
     );
     if (!row) return res.status(401).json({ error: 'Invalid credentials' });
-
-    const payload = { code, name: row[iName] };
+    const payload = { code, name: row[iN] };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
     res.json({ token, user: payload });
   } catch (e) {
@@ -62,7 +57,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// === Register FCM token ===
+// === FCM tokens ===
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -93,9 +88,6 @@ async function readSheet(title) {
 }
 
 // === Protected API ===
-app.get('/api/users', authenticate, async (req, res) => {
-  res.json(await readSheet('Users'));
-});
 app.get('/api/attendance', authenticate, async (req, res) => {
   const { headers, data } = await readSheet('Attendance');
   const idx = headers.indexOf('رقم الموظف');
@@ -111,9 +103,7 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
 
 // === Notify (Supervisor only) ===
 app.post('/api/notify-all', authenticate, async (req, res) => {
-  if (req.user.code !== SUPERVISOR_CODE) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+  if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
   const { title, body } = req.body;
   const list = Array.from(tokens.keys());
   const resp = await admin.messaging().sendToDevice(list, {
@@ -123,7 +113,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   res.json({ success: true, sent });
 });
 
-// === SPA fallback & start ===
-app.get(/.*/, (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// === SPA fallback & Start ===
+app.get(/.*/, (_, r) => r.sendFile(path.join(__dirname, 'public', 'index.html')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ listening on ${PORT}`));
