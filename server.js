@@ -7,22 +7,22 @@ const jwt              = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin            = require('firebase-admin');
 
-// === 1) إعداد Firebase Admin ===
+// === 1) تهيئة Firebase Admin ===
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// === 2) إعداد Express ===
+// === 2) تهيئة Express ===
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === 3) Middleware للتحقّق من JWT ===
+// === 3) دالة Middleware للتحقق من JWT ===
 function authenticate(req, res, next) {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith('Bearer ')) {
+  if (!auth || !auth.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const token = auth.slice(7);
@@ -41,13 +41,10 @@ app.post('/api/login', async (req, res) => {
     return res.status(400).json({ error: 'code and pass required' });
   }
   try {
-    // نقرأ شيت Users
     const { headers, data } = await readSheet('Users');
     const iCode = headers.indexOf('كود الموظف');
     const iPass = headers.indexOf('كلمة المرور');
     const iName = headers.indexOf('الاسم');
-
-    // نبحث الصفّ المطابق
     const row = data.find(r =>
       String(r[iCode]).trim() === code &&
       String(r[iPass]).trim() === pass
@@ -55,11 +52,8 @@ app.post('/api/login', async (req, res) => {
     if (!row) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-
-    // نصدر JWT يحوي الكود والاسم
     const payload = { code, name: row[iName] };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '12h' });
     res.json({ token, user: payload });
   } catch (err) {
     console.error(err);
@@ -79,7 +73,7 @@ app.post('/api/register-token', (req, res) => {
   res.json({ success: true });
 });
 
-// === 6) إعداد Google Sheets ===
+// === 6) تهيئة Google Sheets ===
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 if (!SHEET_ID) {
   console.error('🚨 missing GOOGLE_SHEET_ID in .env');
@@ -96,6 +90,7 @@ async function accessSheet() {
   await doc.loadInfo();
   return doc;
 }
+
 async function readSheet(title) {
   const doc = await accessSheet();
   const sheet = doc.sheetsByTitle[title];
@@ -108,35 +103,49 @@ async function readSheet(title) {
 }
 
 // === 7) مسارات API المحمية ===
-app.get('/api/users',     authenticate, async (req, res) => {
-  try { res.json(await readSheet('Users')); }
-  catch(e){ console.error(e); res.status(500).json({ error: e.message }); }
-});
-app.get('/api/attendance', authenticate, async (req, res) => {
+
+// 7.1 جلب كل المستخدمين (للمشرف فقط مثلاً)
+app.get('/api/users', authenticate, async (req, res) => {
   try {
-    // نعيد فقط صفوف الموظّف الحالي:
-    const { headers, data } = await readSheet('Attendance');
-    const codeIdx = headers.indexOf('رقم الموظف');
-    const filtered = data.filter(r => String(r[codeIdx]).trim() === req.user.code);
-    res.json({ headers, data: filtered });
-  } catch(e){
-    console.error(e); res.status(500).json({ error: e.message });
-  }
-});
-app.get('/api/hwafez',    authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('hwafez');
-    const codeIdx = headers.indexOf('رقم الموظف');
-    const filtered = data.filter(r => String(r[codeIdx]).trim() === req.user.code);
-    res.json({ headers, data: filtered });
-  } catch(e){
-    console.error(e); res.status(500).json({ error: e.message });
+    res.json(await readSheet('Users'));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
   }
 });
 
-// === 8) مسار إرسال إشعار مشفّر (فقط بعد تسجيل دخول المشرف) ===
+// 7.2 جلب سجلات الحضور لمستخدم محدد
+app.get('/api/attendance', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('Attendance');
+    const codeIdx = headers.indexOf('رقم الموظف');
+    const filtered = data.filter(r =>
+      String(r[codeIdx]).trim() === req.user.code
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 7.3 جلب سجلات الحوافز لمستخدم محدد
+app.get('/api/hwafez', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('hwafez');
+    const codeIdx = headers.indexOf('رقم الموظف');
+    const filtered = data.filter(r =>
+      String(r[codeIdx]).trim() === req.user.code
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// === 8) مسار إرسال إشعار (للمشرف فقط) ===
 app.post('/api/notify-all', authenticate, async (req, res) => {
-  // نتأكد أن هذا المستخدم هو المشرف
   if (req.user.code !== process.env.SUPERVISOR_CODE) {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -149,13 +158,18 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
     });
     const sent = response.results.filter(r => !r.error).length;
     res.json({ success: true, sent });
-  } catch(err) {
+  } catch (err) {
     console.error('FCM error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// === 9) SPA fallback & بدء التشغيل ===
-app.get(/.*/, (_,res)=>res.sendFile(path.join(__dirname,'public','index.html')));
+// === 9) SPA fallback & بدء الاستماع ===
+app.get(/.*/, (_, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=> console.log(`✅ Server listening on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`✅ Server listening on port ${PORT}`)
+);
