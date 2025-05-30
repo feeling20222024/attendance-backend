@@ -1,5 +1,6 @@
-// server.js
-require('dotenv').config({ path: '.env.secret' });
+// 1) تحميل متغيّرات البيئة
+require('dotenv').config();
+
 const express          = require('express');
 const cors             = require('cors');
 const path             = require('path');
@@ -7,39 +8,39 @@ const jwt              = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin            = require('firebase-admin');
 
-// === إعداد Firebase Admin ===
+// 2) إعداد Firebase Admin
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// === Express setup ===
+// 3) إعداد Express
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === قراءة الإعدادات من env ===
+// 4) قراءة القيم من متغيّرات البيئة
 const JWT_SECRET      = process.env.JWT_SECRET;
 const SUPERVISOR_CODE = process.env.SUPERVISOR_CODE;
 const SHEET_ID        = process.env.GOOGLE_SHEET_ID;
 const sheetCreds      = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
 
-// === Middleware للتحقّق من JWT ===
+// 5) مصادقة JWT
 function authenticate(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
+  const h = req.headers.authorization;
+  if (!h || !h.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   try {
-    req.user = jwt.verify(auth.slice(7), JWT_SECRET);
+    req.user = jwt.verify(h.slice(7), JWT_SECRET);
     next();
   } catch {
-    return res.status(401).json({ error: 'Invalid token' });
+    res.status(401).json({ error: 'Invalid token' });
   }
 }
 
-// === مسار تسجيل دخول وإصدار JWT ===
+// 6) تسجيل دخول وإصدار JWT
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
   if (!code || !pass) {
@@ -59,14 +60,14 @@ app.post('/api/login', async (req, res) => {
     }
     const payload = { code, name: row[iN] };
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
-    return res.json({ token, user: payload });
+    res.json({ token, user: payload });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
-// === تخزين توكنات FCM مؤقّتاً ===
+// 7) تخزين توكنات FCM مؤقتاً
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -74,10 +75,10 @@ app.post('/api/register-token', (req, res) => {
     return res.status(400).json({ error: 'user and token required' });
   }
   tokens.set(token, user);
-  return res.json({ success: true });
+  res.json({ success: true });
 });
 
-// === دوال Google Sheets ===
+// 8) دوال Google Sheets
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
@@ -94,24 +95,25 @@ async function readSheet(title) {
   await sheet.loadHeaderRow();
   const headers = sheet.headerValues;
   const rows    = await sheet.getRows();
-  return { headers, data: rows.map(r => headers.map(h => r[h] || '')) };
+  const data    = rows.map(r => headers.map(h => r[h] || ''));
+  return { headers, data };
 }
 
-// === المسارات المحمية ===
+// 9) مسارات محمية
 app.get('/api/attendance', authenticate, async (req, res) => {
   const { headers, data } = await readSheet('Attendance');
   const idx = headers.indexOf('رقم الموظف');
   const filtered = data.filter(r => String(r[idx]).trim() === req.user.code);
-  return res.json({ headers, data: filtered });
+  res.json({ headers, data: filtered });
 });
 app.get('/api/hwafez', authenticate, async (req, res) => {
   const { headers, data } = await readSheet('hwafez');
   const idx = headers.indexOf('رقم الموظف');
   const filtered = data.filter(r => String(r[idx]).trim() === req.user.code);
-  return res.json({ headers, data: filtered });
+  res.json({ headers, data: filtered });
 });
 
-// === إشعارات FCM للمشرف فقط ===
+// 10) إشعار FCM (للمشرف فقط)
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
     return res.status(403).json({ error: 'Forbidden' });
@@ -123,16 +125,16 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
       notification: { title, body }
     });
     const sent = resp.results.filter(r => !r.error).length;
-    return res.json({ success: true, sent });
+    res.json({ success: true, sent });
   } catch (err) {
     console.error('FCM error:', err);
-    return res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// === SPA fallback & Start ===
-app.get(/.*/, (_, res) =>
-  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+// 11) SPA fallback وبدء الخادم
+app.get(/.*/, (_, r) =>
+  r.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server listening on ${PORT}`));
