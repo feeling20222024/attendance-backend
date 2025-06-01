@@ -8,6 +8,16 @@ const jwt                   = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin                 = require('firebase-admin');
 
+// ✅ التحقق من المتغيرات البيئية الأساسية قبل أي استخدام
+if (!process.env.JWT_SECRET) {
+  console.error('🚨 متغيّر JWT_SECRET غير مُعرّف');
+  process.exit(1);
+}
+if (!process.env.SUPERVISOR_CODE) {
+  console.error('🚨 متغيّر SUPERVISOR_CODE غير مُعرّف');
+  process.exit(1);
+}
+
 // 2) إعداد Firebase Admin من JSON من متغيّر البيئة
 let serviceAccount;
 try {
@@ -34,15 +44,6 @@ const {
   GOOGLE_SERVICE_KEY
 } = process.env;
 
-// التحقق من أنّ المتغيّرات الأساسية وُجدت
-if (!JWT_SECRET) {
-  console.error('❌ خطأ: متغيّر JWT_SECRET غير مُعرّف في البيئة.');
-  process.exit(1);
-}
-if (!SUPERVISOR_CODE) {
-  console.error('❌ خطأ: متغيّر SUPERVISOR_CODE غير مُعرّف في البيئة.');
-  process.exit(1);
-}
 if (!SHEET_ID) {
   console.error('❌ خطأ: متغيّر GOOGLE_SHEET_ID غير مُعرّف في البيئة.');
   process.exit(1);
