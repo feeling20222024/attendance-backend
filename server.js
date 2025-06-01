@@ -1,29 +1,47 @@
 // server.js
 
 require('dotenv').config();
-const express                = require('express');
-const cors                   = require('cors');
-const path                   = require('path');
-const { GoogleSpreadsheet }  = require('google-spreadsheet');
-const admin                  = require('firebase-admin');
+const express               = require('express');
+const cors                  = require('cors');
+const path                  = require('path');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const admin                 = require('firebase-admin');
 
-// ——————————————— 1) تهيئة Firebase Admin
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// ————————— 1) تهيئة Firebase Admin
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch (err) {
+  console.error('❌ خطأ: متغيّر FIREBASE_SERVICE_ACCOUNT غير موجود أو ليس بصيغة JSON صالحة.');
+  process.exit(1);
+}
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// ——————————————— 2) تهيئة Express
+// ————————— 2) تهيئة Express
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ——————————————— 3) قراءة متغيّرات البيئة
+// ————————— 3) قراءة متغيّرات البيئة الضرورية
 const SHEET_ID   = process.env.GOOGLE_SHEET_ID;
-const sheetCreds = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
+const GOOGLE_KEY = process.env.GOOGLE_SERVICE_KEY;
 
-// ——————————————— 4) دوال مساعدة للوصول إلى Google Sheets
+if (!SHEET_ID) {
+  console.error('❌ خطأ: متغيّر GOOGLE_SHEET_ID غير مُعرّف في البيئة.');
+  process.exit(1);
+}
+let sheetCreds;
+try {
+  sheetCreds = JSON.parse(GOOGLE_KEY);
+} catch (err) {
+  console.error('❌ خطأ: متغيّر GOOGLE_SERVICE_KEY غير موجود أو ليس بصيغة JSON صالحة.');
+  process.exit(1);
+}
+
+// ————————— 4) دوال مساعدة للوصول إلى Google Sheets
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
@@ -45,7 +63,8 @@ async function readSheet(title) {
   return { headers, data };
 }
 
-// ——————————————— 5) “Login” endpoint: يتحقق من (code + pass) مقابل شيت “Users”
+// ————————— 5) مسار تسجيل الدخول (/api/login)
+// يتحقّق من code+password في شيت “Users”
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
   if (!code || !pass) {
@@ -64,7 +83,7 @@ app.post('/api/login', async (req, res) => {
     if (!row) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    // نعيد كود الموظف واسم الموظف في الاستجابة:
+    // إذا نجحت، نعيد كائن user (code و name)
     return res.json({
       user: {
         code: code,
@@ -77,7 +96,8 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ——————————————— 6) مسارات القراءة (Users, Attendance, hwafez)
+// ————————— 6) مسارات GET بدون حماية (Users, Attendance, hwafez)
+// هذه المسارات ترسل كل البيانات من الشيت حسب العنوان
 app.get('/api/users', async (req, res) => {
   try {
     res.json(await readSheet('Users'));
@@ -102,7 +122,7 @@ app.get('/api/hwafez', async (req, res) => {
   }
 });
 
-// ——————————————— 7) تسجيل توكن FCM مؤقتًا في Map
+// ————————— 7) تسجيل توكن FCM مؤقتًا في Map
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -113,7 +133,7 @@ app.post('/api/register-token', (req, res) => {
   return res.json({ success: true });
 });
 
-// ——————————————— 8) إرسال إشعار FCM إلى كل التوكنات
+// ————————— 8) إرسال إشعار FCM إلى كل التوكنات
 app.post('/api/notify-all', async (req, res) => {
   const { title, body } = req.body;
   const list = Array.from(tokens.keys());
@@ -129,7 +149,7 @@ app.post('/api/notify-all', async (req, res) => {
   }
 });
 
-// ——————————————— 9) SPA fallback & تشغيل السيرفر
+// ————————— 9) SPA fallback & Start server
 app.get(/.*/, (_, r) => r.sendFile(path.join(__dirname, 'public', 'index.html')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server listening on ${PORT}`));
