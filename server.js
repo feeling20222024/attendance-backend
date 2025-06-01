@@ -241,17 +241,12 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   }
   const { title, body } = req.body;
   const list = Array.from(tokens.keys());
-
-  if (list.length === 0) {
-    return res.json({ success: true, sent: 0 });
-  }
-  const message = {
-    notification: { title, body },
-    tokens: list
-  };
   try {
-    const response = await admin.messaging().sendMulticast(message);
-    return res.json({ success: true, sent: response.successCount });
+    const resp = await admin.messaging().sendToDevice(list, {
+      notification: { title, body }
+    });
+    const sent = resp.results.filter(r => !r.error).length;
+    return res.json({ success: true, sent });
   } catch (err) {
     console.error('FCM error:', err);
     return res.status(500).json({ error: err.message });
