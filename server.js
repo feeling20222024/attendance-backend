@@ -1,17 +1,16 @@
-// server.js
-
 require('dotenv').config();
-const express               = require('express');
-const cors                  = require('cors');
-const path                  = require('path');
+const express          = require('express');
+const cors             = require('cors');
+const path             = require('path');
+const jwt              = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
-const admin                 = require('firebase-admin');
+const admin            = require('firebase-admin');
 
-// ————————— 1) تهيئة Firebase Admin
+// ——————————————— 1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-} catch (err) {
+} catch {
   console.error('❌ خطأ: متغيّر FIREBASE_SERVICE_ACCOUNT غير موجود أو ليس بصيغة JSON صالحة.');
   process.exit(1);
 }
@@ -19,32 +18,45 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// ————————— 2) إعداد Express
+// ——————————————— 2) إعداد Express
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ————————— 3) قراءة متغيّرات البيئة الأساسية
-const SHEET_ID   = process.env.GOOGLE_SHEET_ID;
-const GOOGLE_KEY = process.env.GOOGLE_SERVICE_KEY;
+// ——————————————— 3) قراءة المتغيّرات الأساسية من البيئة
+const {
+  JWT_SECRET,
+  SUPERVISOR_CODE,
+  GOOGLE_SHEET_ID: SHEET_ID,
+  GOOGLE_SERVICE_KEY
+} = process.env;
 
-if (!SHEET_ID) {
-  console.error('❌ خطأ: متغيّر GOOGLE_SHEET_ID غير مُعرَّف في البيئة.');
+if (!JWT_SECRET) {
+  console.error('❌ خطأ: متغيّر JWT_SECRET غير مُعرّف في البيئة.');
   process.exit(1);
 }
+if (!SUPERVISOR_CODE) {
+  console.error('❌ خطأ: متغيّر SUPERVISOR_CODE غير مُعرّف في البيئة.');
+  process.exit(1);
+}
+if (!SHEET_ID) {
+  console.error('❌ خطأ: متغيّر GOOGLE_SHEET_ID غير مُعرّف في البيئة.');
+  process.exit(1);
+}
+
 let sheetCreds;
 try {
-  sheetCreds = JSON.parse(GOOGLE_KEY);
-} catch (err) {
+  sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY);
+} catch {
   console.error('❌ خطأ: متغيّر GOOGLE_SERVICE_KEY غير موجود أو ليس بصيغة JSON صالحة.');
   process.exit(1);
 }
 
-// ————————— 4) دوال مساعد للوصول إلى Google Sheets
+// ——————————————— 4) وظائف الوصول إلى Google Sheets
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
-  // v6+ يستخدم هذه الطريقة للمصادقة:
+  // ملاحظة: حسب نسخة google-spreadsheet، قد تختلف الطريقة. في الإصدارات الأحدث:
   await doc.useServiceAccountAuth({
     client_email: sheetCreds.client_email,
     private_key:  sheetCreds.private_key.replace(/\\n/g, '\n'),
@@ -64,7 +76,21 @@ async function readSheet(title) {
   return { headers, data };
 }
 
-// ————————— 5) مسار تسجيل الدخول (/api/login)
+// ——————————————— 5) Middleware للتحقّق من JWT
+function authenticate(req, res, next) {
+  const h = req.headers.authorization;
+  if (!h || !h.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    req.user = jwt.verify(h.slice(7), JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// ——————————————— 6) مسار تسجيل الدخول (/api/login)
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
   if (!code || !pass) {
@@ -72,61 +98,80 @@ app.post('/api/login', async (req, res) => {
   }
   try {
     const { headers, data } = await readSheet('Users');
-    const iCode = headers.indexOf('كود الموظف');
-    const iPass = headers.indexOf('كلمة المرور');
-    const iName = headers.indexOf('الاسم');
+    const iC = headers.indexOf('كود الموظف');
+    const iP = headers.indexOf('كلمة المرور');
+    const iN = headers.indexOf('الاسم');
 
     const row = data.find(r =>
-      String(r[iCode]).trim() === code &&
-      String(r[iPass]).trim() === pass
+      String(r[iC]).trim() === code &&
+      String(r[iP]).trim() === pass
     );
     if (!row) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    return res.json({
-      user: {
-        code: code.trim(),
-        name: String(row[iName] || '').trim(),
-      }
-    });
+    const payload = { code, name: row[iN] };
+    const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    return res.json({ token, user: payload });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Login failed' });
   }
 });
 
-// ————————— 6) مسارات القراءة (بدون حماية JWT)
-app.get('/api/users', async (req, res) => {
+// ——————————————— 7) مسار إرجاع بيانات الموظّف الحالي فقط (/api/me)
+app.get('/api/me', authenticate, async (req, res) => {
   try {
-    const result = await readSheet('Users');
-    return res.json(result);
+    const { headers, data } = await readSheet('Users');
+    const idxCode = headers.indexOf('كود الموظف');
+    const row = data.find(r =>
+      String(r[idxCode]).trim() === req.user.code
+    );
+    if (!row) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    // نحول الصف إلى كائن (key=اسم العمود, value=قيمة)
+    const single = {};
+    headers.forEach((h, i) => {
+      single[h] = row[i] ?? '';
+    });
+    return res.json({ headers, row: single });
   } catch (e) {
     console.error(e);
-    return res.status(400).json({ error: e.message });
+    return res.status(500).json({ error: e.message });
   }
 });
 
-app.get('/api/attendance', async (req, res) => {
+// ——————————————— 8) مسار إرجاع سجلات حضور الموظّف الحالي فقط
+app.get('/api/attendance', authenticate, async (req, res) => {
   try {
-    const result = await readSheet('Attendance');
-    return res.json(result);
+    const { headers, data } = await readSheet('Attendance');
+    const idx = headers.indexOf('رقم الموظف');
+    const filtered = data.filter(r =>
+      String(r[idx]).trim() === req.user.code
+    );
+    return res.json({ headers, data: filtered });
   } catch (e) {
     console.error(e);
-    return res.status(400).json({ error: e.message });
+    return res.status(500).json({ error: e.message });
   }
 });
 
-app.get('/api/hwafez', async (req, res) => {
+// ——————————————— 9) مسار إرجاع بيانات الحوافز للموظّف فقط
+app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
-    const result = await readSheet('hwafez');
-    return res.json(result);
+    const { headers, data } = await readSheet('hwafez');
+    const idx = headers.indexOf('رقم الموظف');
+    const filtered = data.filter(r =>
+      String(r[idx]).trim() === req.user.code
+    );
+    return res.json({ headers, data: filtered });
   } catch (e) {
     console.error(e);
-    return res.status(400).json({ error: e.message });
+    return res.status(500).json({ error: e.message });
   }
 });
 
-// ————————— 7) تخزين توكنات FCM مؤقتًا
+// ——————————————— 10) تسجيل توكين FCM (مؤقتًا في Map)
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -137,8 +182,11 @@ app.post('/api/register-token', (req, res) => {
   return res.json({ success: true });
 });
 
-// ————————— 8) إرسال إشعار FCM إلى كل التوكنات
-app.post('/api/notify-all', async (req, res) => {
+// ——————————————— 11) إرسال إشعار FCM (للمشرف فقط)
+app.post('/api/notify-all', authenticate, async (req, res) => {
+  if (req.user.code !== SUPERVISOR_CODE) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   const { title, body } = req.body;
   const list = Array.from(tokens.keys());
   try {
@@ -153,7 +201,10 @@ app.post('/api/notify-all', async (req, res) => {
   }
 });
 
-// ————————— 9) SPA fallback & بدء تشغيل الخادم
-app.get(/.*/, (_, r) => r.sendFile(path.join(__dirname, 'public', 'index.html')));
+// ——————————————— 12) SPA fallback & تشغيل السيرفر
+app.get(/.*/, (_, r) =>
+  r.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server listening on ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server listening on port ${PORT}`));
