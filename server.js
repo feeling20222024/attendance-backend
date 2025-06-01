@@ -4,12 +4,12 @@ require('dotenv').config();
 const express               = require('express');
 const cors                  = require('cors');
 const path                  = require('path');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin                 = require('firebase-admin');
 
-// ————————— 1) إعداد Firebase Admin
+// ————————— 1) تهيئة Firebase Admin
 let serviceAccount;
 try {
-  // يُفترض أن FIREBASE_SERVICE_ACCOUNT هو كائن JSON مضغوط كسلسلة نصّية
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 } catch (err) {
   console.error('❌ خطأ: متغيّر FIREBASE_SERVICE_ACCOUNT غير موجود أو ليس بصيغة JSON صالحة.');
@@ -19,27 +19,16 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// ————————— 2) محاولة استيراد GoogleSpreadsheet لدعم الإصدارات v3.x وv4+
-// بعض الإصدارات تَعُود مُباشرةً بالـ class، وأخرى تُعيده كخاصية داخل كائن.
-let GoogleSpreadsheetClass;
-try {
-  // في حال الإصدارات الأحدث (v4 أو v5)، يكون الاستيراد بالشكل التالي:
-  GoogleSpreadsheetClass = require('google-spreadsheet').GoogleSpreadsheet;
-  if (!GoogleSpreadsheetClass) throw new Error();
-} catch (e) {
-  // في حال الإصدارات القديمة (v3.x)، تكون المكتبة مُصدّرة مباشرةً
-  GoogleSpreadsheetClass = require('google-spreadsheet');
-}
-
-// ————————— 3) إعداد Express
+// ————————— 2) إعداد Express
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ————————— 4) قراءة متغيّرات البيئة الضرورية
+// ————————— 3) قراءة متغيّرات البيئة الأساسية
 const SHEET_ID   = process.env.GOOGLE_SHEET_ID;
 const GOOGLE_KEY = process.env.GOOGLE_SERVICE_KEY;
+
 if (!SHEET_ID) {
   console.error('❌ خطأ: متغيّر GOOGLE_SHEET_ID غير مُعرَّف في البيئة.');
   process.exit(1);
@@ -52,34 +41,14 @@ try {
   process.exit(1);
 }
 
-// ————————— 5) دوال مساعد للوصول إلى Google Sheets
+// ————————— 4) دوال مساعد للوصول إلى Google Sheets
 async function accessSheet() {
-  const doc = new GoogleSpreadsheetClass(SHEET_ID);
-
-  // وظيفة المصادقة تختلف قليلًا بحسب الإصدار:
-  // - في v3.x: doc.useServiceAccountAuth(credentials, callback)
-  // - في v4+  : doc.useServiceAccountAuth(credentials) ← يعيد Promise
-  const creds = {
+  const doc = new GoogleSpreadsheet(SHEET_ID);
+  // v6+ يستخدم هذه الطريقة للمصادقة:
+  await doc.useServiceAccountAuth({
     client_email: sheetCreds.client_email,
     private_key:  sheetCreds.private_key.replace(/\\n/g, '\n'),
-  };
-
-  // نتأكّد إذا كانت useServiceAccountAuth تُعيد Promise أو تأخذ callback
-  if (typeof doc.useServiceAccountAuth === 'function') {
-    // رُبَّما هي v4+ (تُعيد Promise)
-    // نجرِّب الشرطين معًا:
-    try {
-      await doc.useServiceAccountAuth(creds);
-    } catch (err) {
-      // إذا كانت v3.x وكانت تنتظر callback، نستخدم الشكل القديم:
-      await new Promise((resolve, reject) => {
-        doc.useServiceAccountAuth(creds, (e) => (e ? reject(e) : resolve()));
-      });
-    }
-  } else {
-    throw new Error('doc.useServiceAccountAuth غير متاح في هذه النسخة من google-spreadsheet');
-  }
-
+  });
   await doc.loadInfo();
   return doc;
 }
@@ -95,7 +64,7 @@ async function readSheet(title) {
   return { headers, data };
 }
 
-// ————————— 6) مسار تسجيل الدخول (/api/login)
+// ————————— 5) مسار تسجيل الدخول (/api/login)
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
   if (!code || !pass) {
@@ -117,7 +86,7 @@ app.post('/api/login', async (req, res) => {
     return res.json({
       user: {
         code: code.trim(),
-        name: String(row[iName] || '').trim()
+        name: String(row[iName] || '').trim(),
       }
     });
   } catch (e) {
@@ -126,7 +95,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ————————— 7) مسارات القراءة (بدون حماية JWT)
+// ————————— 6) مسارات القراءة (بدون حماية JWT)
 app.get('/api/users', async (req, res) => {
   try {
     const result = await readSheet('Users');
@@ -149,7 +118,7 @@ app.get('/api/attendance', async (req, res) => {
 
 app.get('/api/hwafez', async (req, res) => {
   try {
-    const result = await readSheet('hwafeز');
+    const result = await readSheet('hwafez');
     return res.json(result);
   } catch (e) {
     console.error(e);
@@ -157,7 +126,7 @@ app.get('/api/hwafez', async (req, res) => {
   }
 });
 
-// ————————— 8) تسجيل توكن FCM مؤقتًا
+// ————————— 7) تخزين توكنات FCM مؤقتًا
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -168,7 +137,7 @@ app.post('/api/register-token', (req, res) => {
   return res.json({ success: true });
 });
 
-// ————————— 9) إرسال إشعار FCM إلى جميع التوكنات
+// ————————— 8) إرسال إشعار FCM إلى كل التوكنات
 app.post('/api/notify-all', async (req, res) => {
   const { title, body } = req.body;
   const list = Array.from(tokens.keys());
@@ -184,7 +153,7 @@ app.post('/api/notify-all', async (req, res) => {
   }
 });
 
-// ————————— 10) SPA fallback & تشغيل السيرفر
+// ————————— 9) SPA fallback & بدء تشغيل الخادم
 app.get(/.*/, (_, r) => r.sendFile(path.join(__dirname, 'public', 'index.html')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server listening on ${PORT}`));
