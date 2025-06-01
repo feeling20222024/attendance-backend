@@ -9,8 +9,8 @@ const { GoogleSpreadsheet }     = require('google-spreadsheet');
 const admin                     = require('firebase-admin');
 
 /*
-  1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة:
-     FIREBASE_SERVICE_ACCOUNT يجب أن يحتوي على JSON كامل (عبر Settings > Environment في Render).
+  1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة
+     يجب أن يحتوي FIREBASE_SERVICE_ACCOUNT على JSON كامل (مضغوط بسطر واحد) لحساب الخدمة.
 */
 let serviceAccount;
 try {
@@ -24,7 +24,7 @@ admin.initializeApp({
 });
 
 /*
-  2) إعداد Express
+  2) تهيئة Express
 */
 const app = express();
 app.use(cors());
@@ -32,8 +32,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 /*
-  3) قراءة المتغيّرات الأساسية من البيئة
-     تأكدوا من تعيينها (Settings > Environment في Render أو في ملف .env محليّ).
+  3) قراءة متغيّرات البيئة الأساسية
+     تأكد من تعريفها في إعدادات البيئة (Render أو ملف .env محليًّا).
 */
 const {
   JWT_SECRET,
@@ -64,10 +64,7 @@ try {
 }
 
 /*
-  4) وظائف الوصول إلى Google Sheets
-     – ننشئ مثيلاً جديداً من GoogleSpreadsheet
-     – نستخدم useServiceAccountAuth (يوجد في الإصدارات الحديثة من google-spreadsheet)
-     – ثم ننفّذ loadInfo() لتحميل بيانات الشيت
+  4) دوال الوصول إلى Google Sheets (باستخدام الإصدار الحديث من google-spreadsheet)
 */
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
@@ -91,7 +88,7 @@ async function readSheet(title) {
 }
 
 /*
-  5) Middleware للتحقّق من JWT
+  5) Middleware للتحقق من JWT
 */
 function authenticate(req, res, next) {
   const h = req.headers.authorization;
@@ -108,8 +105,9 @@ function authenticate(req, res, next) {
 
 /*
   6) مسار تسجيل الدخول (/api/login)
-     – يقارن الكود وكلمة المرور مع شيت “Users”
-     – إذا كانت صحيحة، يصدر JWT (حاملاً { code, name }) صلاحيتها 12 ساعة
+     – يتحقّق من الكود وكلمة المرور مقابل شيت "Users"
+     – إذا صحّت، يولّد JWT ويحمله { code, name }
+     – صلاحية التوكين: 12 ساعة
 */
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
@@ -139,7 +137,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 /*
-  7) مسار /api/me لإرجاع صف المستخدم الحالي فقط (محمية بتوكين JWT)
+  7) مسار /api/me لإرجاع بيانات صف المستخدم الحالي فقط
 */
 app.get('/api/me', authenticate, async (req, res) => {
   try {
@@ -151,7 +149,6 @@ app.get('/api/me', authenticate, async (req, res) => {
     if (!row) {
       return res.status(404).json({ error: 'User not found' });
     }
-    // نصنع كائناً key=اسم العمود، value=قيمته في الصف
     const single = {};
     headers.forEach((h, i) => {
       single[h] = row[i] ?? '';
@@ -164,7 +161,7 @@ app.get('/api/me', authenticate, async (req, res) => {
 });
 
 /*
-  8) مسار /api/attendance لإرجاع سجلات “Attendance” للموظف الحالي فقط
+  8) مسار /api/attendance: إرجاع سجلات "Attendance" المصنّفة حسب الموظف الحالي
 */
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
@@ -181,7 +178,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 });
 
 /*
-  9) مسار /api/hwafez لإرجاع بيانات “hwafez” للموظف الحالي فقط
+  9) مسار /api/hwafez: إرجاع بيانات "hwafez" المصنّفة حسب الموظف الحالي
 */
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
@@ -211,7 +208,7 @@ app.post('/api/register-token', (req, res) => {
 });
 
 /*
-  11) مسار /api/notify-all لإرسال إشعار FCM إلى كل التوكنات (للمشرف فقط)
+  11) مسار /api/notify-all: إرسال إشعار FCM إلى كل التوكينات (للمشرف فقط)
 */
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
