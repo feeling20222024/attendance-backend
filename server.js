@@ -1,12 +1,16 @@
-require('dotenv').config();
-const express          = require('express');
-const cors             = require('cors');
-const path             = require('path');
-const jwt              = require('jsonwebtoken');
-const { GoogleSpreadsheet } = require('google-spreadsheet');
-const admin            = require('firebase-admin');
+// server.js
 
-// ——————————————— 1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة
+require('dotenv').config();
+const express                   = require('express');
+const cors                      = require('cors');
+const path                      = require('path');
+const jwt                       = require('jsonwebtoken');
+const GoogleSpreadsheetModule    = require('google-spreadsheet');
+const admin                     = require('firebase-admin');
+
+/*
+  1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة
+*/
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -18,13 +22,17 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// ——————————————— 2) إعداد Express
+/*
+  2) إعداد Express
+*/
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ——————————————— 3) قراءة المتغيّرات الأساسية من البيئة
+/*
+  3) قراءة المتغيّرات الأساسية من البيئة
+*/
 const {
   JWT_SECRET,
   SUPERVISOR_CODE,
@@ -53,14 +61,27 @@ try {
   process.exit(1);
 }
 
-// ——————————————— 4) وظائف الوصول إلى Google Sheets
+/*
+  4) وظائف الوصول إلى Google Sheets
+     سنستخدم استيراد الكلاس كاملاً بدل الـ “destructuring”
+     لكي نضمن وجود useServiceAccountAuth.
+*/
+const GoogleSpreadsheet = GoogleSpreadsheetModule.GoogleSpreadsheet || GoogleSpreadsheetModule;
+
+/*
+  تجهيز الدالة التي تُنشئ وتُعَدّل مستند Google Sheet
+*/
 async function accessSheet() {
+  // 4.1) ننشئ مثيلاً جديداً بعنوان الـ SHEET_ID
   const doc = new GoogleSpreadsheet(SHEET_ID);
-  // ملاحظة: حسب نسخة google-spreadsheet، قد تختلف الطريقة. في الإصدارات الأحدث:
+
+  // 4.2) نُجري المصادقة باستخدام service account
   await doc.useServiceAccountAuth({
     client_email: sheetCreds.client_email,
     private_key:  sheetCreds.private_key.replace(/\\n/g, '\n'),
   });
+
+  // 4.3) نحمّل معلومات المستند حتى تكون جداوله جاهزة للقراءة
   await doc.loadInfo();
   return doc;
 }
@@ -73,10 +94,13 @@ async function readSheet(title) {
   const headers = sheet.headerValues;
   const rows    = await sheet.getRows();
   const data    = rows.map(r => headers.map(h => r[h] ?? ''));
+
   return { headers, data };
 }
 
-// ——————————————— 5) Middleware للتحقّق من JWT
+/*
+  5) Middleware للتحقّق من JWT
+*/
 function authenticate(req, res, next) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) {
@@ -90,7 +114,10 @@ function authenticate(req, res, next) {
   }
 }
 
-// ——————————————— 6) مسار تسجيل الدخول (/api/login)
+/*
+  6) مسار تسجيل الدخول (/api/login)
+     يُعيد توكين JWT مع بيانات المستخدم (code + name)
+*/
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
   if (!code || !pass) {
@@ -118,7 +145,10 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ——————————————— 7) مسار إرجاع بيانات الموظّف الحالي فقط (/api/me)
+/*
+  7) مسار إرجاع بيانات الموظّف الحالي فقط (/api/me):
+     حماية JWT → يعيد صف واحد فقط بناءً على req.user.code
+*/
 app.get('/api/me', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Users');
@@ -129,7 +159,7 @@ app.get('/api/me', authenticate, async (req, res) => {
     if (!row) {
       return res.status(404).json({ error: 'User not found' });
     }
-    // نحول الصف إلى كائن (key=اسم العمود, value=قيمة)
+    // نعيد كائن Key=اسم العمود، Value=القيمة
     const single = {};
     headers.forEach((h, i) => {
       single[h] = row[i] ?? '';
@@ -141,7 +171,9 @@ app.get('/api/me', authenticate, async (req, res) => {
   }
 });
 
-// ——————————————— 8) مسار إرجاع سجلات حضور الموظّف الحالي فقط
+/*
+  8) مسار إرجاع سجلات حضور الموظّف الحالي فقط
+*/
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
@@ -156,7 +188,9 @@ app.get('/api/attendance', authenticate, async (req, res) => {
   }
 });
 
-// ——————————————— 9) مسار إرجاع بيانات الحوافز للموظّف فقط
+/*
+  9) مسار إرجاع بيانات الحوافز للموظّف الحالي فقط
+*/
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
@@ -171,7 +205,9 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
   }
 });
 
-// ——————————————— 10) تسجيل توكين FCM (مؤقتًا في Map)
+/*
+  10) تسجيل توكين FCM (مؤقتًا في Map)
+*/
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -182,7 +218,9 @@ app.post('/api/register-token', (req, res) => {
   return res.json({ success: true });
 });
 
-// ——————————————— 11) إرسال إشعار FCM (للمشرف فقط)
+/*
+  11) إرسال إشعار FCM (للمشرف فقط)
+*/
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
     return res.status(403).json({ error: 'Forbidden' });
@@ -201,7 +239,9 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   }
 });
 
-// ——————————————— 12) SPA fallback & تشغيل السيرفر
+/*
+  12) SPA fallback & تشغيل السيرفر
+*/
 app.get(/.*/, (_, r) =>
   r.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
