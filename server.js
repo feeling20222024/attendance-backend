@@ -11,7 +11,7 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin                 = require('firebase-admin');
 
 /* —————————————————————————————————————————————————————————————
-   2) تهيئة Firebase Admin باستخدام JSON مخزن في متغيّر البيئة
+   2) تهيئة Firebase Admin باستخدام JSON مخزن في متغيّر البيئةss
    -------------------------------------------------------------
    تأكد أنّ المتغيّر FIREBASE_SERVICE_ACCOUNT يحتوي على كامل JSON
    لحساب خدمة Firebase Admin، بهذا الشكل (سطر واحد، بدون فواصل أسطر):
