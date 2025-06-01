@@ -10,7 +10,6 @@ const admin                     = require('firebase-admin');
 
 /*
   1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة
-     يجب أن يحتوي FIREBASE_SERVICE_ACCOUNT على JSON كامل (مضغوط بسطر واحد) لحساب الخدمة.
 */
 let serviceAccount;
 try {
@@ -33,7 +32,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 /*
   3) قراءة متغيّرات البيئة الأساسية
-     تأكد من تعريفها في إعدادات البيئة (Render أو ملف .env محليًّا).
 */
 const {
   JWT_SECRET,
@@ -64,7 +62,7 @@ try {
 }
 
 /*
-  4) دوال الوصول إلى Google Sheets (باستخدام الإصدار الحديث من google-spreadsheet)
+  4) دوال الوصول إلى Google Sheets (الإصدار 5.x)
 */
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
@@ -105,9 +103,6 @@ function authenticate(req, res, next) {
 
 /*
   6) مسار تسجيل الدخول (/api/login)
-     – يتحقّق من الكود وكلمة المرور مقابل شيت "Users"
-     – إذا صحّت، يولّد JWT ويحمله { code, name }
-     – صلاحية التوكين: 12 ساعة
 */
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
@@ -161,7 +156,7 @@ app.get('/api/me', authenticate, async (req, res) => {
 });
 
 /*
-  8) مسار /api/attendance: إرجاع سجلات "Attendance" المصنّفة حسب الموظف الحالي
+  8) مسار /api/attendance: إرجاع سجلات "Attendance" للموظّف الحالي
 */
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
@@ -178,7 +173,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 });
 
 /*
-  9) مسار /api/hwafez: إرجاع بيانات "hwafez" المصنّفة حسب الموظف الحالي
+  9) مسار /api/hwafez: إرجاع بيانات "hwafez" للموظّف الحالي
 */
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
@@ -195,7 +190,7 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
 });
 
 /*
-  10) مسار تسجيل توكين FCM (مؤقتًا في Map)
+  10) مسار تسجيل توكين FCM في Map مؤقتًا
 */
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
