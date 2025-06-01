@@ -62,7 +62,7 @@ try {
 }
 
 /*
-  4) دوال الوصول إلى Google Sheets (الإصدار 5.x)
+  4) دوال الوصول إلى Google Sheets (الإصدار 4.x)
 */
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
@@ -156,7 +156,7 @@ app.get('/api/me', authenticate, async (req, res) => {
 });
 
 /*
-  8) مسار /api/attendance: إرجاع سجلات "Attendance" للموظّف الحالي
+  8) مسار /api/attendance: إرجاع سجلات "Attendance" للموظف الحالي
 */
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
@@ -173,7 +173,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 });
 
 /*
-  9) مسار /api/hwafez: إرجاع بيانات "hwafez" للموظّف الحالي
+  9) مسار /api/hwafez: إرجاع بيانات "hwafez" للموظف الحالي
 */
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
@@ -190,7 +190,7 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
 });
 
 /*
-  10) مسار تسجيل توكين FCM في Map مؤقتًا
+  10) مسار تسجيل توكن FCM في Map مؤقتًا
 */
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
