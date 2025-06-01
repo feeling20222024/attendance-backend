@@ -1,11 +1,11 @@
 // server.js
 
 require('dotenv').config();
-const express          = require('express');
-const cors             = require('cors');
-const path             = require('path');
-const { GoogleSpreadsheet } = require('google-spreadsheet');
-const admin            = require('firebase-admin');
+const express                = require('express');
+const cors                   = require('cors');
+const path                   = require('path');
+const { GoogleSpreadsheet }  = require('google-spreadsheet');
+const admin                  = require('firebase-admin');
 
 // ——————————————— 1) تهيئة Firebase Admin
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -19,11 +19,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ——————————————— 3) متغيّرات البيئة
+// ——————————————— 3) قراءة متغيّرات البيئة
 const SHEET_ID   = process.env.GOOGLE_SHEET_ID;
 const sheetCreds = JSON.parse(process.env.GOOGLE_SERVICE_KEY);
 
-// ——————————————— 4) دوال الوصول إلى Google Sheet
+// ——————————————— 4) دوال مساعدة للوصول إلى Google Sheets
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
@@ -45,7 +45,39 @@ async function readSheet(title) {
   return { headers, data };
 }
 
-// ——————————————— 5) مسارات القراءة (بدون حماية JWT)
+// ——————————————— 5) “Login” endpoint: يتحقق من (code + pass) مقابل شيت “Users”
+app.post('/api/login', async (req, res) => {
+  const { code, pass } = req.body;
+  if (!code || !pass) {
+    return res.status(400).json({ error: 'code and pass required' });
+  }
+  try {
+    const { headers, data } = await readSheet('Users');
+    const iCode = headers.indexOf('كود الموظف');
+    const iPass = headers.indexOf('كلمة المرور');
+    const iName = headers.indexOf('الاسم');
+
+    const row = data.find(r =>
+      String(r[iCode]).trim() === code &&
+      String(r[iPass]).trim() === pass
+    );
+    if (!row) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    // نعيد كود الموظف واسم الموظف في الاستجابة:
+    return res.json({
+      user: {
+        code: code,
+        name: String(row[iName] || '').trim()
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// ——————————————— 6) مسارات القراءة (Users, Attendance, hwafez)
 app.get('/api/users', async (req, res) => {
   try {
     res.json(await readSheet('Users'));
@@ -70,7 +102,7 @@ app.get('/api/hwafez', async (req, res) => {
   }
 });
 
-// ——————————————— 6) تسجيل توكن FCM (مؤقتًا في Map)
+// ——————————————— 7) تسجيل توكن FCM مؤقتًا في Map
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -81,7 +113,7 @@ app.post('/api/register-token', (req, res) => {
   return res.json({ success: true });
 });
 
-// ——————————————— 7) إرسال إشعار FCM إلى كل التوكنات
+// ——————————————— 8) إرسال إشعار FCM إلى كل التوكنات
 app.post('/api/notify-all', async (req, res) => {
   const { title, body } = req.body;
   const list = Array.from(tokens.keys());
@@ -97,7 +129,7 @@ app.post('/api/notify-all', async (req, res) => {
   }
 });
 
-// ——————————————— 8) SPA fallback & تشغيل السيرفر
+// ——————————————— 9) SPA fallback & تشغيل السيرفر
 app.get(/.*/, (_, r) => r.sendFile(path.join(__dirname, 'public', 'index.html')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server listening on ${PORT}`));
