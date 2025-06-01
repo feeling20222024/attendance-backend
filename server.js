@@ -5,11 +5,12 @@ const express                   = require('express');
 const cors                      = require('cors');
 const path                      = require('path');
 const jwt                       = require('jsonwebtoken');
-const GoogleSpreadsheetModule    = require('google-spreadsheet');
+const { GoogleSpreadsheet }     = require('google-spreadsheet');
 const admin                     = require('firebase-admin');
 
 /*
-  1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة
+  1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة:
+     FIREBASE_SERVICE_ACCOUNT يجب أن يحتوي على JSON كامل (عبر Settings > Environment في Render).
 */
 let serviceAccount;
 try {
@@ -32,6 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 /*
   3) قراءة المتغيّرات الأساسية من البيئة
+     تأكدوا من تعيينها (Settings > Environment في Render أو في ملف .env محليّ).
 */
 const {
   JWT_SECRET,
@@ -63,25 +65,16 @@ try {
 
 /*
   4) وظائف الوصول إلى Google Sheets
-     سنستخدم استيراد الكلاس كاملاً بدل الـ “destructuring”
-     لكي نضمن وجود useServiceAccountAuth.
-*/
-const GoogleSpreadsheet = GoogleSpreadsheetModule.GoogleSpreadsheet || GoogleSpreadsheetModule;
-
-/*
-  تجهيز الدالة التي تُنشئ وتُعَدّل مستند Google Sheet
+     – ننشئ مثيلاً جديداً من GoogleSpreadsheet
+     – نستخدم useServiceAccountAuth (يوجد في الإصدارات الحديثة من google-spreadsheet)
+     – ثم ننفّذ loadInfo() لتحميل بيانات الشيت
 */
 async function accessSheet() {
-  // 4.1) ننشئ مثيلاً جديداً بعنوان الـ SHEET_ID
   const doc = new GoogleSpreadsheet(SHEET_ID);
-
-  // 4.2) نُجري المصادقة باستخدام service account
   await doc.useServiceAccountAuth({
     client_email: sheetCreds.client_email,
     private_key:  sheetCreds.private_key.replace(/\\n/g, '\n'),
   });
-
-  // 4.3) نحمّل معلومات المستند حتى تكون جداوله جاهزة للقراءة
   await doc.loadInfo();
   return doc;
 }
@@ -94,7 +87,6 @@ async function readSheet(title) {
   const headers = sheet.headerValues;
   const rows    = await sheet.getRows();
   const data    = rows.map(r => headers.map(h => r[h] ?? ''));
-
   return { headers, data };
 }
 
@@ -116,7 +108,8 @@ function authenticate(req, res, next) {
 
 /*
   6) مسار تسجيل الدخول (/api/login)
-     يُعيد توكين JWT مع بيانات المستخدم (code + name)
+     – يقارن الكود وكلمة المرور مع شيت “Users”
+     – إذا كانت صحيحة، يصدر JWT (حاملاً { code, name }) صلاحيتها 12 ساعة
 */
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
@@ -146,8 +139,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 /*
-  7) مسار إرجاع بيانات الموظّف الحالي فقط (/api/me):
-     حماية JWT → يعيد صف واحد فقط بناءً على req.user.code
+  7) مسار /api/me لإرجاع صف المستخدم الحالي فقط (محمية بتوكين JWT)
 */
 app.get('/api/me', authenticate, async (req, res) => {
   try {
@@ -159,12 +151,12 @@ app.get('/api/me', authenticate, async (req, res) => {
     if (!row) {
       return res.status(404).json({ error: 'User not found' });
     }
-    // نعيد كائن Key=اسم العمود، Value=القيمة
+    // نصنع كائناً key=اسم العمود، value=قيمته في الصف
     const single = {};
     headers.forEach((h, i) => {
       single[h] = row[i] ?? '';
     });
-    return res.json({ headers, row: single });
+    return res.json({ user: single });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
@@ -172,7 +164,7 @@ app.get('/api/me', authenticate, async (req, res) => {
 });
 
 /*
-  8) مسار إرجاع سجلات حضور الموظّف الحالي فقط
+  8) مسار /api/attendance لإرجاع سجلات “Attendance” للموظف الحالي فقط
 */
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
@@ -189,7 +181,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 });
 
 /*
-  9) مسار إرجاع بيانات الحوافز للموظّف الحالي فقط
+  9) مسار /api/hwafez لإرجاع بيانات “hwafez” للموظف الحالي فقط
 */
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
@@ -206,7 +198,7 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
 });
 
 /*
-  10) تسجيل توكين FCM (مؤقتًا في Map)
+  10) مسار تسجيل توكين FCM (مؤقتًا في Map)
 */
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
@@ -219,7 +211,7 @@ app.post('/api/register-token', (req, res) => {
 });
 
 /*
-  11) إرسال إشعار FCM (للمشرف فقط)
+  11) مسار /api/notify-all لإرسال إشعار FCM إلى كل التوكنات (للمشرف فقط)
 */
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
