@@ -1,16 +1,22 @@
 // server.js
 
+// 1) تحميل متغيّرات البيئة (سيقرأ ملف .env أو المتغيرات معرفة على Render)
 require('dotenv').config();
-const express                   = require('express');
-const cors                      = require('cors');
-const path                      = require('path');
-const jwt                       = require('jsonwebtoken');
-const { GoogleSpreadsheet }     = require('google-spreadsheet');
-const admin                     = require('firebase-admin');
 
-/*
-  1) تهيئة Firebase Admin من JSON مخزّن في متغيّر البيئة
-*/
+const express               = require('express');
+const cors                  = require('cors');
+const path                  = require('path');
+const jwt                   = require('jsonwebtoken');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const admin                 = require('firebase-admin');
+
+/* —————————————————————————————————————————————————————————————
+   2) تهيئة Firebase Admin باستخدام JSON مخزن في متغيّر البيئة
+   -------------------------------------------------------------
+   تأكد أنّ المتغيّر FIREBASE_SERVICE_ACCOUNT يحتوي على كامل JSON
+   لحساب خدمة Firebase Admin، بهذا الشكل (سطر واحد، بدون فواصل أسطر):
+   {"type":"service_account", ... , "private_key":"-----BEGIN PRIVATE KEY-----\n..."}
+   ————————————————————————————————————————————————————————————— */
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -22,17 +28,22 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-/*
-  2) تهيئة Express
-*/
+/* —————————————————————————————————————————————————————————————
+   3) تهيئة Express
+   ------------------------------------------------------------- */
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-/*
-  3) قراءة متغيّرات البيئة الأساسية
-*/
+/* —————————————————————————————————————————————————————————————
+   4) قراءة متغيّرات البيئة الأساسية
+   -------------------------------------------------------------
+   - JWT_SECRET: السرّ الذي نستخدمه لتوقيع وفك تشفير التوكن.
+   - SUPERVISOR_CODE: كود الموظّف الذي هو مشرف (مثلاً "35190").
+   - GOOGLE_SHEET_ID: معرّف Google Spreadsheet (موجود في رابط الشيت).
+   - GOOGLE_SERVICE_KEY: JSON string لمفتاح خدمة Google Sheets (سطر واحد).
+   ------------------------------------------------------------- */
 const {
   JWT_SECRET,
   SUPERVISOR_CODE,
@@ -41,15 +52,15 @@ const {
 } = process.env;
 
 if (!JWT_SECRET) {
-  console.error('❌ خطأ: متغيّر JWT_SECRET غير مُعرّف في البيئة.');
+  console.error('❌ خطأ: متغيّر JWT_SECRET غير معروف.');
   process.exit(1);
 }
 if (!SUPERVISOR_CODE) {
-  console.error('❌ خطأ: متغيّر SUPERVISOR_CODE غير مُعرّف في البيئة.');
+  console.error('❌ خطأ: متغيّر SUPERVISOR_CODE غير معروف.');
   process.exit(1);
 }
 if (!SHEET_ID) {
-  console.error('❌ خطأ: متغيّر GOOGLE_SHEET_ID غير مُعرّف في البيئة.');
+  console.error('❌ خطأ: متغيّر GOOGLE_SHEET_ID غير معروف.');
   process.exit(1);
 }
 
@@ -61,9 +72,12 @@ try {
   process.exit(1);
 }
 
-/*
-  4) دوال الوصول إلى Google Sheets (الإصدار 4.x)
-*/
+/* —————————————————————————————————————————————————————————————
+   5) دوال الوصول إلى Google Sheets (إصدار 3.3.0)
+   -------------------------------------------------------------
+   نستخدم دالة useServiceAccountAuth الموجودة في v3.3.0
+   حتى لا نواجه خطأ “useServiceAccountAuth is not a function”.
+   ————————————————————————————————————————————————————————————— */
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
@@ -85,9 +99,13 @@ async function readSheet(title) {
   return { headers, data };
 }
 
-/*
-  5) Middleware للتحقق من JWT
-*/
+/* —————————————————————————————————————————————————————————————
+   6) Middleware للتحقّق من JWT
+   -------------------------------------------------------------
+   أي طلب إلى مسار محميّ يجب أن يحمل هيدر:
+     Authorization: Bearer <token>
+   نوثّق التوكن ونخزّن بيانات المستخدم في req.user
+   ————————————————————————————————————————————————————————————— */
 function authenticate(req, res, next) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) {
@@ -101,9 +119,12 @@ function authenticate(req, res, next) {
   }
 }
 
-/*
-  6) مسار تسجيل الدخول (/api/login)
-*/
+/* —————————————————————————————————————————————————————————————
+   7) مسار تسجيل الدخول (/api/login)
+   -------------------------------------------------------------
+   يتلقى { code, pass } في جسم الطلب JSON،
+   يبحث في شيت “Users” عن صفّ مطابق، ثم يصدر JWT.
+   ————————————————————————————————————————————————————————————— */
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
   if (!code || !pass) {
@@ -115,6 +136,7 @@ app.post('/api/login', async (req, res) => {
     const iP = headers.indexOf('كلمة المرور');
     const iN = headers.indexOf('الاسم');
 
+    // نبحث الصفّ المناسب
     const row = data.find(r =>
       String(r[iC]).trim() === code &&
       String(r[iP]).trim() === pass
@@ -131,9 +153,11 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-/*
-  7) مسار /api/me لإرجاع بيانات صف المستخدم الحالي فقط
-*/
+/* —————————————————————————————————————————————————————————————
+   8) مسار لإرجاع بيانات "المستخدم الحالي" فقط (/api/me)
+   -------------------------------------------------------------
+   يحتاج JWT صالح في الهيدر.
+   ————————————————————————————————————————————————————————————— */
 app.get('/api/me', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Users');
@@ -145,9 +169,7 @@ app.get('/api/me', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     const single = {};
-    headers.forEach((h, i) => {
-      single[h] = row[i] ?? '';
-    });
+    headers.forEach((h, i) => (single[h] = row[i] ?? ''));
     return res.json({ user: single });
   } catch (e) {
     console.error(e);
@@ -155,9 +177,11 @@ app.get('/api/me', authenticate, async (req, res) => {
   }
 });
 
-/*
-  8) مسار /api/attendance: إرجاع سجلات "Attendance" للموظف الحالي
-*/
+/* —————————————————————————————————————————————————————————————
+   9) مسار /api/attendance (محميّ بالـ JWT)
+   -------------------------------------------------------------
+   يعيد فقط الصفوف التي تطابق كود الموظف الحالي.
+   ————————————————————————————————————————————————————————————— */
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
@@ -172,9 +196,11 @@ app.get('/api/attendance', authenticate, async (req, res) => {
   }
 });
 
-/*
-  9) مسار /api/hwafez: إرجاع بيانات "hwafez" للموظف الحالي
-*/
+/* —————————————————————————————————————————————————————————————
+  10) مسار /api/hwafez (محميّ بالـ JWT)
+   ------------------------------------------------------------
+   يعيد فقط الصفوف التي تطابق كود الموظف الحالي.
+   ————————————————————————————————————————————————————————————— */
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
@@ -189,9 +215,11 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
   }
 });
 
-/*
-  10) مسار تسجيل توكن FCM في Map مؤقتًا
-*/
+/* —————————————————————————————————————————————————————————————
+  11) مسار تسجيل توكن FCM (مؤقتاً في Map)
+   ------------------------------------------------------------
+   يطلب { user, token } في JSON. نخزّن التوكن في خريطة Map.
+   ————————————————————————————————————————————————————————————— */
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -202,9 +230,11 @@ app.post('/api/register-token', (req, res) => {
   return res.json({ success: true });
 });
 
-/*
-  11) مسار /api/notify-all: إرسال إشعار FCM إلى كل التوكينات (للمشرف فقط)
-*/
+/* —————————————————————————————————————————————————————————————
+  12) مسار /api/notify-all لإرسال إشعار FCM (للمشرف فقط)
+   ------------------------------------------------------------
+   يحتاج JWT في الهيدر، ويتحقق أنّ req.user.code === SUPERVISOR_CODE
+   ————————————————————————————————————————————————————————————— */
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
     return res.status(403).json({ error: 'Forbidden' });
@@ -223,9 +253,11 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   }
 });
 
-/*
-  12) SPA fallback & تشغيل السيرفر
-*/
+/* —————————————————————————————————————————————————————————————
+  13) SPA fallback & تشغيل الخادم
+   ------------------------------------------------------------
+   أيّ طلب غير مطابق لأيّ مسار سابق سيردّ index.html
+   ————————————————————————————————————————————————————————————— */
 app.get(/.*/, (_, r) =>
   r.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
