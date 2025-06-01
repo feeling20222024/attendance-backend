@@ -1,14 +1,13 @@
 // server.js
-
 require('dotenv').config();
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
-const jwt     = require('jsonwebtoken');
+const express               = require('express');
+const cors                  = require('cors');
+const path                  = require('path');
+const jwt                   = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
-const admin   = require('firebase-admin');
+const admin                 = require('firebase-admin');
 
-// ——————————————— 1) تهيئة Firebase Admin
+// ——————————————— 1) تهيئة Firebase Admin من JSON-stringified محفوظ في متغيّر البيئة
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -69,10 +68,9 @@ function authenticate(req, res, next) {
   }
 }
 
-// ——————————————— 5) دالة قراءة ورقة Google Sheets
+// ——————————————— 5) دوال الوصول إلى Google Sheets
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
-  //  الملاحظة: نسخ الأسطر كاملةً مع الاحتفاظ بـ "\n" داخل private_key
   await doc.useServiceAccountAuth({
     client_email: sheetCreds.client_email,
     private_key:  sheetCreds.private_key.replace(/\\n/g, '\n'),
@@ -80,6 +78,7 @@ async function accessSheet() {
   await doc.loadInfo();
   return doc;
 }
+
 async function readSheet(title) {
   const doc = await accessSheet();
   const sheet = doc.sheetsByTitle[title];
@@ -91,7 +90,7 @@ async function readSheet(title) {
   return { headers, data };
 }
 
-// ——————————————— 6) مسار تسجيل الدخول وإصدار JWT (/api/login)
+// ——————————————— 6) مسار تسجيل الدخول (/api/login) يصدر JWT
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
   if (!code || !pass) {
@@ -119,7 +118,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ——————————————— 7) تخزين مؤقت لتوكنات FCM
+// ——————————————— 7) تخزينُ مؤقّت لتوكنات FCM
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -130,7 +129,22 @@ app.post('/api/register-token', (req, res) => {
   return res.json({ success: true });
 });
 
-// ——————————————— 8) مسارات API محمية (Attendance + Hwafez)
+// ——————————————— 8) مسار جلب بيانات “Users” (محميٌّ بالمشرف فقط)
+app.get('/api/users', authenticate, async (req, res) => {
+  // نتحقّق أنهم مشرف
+  if (req.user.code !== SUPERVISOR_CODE) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    const result = await readSheet('Users');
+    return res.json(result);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+// ——————————————— 9) مسارات Attendance و Hwafez (كل موظف يرى فقط بياناته)
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
@@ -142,6 +156,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 });
+
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
@@ -154,19 +169,17 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
   }
 });
 
-// ——————————————— 9) إرسال إشعار FCM (للمشرف فقط) باستخدام sendMulticast
+// ——————————————— 10) إرسال إشعار FCM (للمشرف فقط) باستخدام sendMulticast
 app.post('/api/notify-all', authenticate, async (req, res) => {
-  // نتأكد أنّ هذا المستخدم هو المشرف
   if (req.user.code !== SUPERVISOR_CODE) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const { title, body } = req.body;
   const tokensList = Array.from(tokens.keys());
   if (tokensList.length === 0) {
-    return res.json({ success: true, sent: 0, message: 'لا توجد توكنات مسجلة حالياً.' });
+    return res.json({ success: true, sent: 0, message: 'لا توجد توكنات مسجلة.' });
   }
 
-  // نبني payload بصيغة sendMulticast
   const message = {
     notification: { title, body },
     tokens: tokensList
@@ -174,7 +187,6 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
 
   try {
     const response = await admin.messaging().sendMulticast(message);
-    // response.successCount وله رسالة عن كل توكن
     return res.json({ success: true, sent: response.successCount });
   } catch (err) {
     console.error('FCM error:', err);
@@ -182,7 +194,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   }
 });
 
-// ——————————————— 10) SPA fallback & تشغيل السيرفر
+// ——————————————— 11) SPA fallback & تشغيل السيرفر
 app.get(/.*/, (_, r) => r.sendFile(path.join(__dirname, 'public', 'index.html')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server listening on port ${PORT}`));
