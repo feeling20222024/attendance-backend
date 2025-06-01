@@ -10,9 +10,10 @@ const admin                 = require('firebase-admin');
 // ————————— 1) تهيئة Firebase Admin
 let serviceAccount;
 try {
+  // مُتغيّر البيئة FIREBASE_SERVICE_ACCOUNT يجب أن يكون كائن JSON مُضغوط كسلسلة نصّية
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 } catch (err) {
-  console.error('❌ خطأ: متغيّر FIREBASE_SERVICE_ACCOUNT غير موجود أو ليس بصيغة JSON صالحة.');
+  console.error('❌ خطأ: متغيّر FIREBASE_SERVICE_ACCOUNT غير موجود أو غير بصيغة JSON صالحة.');
   process.exit(1);
 }
 admin.initializeApp({
@@ -33,11 +34,13 @@ if (!SHEET_ID) {
   console.error('❌ خطأ: متغيّر GOOGLE_SHEET_ID غير مُعرّف في البيئة.');
   process.exit(1);
 }
+
 let sheetCreds;
 try {
+  // مُتغيّر البيئة GOOGLE_SERVICE_KEY يجب أن يكون كائن JSON مضغوط كسلسلة نصّية
   sheetCreds = JSON.parse(GOOGLE_KEY);
 } catch (err) {
-  console.error('❌ خطأ: متغيّر GOOGLE_SERVICE_KEY غير موجود أو ليس بصيغة JSON صالحة.');
+  console.error('❌ خطأ: متغيّر GOOGLE_SERVICE_KEY غير موجود أو غير بصيغة JSON صالحة.');
   process.exit(1);
 }
 
@@ -64,7 +67,7 @@ async function readSheet(title) {
 }
 
 // ————————— 5) مسار تسجيل الدخول (/api/login)
-// يتحقّق من code+password في شيت “Users”
+// يمنح المستخدم دخولًا بسيطًا: يُرجع { user: { code, name } } إن نجحت المطابقة في شيت Users
 app.post('/api/login', async (req, res) => {
   const { code, pass } = req.body;
   if (!code || !pass) {
@@ -83,7 +86,7 @@ app.post('/api/login', async (req, res) => {
     if (!row) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    // إذا نجحت، نعيد كائن user (code و name)
+    // إذا نجحت، نُعيد معلومات المستخدم (كود + اسم) للواجهة
     return res.json({
       user: {
         code: code,
@@ -96,8 +99,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ————————— 6) مسارات GET بدون حماية (Users, Attendance, hwafez)
-// هذه المسارات ترسل كل البيانات من الشيت حسب العنوان
+// ————————— 6) مسارات القراءة (Users, Attendance, hwafez) بدون حماية JWT
 app.get('/api/users', async (req, res) => {
   try {
     res.json(await readSheet('Users'));
@@ -122,7 +124,7 @@ app.get('/api/hwafez', async (req, res) => {
   }
 });
 
-// ————————— 7) تسجيل توكن FCM مؤقتًا في Map
+// ————————— 7) تسجيل توكن FCM بشكل مؤقت في Map
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
@@ -149,7 +151,7 @@ app.post('/api/notify-all', async (req, res) => {
   }
 });
 
-// ————————— 9) SPA fallback & Start server
+// ————————— 9) SPA fallback & تشغيل السيرفر
 app.get(/.*/, (_, r) => r.sendFile(path.join(__dirname, 'public', 'index.html')));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server listening on ${PORT}`));
