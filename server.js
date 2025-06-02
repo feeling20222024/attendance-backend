@@ -144,13 +144,14 @@ app.post('/api/login', async (req, res) => {
     if (!row) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const payload = { code, name: row[iN] };
-    const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
-    return res.json({ token, user: payload });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: 'Login failed' });
+    const tokens = new Map();
+app.post('/api/register-token', (req, res) => {
+  const { user, token } = req.body;
+  if (!user || !token) {
+    return res.status(400).json({ error: 'user and token required' });
   }
+  tokens.set(token, user);
+  return res.json({ success: true });
 });
 
 /* —————————————————————————————————————————————————————————————
