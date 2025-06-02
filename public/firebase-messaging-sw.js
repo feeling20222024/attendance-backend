@@ -1,8 +1,10 @@
 // public/firebase-messaging-sw.js
 
+// استيراد نسخ “compat” من Firebase App و Firebase Messaging
 importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
 
+// 1) تهيئة Firebase داخل الـ Service Worker
 const firebaseConfig = {
   apiKey: "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
   authDomain: "device-streaming-47cbe934.firebaseapp.com",
@@ -12,51 +14,19 @@ const firebaseConfig = {
   appId: "1:235398312189:web:8febe5e63f7b134b808e94"
 };
 
-// 3) تهيئة تطبيق Firebase Messaging
 firebase.initializeApp(firebaseConfig);
+
 const messaging = firebase.messaging();
 
-// 4) VAPID key (Public Key) – انسخ القيمة من: Firebase Console → Cloud Messaging → Web Push Certificates
-const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
-
-// 5) طلب إذن الإشعارات والحصول على Token
-async function initPush() {
-  try {
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.warn('المستخدم لم يمنح إذن الإشعارات');
-      return;
-    }
-
-    const currentToken = await messaging.getToken({ vapidKey: VAPID_PUBLIC_KEY });
-    if (currentToken) {
-      console.log('✅ FCM Registration Token:', currentToken);
-      if (!window.currentUser) {
-        console.warn('لم يُسَجَّل المستخدم بعد، لن يُرسل التوكن');
-        return;
-      }
-
-      await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: window.currentUser, token: currentToken })
-      });
-      console.log('تم تسجيل توكن FCM بنجاح على الخادم');
-    } else {
-      console.warn('لم يتمكَّن من الحصول على FCM token');
-    }
-  } catch (err) {
-    console.error('خطأ أثناء محاولة الحصول على الإذن أو التوكن:', err);
-  }
-}
-
-// 6) استقبال الرسائل أثناء تشغيل التطبيق في الواجهة
-messaging.onMessage(payload => {
-  console.log('✔️ استلمنا إشعاراً في الواجهة (foreground):', payload);
-  if (payload.notification) {
-    const { title, body } = payload.notification;
-    new Notification(title, { body });
+// 2) استقبال الإشعارات عندما يكون التطبيق في الخلفية/مُغلق
+messaging.onBackgroundMessage(payload => {
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  const { title, body } = payload.notification || {};
+  if (title && body) {
+    self.registration.showNotification(title, {
+      body,
+      // يمكنك إضافة أيقونة أو خيارات إضافية هنا:
+      // icon: '/assets/icon.png'
+    });
   }
 });
-
-window.initPush = initPush;
