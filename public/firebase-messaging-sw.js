@@ -17,7 +17,7 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // 4) VAPID key (Public Key) – انسخ القيمة من: Firebase Console → Cloud Messaging → Web Push Certificates
-const VAPID_PUBLIC_KEY = "BHa1ExampleVapidKey_Your_Key_Here_1234567890abcdef";
+const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
 // 5) طلب إذن الإشعارات والحصول على Token
 async function initPush() {
