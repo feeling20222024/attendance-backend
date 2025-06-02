@@ -13,7 +13,7 @@ const admin                 = require('firebase-admin');
 /* —————————————————————————————————————————————————————————————
    2) تهيئة Firebase Admin باستخدام JSON مخزّن في متغيّر البيئة
    -------------------------------------------------------------
-   تأكد أنّ المتغيّر FIREBASE_SERVICE_ACCOUNT يحتوي على كامل JSON
+   تأكّد أنّ المتغيّر FIREBASE_SERVICE_ACCOUNT يحتوي على كامل JSON
    لحساب خدمة Firebase Admin، بهذا الشكل (سطر واحد، بدون فواصل أسطر):
    {"type":"service_account", ... , "private_key":"-----BEGIN PRIVATE KEY-----\n..."}
    ————————————————————————————————————————————————————————————— */
@@ -73,6 +73,31 @@ try {
 }
 
 /* —————————————————————————————————————————————————————————————
+   دالة لتحويل الأرقام العربية/الفارسية إلى لاتينيّة
+   -------------------------------------------------------------
+   تحوّل كلّ حرف يتراوح بين:
+     '\u0660'..'\u0669'  (٠..٩)
+     '\u06F0'..'\u06F9'  (۰..۹)
+   إلى '0'..'9'.
+   تُطبّق على النصّ كاملاً وتعيد النصّ بعد التعويض.
+   ————————————————————————————————————————————————————————————— */
+function normalizeDigits(str) {
+  if (!str) return str;
+  return str.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, ch => {
+    const code = ch.charCodeAt(0);
+    // العربية ٠..٩ => 0..9
+    if (code >= 0x0660 && code <= 0x0669) {
+      return String(code - 0x0660);
+    }
+    // الفارسية ۰..۹ => 0..9
+    if (code >= 0x06F0 && code <= 0x06F9) {
+      return String(code - 0x06F0);
+    }
+    return ch;
+  });
+}
+
+/* —————————————————————————————————————————————————————————————
    5) دوال الوصول إلى Google Sheets (إصدار 3.3.0)
    -------------------------------------------------------------
    نستخدم دالة useServiceAccountAuth الموجودة في v3.3.0
@@ -95,6 +120,7 @@ async function readSheet(title) {
   await sheet.loadHeaderRow();
   const headers = sheet.headerValues;
   const rows    = await sheet.getRows();
+  // نحوّل كل صفّ إلى مصفوفة قيم
   const data    = rows.map(r => headers.map(h => r[h] ?? ''));
   return { headers, data };
 }
@@ -102,7 +128,7 @@ async function readSheet(title) {
 /* —————————————————————————————————————————————————————————————
    6) Middleware للتحقّق من JWT
    -------------------------------------------------------------
-   أي طلب إلى مسار محميّ يجب أن يحمل هيدر:
+   أيّ طلب إلى مسار محميّ يجب أن يحمل هيدر:
      Authorization: Bearer <token>
    نوثّق التوكن ونخزّن بيانات المستخدم في req.user
    ————————————————————————————————————————————————————————————— */
@@ -122,28 +148,36 @@ function authenticate(req, res, next) {
 /* —————————————————————————————————————————————————————————————
    7) مسار تسجيل الدخول (/api/login)
    -------------------------------------------------------------
-   يتلقى { code, pass } في جسم الطلب JSON،
-   يبحث في شيت “Users” عن صفّ مطابق، ثم يصدر JWT.
+   يتلقّى { code, pass } في جسم الطلب JSON،
+   يطبّق normalizeDigits على كلٍّ منهما قبل المقارنة،
+   ثمّ يبحث في شيت “Users” عن الصفّ المناسب، ثم يصدر JWT.
    ————————————————————————————————————————————————————————————— */
 app.post('/api/login', async (req, res) => {
-  const { code, pass } = req.body;
+  let { code, pass } = req.body;
   if (!code || !pass) {
     return res.status(400).json({ error: 'code and pass required' });
   }
+  // نحول أي أرقام عربية/فارسية في المدخلات إلى لاتينيّة
+  code = normalizeDigits(String(code).trim());
+  pass = normalizeDigits(String(pass).trim());
+
   try {
     const { headers, data } = await readSheet('Users');
     const iC = headers.indexOf('كود الموظف');
     const iP = headers.indexOf('كلمة المرور');
     const iN = headers.indexOf('الاسم');
 
-    // نبحث الصفّ المناسب
-    const row = data.find(r =>
-      String(r[iC]).trim() === code &&
-      String(r[iP]).trim() === pass
-    );
+    // نبحث الصفّ المناسب بعد تطبيق normalizeDigits أيضاً على بيانات الشيت
+    const row = data.find(r => {
+      const cellCode = normalizeDigits(String(r[iC] ?? '').trim());
+      const cellPass = normalizeDigits(String(r[iP] ?? '').trim());
+      return (cellCode === code && cellPass === pass);
+    });
+
     if (!row) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
     const payload = { code, name: row[iN] };
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
     return res.json({ token, user: payload });
@@ -162,9 +196,9 @@ app.get('/api/me', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Users');
     const idxCode = headers.indexOf('كود الموظف');
-    const row = data.find(r =>
-      String(r[idxCode]).trim() === req.user.code
-    );
+    // نطبّق normalizeDigits على كود المستخدم المطلوب
+    const target = normalizeDigits(String(req.user.code).trim());
+    const row = data.find(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
     if (!row) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -180,14 +214,15 @@ app.get('/api/me', authenticate, async (req, res) => {
 /* —————————————————————————————————————————————————————————————
    9) مسار /api/attendance (محميّ بالـ JWT)
    -------------------------------------------------------------
-   يعيد فقط الصفوف التي تطابق كود الموظف الحالي.
+   يعيد فقط الصفوف التي تطابق كود الموظّف الحالي (مع تطبيع الأرقام).
    ————————————————————————————————————————————————————————————— */
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
     const idx = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
     const filtered = data.filter(r =>
-      String(r[idx]).trim() === req.user.code
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
     );
     return res.json({ headers, data: filtered });
   } catch (e) {
@@ -199,14 +234,15 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 /* —————————————————————————————————————————————————————————————
   10) مسار /api/hwafez (محميّ بالـ JWT)
    ------------------------------------------------------------
-   يعيد فقط الصفوف التي تطابق كود الموظف الحالي.
+   يعيد فقط الصفوف التي تطابق كود الموظّف الحالي (بعد تطبيع الأرقام).
    ————————————————————————————————————————————————————————————— */
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
     const idx = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
     const filtered = data.filter(r =>
-      String(r[idx]).trim() === req.user.code
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
     );
     return res.json({ headers, data: filtered });
   } catch (e) {
@@ -218,14 +254,16 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
 /* —————————————————————————————————————————————————————————————
   11) مسار تسجيل توكن FCM (مؤقتاً في Map)
    ------------------------------------------------------------
-   يطلب { user, token } في JSON. نخزّن التوكن في خريطة Map.
+   يطبع أيضًا كل توكن جديد للتدقيق.
    ————————————————————————————————————————————————————————————— */
 const tokens = new Map(); // تعريف وحيد للـ tokens
+
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
   if (!user || !token) {
     return res.status(400).json({ error: 'user and token required' });
   }
+  console.log(`🔹 Registering FCM token for user=${user}: ${token}`);
   tokens.set(token, user);
   return res.json({ success: true });
 });
@@ -239,18 +277,29 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
     return res.status(403).json({ error: 'Forbidden' });
   }
+
   const { title, body } = req.body;
   const list = Array.from(tokens.keys());
+  console.log('🔸 Tokens currently in memory:', list);
 
   if (list.length === 0) {
+    console.log('⚠️ لا يوجد توكنات مُسجلة، لن يتم إرسال إشعار.');
     return res.json({ success: true, sent: 0 });
   }
+
   const message = {
     notification: { title, body },
     tokens: list
   };
+
   try {
     const response = await admin.messaging().sendMulticast(message);
+    console.log(`✅ أُرسل إشعار إلى ${response.successCount} جهاز، فشل ${response.failureCount}`);
+    response.responses.forEach((resp, idx) => {
+      if (!resp.success) {
+        console.warn(`⚠️ فشل إرسال إلى التوكن رقم ${idx}:`, resp.error);
+      }
+    });
     return res.json({ success: true, sent: response.successCount });
   } catch (err) {
     console.error('FCM error:', err);
