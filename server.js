@@ -1,6 +1,6 @@
 // server.js
 
-// 1) تحميل متغيّرات البيئة (سيقرأ ملف .env أو المتغيرات معرفة على Render)
+// 1) تحميل متغيّرات البيئة (سيقرأ ملف .env أو المتغيّرات معرفة على Render)
 require('dotenv').config();
 
 const express               = require('express');
@@ -11,7 +11,7 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin                 = require('firebase-admin');
 
 /* —————————————————————————————————————————————————————————————
-   2) تهيئة Firebase Admin باستخدام JSON مخزن في متغيّر البيئة
+   2) تهيئة Firebase Admin باستخدام JSON مخزّن في متغيّر البيئة
    -------------------------------------------------------------
    تأكد أنّ المتغيّر FIREBASE_SERVICE_ACCOUNT يحتوي على كامل JSON
    لحساب خدمة Firebase Admin، بهذا الشكل (سطر واحد، بدون فواصل أسطر):
@@ -144,14 +144,13 @@ app.post('/api/login', async (req, res) => {
     if (!row) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const tokens = new Map();
-app.post('/api/register-token', (req, res) => {
-  const { user, token } = req.body;
-  if (!user || !token) {
-    return res.status(400).json({ error: 'user and token required' });
+    const payload = { code, name: row[iN] };
+    const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    return res.json({ token, user: payload });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Login failed' });
   }
-  tokens.set(token, user);
-  return res.json({ success: true });
 });
 
 /* —————————————————————————————————————————————————————————————
@@ -221,7 +220,7 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
    ------------------------------------------------------------
    يطلب { user, token } في JSON. نخزّن التوكن في خريطة Map.
    ————————————————————————————————————————————————————————————— */
-const tokens = new Map();
+const tokens = new Map(); // تعريف وحيد للـ tokens
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
   if (!user || !token) {
