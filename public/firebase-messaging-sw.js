@@ -13,6 +13,7 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(payload => {
@@ -21,7 +22,8 @@ messaging.onBackgroundMessage(payload => {
   if (title && body) {
     self.registration.showNotification(title, {
       body,
-      // icon: '/assets/icon.png'  (اختياري)
+      // يمكنك إضافة أيقونة أو خيارات إضافية هنا:
+      // icon: '/assets/icon.png'
     });
   }
 });
