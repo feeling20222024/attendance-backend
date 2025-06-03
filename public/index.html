@@ -10,11 +10,16 @@
   <meta http-equiv="Content-Security-Policy"
         content="
           default-src 'self' data: gap:;
-          script-src  'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com;
-          style-src   'self' 'unsafe-inline' https://cdn.tailwindcss.com;
-          connect-src 'self' https://dwam-app-by-omar.onrender.com https://www.gstatic.com;
+          script-src  'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com;
+          style-src   'self' 'unsafe-inline';
+          connect-src 'self'
+                      https://dwam-app-by-omar.onrender.com
+                      https://www.gstatic.com
+                      https://firebaseinstallations.googleapis.com
+                      https://fcm.googleapis.com
+                      https://www.googleapis.com;
         ">
-
+  
   <!-- أيقونة التطبيق -->
   <link rel="icon" href="assets/icon.png" />
 
