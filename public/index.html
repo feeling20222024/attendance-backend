@@ -58,9 +58,16 @@
 
       <!-- زر إرسال الإشعار (يظهر للمشرف فقط) -->
       <div id="pushSection" class="mb-4 hidden">
+        <!-- حقل عنوان الإشعار -->
+        <input id="notifTitleInput" type="text" placeholder="عنوان الإشعار"
+               class="w-full mb-2 border px-3 py-2 rounded" />
+        <!-- حقل نصّ الإشعار -->
+        <textarea id="notifBodyInput" rows="3" placeholder="نص الإشعار"
+                  class="w-full mb-2 border px-3 py-2 rounded"></textarea>
+        <!-- زرّ الإرسال -->
         <button id="sendPushBtn"
                 class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700">
-          إرسال إشعار لجميع المستخدمين
+          إرسال الإشعار
         </button>
       </div>
 
