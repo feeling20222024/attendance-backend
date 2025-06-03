@@ -32,11 +32,9 @@ function normalizeDigits(str) {
 }
 
 /* —————————————————————————————————————————————————————————————
-   3) تهيئة Firebase Admin باستخدام JSON مخزّن في متغيّر البيئة
+   3) تهيئة Firebase Admin باستخدام JSON مخزّن في المتغيّر البيئي
    -------------------------------------------------------------
-   تأكد أنّ المتغيّر FIREBASE_SERVICE_ACCOUNT يحتوي على كامل JSON
-   لحساب خدمة Firebase Admin، بهذا الشكل (سطر واحد، بدون فواصل أسطر):
-   {"type":"service_account", ... , "private_key":"-----BEGIN PRIVATE KEY-----\n..."}
+   تأكد أنّ FIREBASE_SERVICE_ACCOUNT يحتوي على JSON صالح لحساب خدمة Firebase Admin.
    ————————————————————————————————————————————————————————————— */
 let serviceAccount;
 try {
@@ -52,7 +50,7 @@ admin.initializeApp({
 /* —————————————————————————————————————————————————————————————
    4) تهيئة Express
    -------------------------------------------------------------
-   CORS و body parsing و serving للملفات الثابتة في مجلّد public
+   CORS و body parsing و إعطاء صلاحية لخدمة الملفات الثابتة في مجلّد public
    ————————————————————————————————————————————————————————————— */
 const app = express();
 app.use(cors());
@@ -63,10 +61,10 @@ app.use(express.static(path.join(__dirname, 'public')));
    5) قراءة متغيّرات البيئة الأساسية
    -------------------------------------------------------------
    - JWT_SECRET: السرّ الذي نستخدمه لتوقيع وفكّ تشفير التوكن.
-   - SUPERVISOR_CODE: كود الموظّف الذي هو مشرف (مثلاً "35190").
+   - SUPERVISOR_CODE: كود الموظّف الذي هو مشرف.
    - GOOGLE_SHEET_ID: معرّف Google Spreadsheet.
    - GOOGLE_SERVICE_KEY: JSON string لمفتاح خدمة Google Sheets.
-   ------------------------------------------------------------- */
+   ————————————————————————————————————————————————————————————— */
 const {
   JWT_SECRET,
   SUPERVISOR_CODE,
@@ -98,8 +96,7 @@ try {
 /* —————————————————————————————————————————————————————————————
    6) دوال الوصول إلى Google Sheets (إصدار 3.3.0)
    -------------------------------------------------------------
-   نستخدم دالة useServiceAccountAuth الموجودة في v3.3.0
-   حتى لا نواجه خطأ “useServiceAccountAuth is not a function”.
+   نستخدم useServiceAccountAuth الموجودة في v3.3.0 لتسجيل الدخول إلى شيت.
    ————————————————————————————————————————————————————————————— */
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
@@ -127,7 +124,7 @@ async function readSheet(title) {
    -------------------------------------------------------------
    أيّ طلب إلى مسار محميّ يجب أن يحمل هيدر:
      Authorization: Bearer <token>
-   نوثّق التوكن ونخزّن بيانات المستخدم في req.user
+   نفكّ تشفير التوكن ونخزّن بيانات المستخدم في req.user
    ————————————————————————————————————————————————————————————— */
 function authenticate(req, res, next) {
   const h = req.headers.authorization;
@@ -146,8 +143,8 @@ function authenticate(req, res, next) {
    8) مسار تسجيل الدخول (/api/login)
    -------------------------------------------------------------
    يتلقى { code, pass } في جسم الطلب JSON،
-   يطبّق normalizeDigits على المدخلات قبل المقارنة،
-   يبحث في شيت “Users” عن صفّ مطابق، ثم يصدر JWT.
+   يطبّق normalizeDigits قبل البحث داخل شيت “Users”،
+   ثمّ يصدر JWT إذا كان المستخدم صحيحاً.
    ————————————————————————————————————————————————————————————— */
 app.post('/api/login', async (req, res) => {
   let { code, pass } = req.body;
@@ -155,7 +152,7 @@ app.post('/api/login', async (req, res) => {
     return res.status(400).json({ error: 'code and pass required' });
   }
 
-  // نحول أي أرقام عربية/فارسية في المدخلات إلى لاتينية
+  // نطبّق normalizeDigits على المدخلات
   code = normalizeDigits(String(code).trim());
   pass = normalizeDigits(String(pass).trim());
 
@@ -165,7 +162,7 @@ app.post('/api/login', async (req, res) => {
     const iP = headers.indexOf('كلمة المرور');
     const iN = headers.indexOf('الاسم');
 
-    // نبحث الصفّ المناسب بعد تطبيق normalizeDigits أيضاً على بيانات الشيت
+    // نبحث في بيانات الشيت بعد تطبيق normalizeDigits على كل خلية
     const row = data.find(r => {
       const cellCode = normalizeDigits(String(r[iC] ?? '').trim());
       const cellPass = normalizeDigits(String(r[iP] ?? '').trim());
@@ -189,15 +186,14 @@ app.post('/api/login', async (req, res) => {
 /* —————————————————————————————————————————————————————————————
    9) مسار لإرجاع بيانات "المستخدم الحالي" فقط (/api/me)
    -------------------------------------------------------------
-   يحتاج JWT صالح في الهيدر.
+   يحتاج JWT صالح في الهيدر. نبحث في شيت “Users” عن الكود المطابق.
    ————————————————————————————————————————————————————————————— */
 app.get('/api/me', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Users');
     const idxCode = headers.indexOf('كود الموظف');
-    // نطبّق normalizeDigits على كود المستخدم المطلوب
-    const target = normalizeDigits(String(req.user.code).trim());
-    const row = data.find(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
+    const target  = normalizeDigits(String(req.user.code).trim());
+    const row     = data.find(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
     if (!row) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -213,7 +209,7 @@ app.get('/api/me', authenticate, async (req, res) => {
 /* —————————————————————————————————————————————————————————————
    10) مسار /api/attendance (محميّ بالـ JWT)
    -------------------------------------------------------------
-   يعيد فقط الصفوف التي تطابق كود الموظف الحالي.
+   يعيد فقط الصفوف التي تطابق كود الموظّف الحالي في شيت “Attendance”.
    ————————————————————————————————————————————————————————————— */
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
@@ -233,7 +229,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 /* —————————————————————————————————————————————————————————————
    11) مسار /api/hwafez (محميّ بالـ JWT)
    -------------------------------------------------------------
-   يعيد فقط الصفوف التي تطابق كود الموظف الحالي.
+   يعيد فقط الصفوف التي تطابق كود الموظّف الحالي في شيت “hwafez”.
    ————————————————————————————————————————————————————————————— */
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
@@ -270,7 +266,7 @@ app.post('/api/register-token', (req, res) => {
    13) مسار /api/notify-all لإرسال إشعار FCM (للمشرف فقط)
    -------------------------------------------------------------
    يحتاج JWT في الهيدر، ويتحقق أنّ req.user.code === SUPERVISOR_CODE.
-   نستخدم sendAll بدلاً من sendToDevice أو sendMulticast.
+   نرسل كل رسالة على حدة باستخدام admin.messaging().send().
    ————————————————————————————————————————————————————————————— */
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
@@ -281,26 +277,35 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   console.log('🔸 Tokens currently in memory:', list);
 
   if (list.length === 0) {
-    console.log('⚠️ لا يوجد توكنات مُسجّلة، لن يتم إرسال إشعار.');
+    console.log('⚠️ لا يوجد توكنات مسجّلة، لن يتم إرسال إشعار.');
     return res.json({ success: true, sent: 0 });
   }
 
-  // ننشئ مصفوفة رسائل منفصلة لكل توكن
-  const messages = list.map(token => ({
-    token,
-    notification: { title, body }
-  }));
+  // ننشئ مصفوفة وعود لكل توكن.
+  const sendPromises = list.map(token => {
+    return admin.messaging().send({
+      token,
+      notification: { title, body }
+    });
+  });
 
-  try {
-    // نستخدم sendAll لإرسال مجموعة رسائل دفعة واحدة
-    const response = await admin.messaging().sendAll(messages);
-    // response.successCount يحتوي عدد الإشعارات المرسلة بنجاح
-    console.log(`✅ أرسل إشعار إلى ${response.successCount} جهاز، فشل ${messages.length - response.successCount}`);
-    return res.json({ success: true, sent: response.successCount });
-  } catch (err) {
-    console.error('FCM error:', err);
-    return res.status(500).json({ error: err.message });
+  // نستخدم allSettled لحساب عدد الرسائل التي أرسلناها بنجاح
+  const results = await Promise.allSettled(sendPromises);
+  const successCount = results.filter(r => r.status === 'fulfilled').length;
+  const failCount    = results.length - successCount;
+
+  if (failCount > 0) {
+    console.warn(`⚠️ فشل إرسال الإشعار إلى ${failCount} جهاز/أجهزة.`);
+    results
+      .forEach((r, idx) => {
+        if (r.status === 'rejected') {
+          console.warn(`   • Token ${list[idx]}  → خطأ:`, r.reason);
+        }
+      });
   }
+
+  console.log(`✅ أرسل إشعار إلى ${successCount} جهاز، فشل ${failCount} جهاز.`);
+  return res.json({ success: true, sent: successCount });
 });
 
 /* —————————————————————————————————————————————————————————————
