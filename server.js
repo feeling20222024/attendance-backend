@@ -284,18 +284,25 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
     return res.json({ success: true, sent: 0 });
   }
 
+  // Payload الإشعار
+  const payload = {
+    notification: { title, body }
+  };
+
   try {
-    const response = await admin.messaging().sendMulticast({
-      notification: { title, body },
-      tokens: list
-    });
-    console.log(`✅ أرسل إشعار إلى ${response.successCount} جهاز، فشل ${response.failureCount}`);
-    response.responses.forEach((resp, idx) => {
-      if (!resp.success) {
-        console.warn(`⚠️ فشل إرسال إلى التوكن رقم ${idx}:`, resp.error);
+    // نستخدم sendToDevice بدلاً من sendMulticast
+    const response = await admin.messaging().sendToDevice(list, payload);
+    // response.results مصفوفة من نتائج (نجاح/فشل) لكل توكن
+    let successCount = 0;
+    response.results.forEach(r => {
+      if (r.error) {
+        console.warn('⚠️ فشل إرسال إشعار إلى توكن:', r.error);
+      } else {
+        successCount++;
       }
     });
-    return res.json({ success: true, sent: response.successCount });
+    console.log(`✅ أرسل إشعار إلى ${successCount} جهاز، فشل ${list.length - successCount}`);
+    return res.json({ success: true, sent: successCount });
   } catch (err) {
     console.error('FCM error:', err);
     return res.status(500).json({ error: err.message });
