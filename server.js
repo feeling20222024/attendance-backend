@@ -124,26 +124,32 @@ function authenticate(req, res, next) {
    -------------------------------------------------------------
    يتلقى { code, pass } في جسم الطلب JSON،
    يبحث في شيت “Users” عن صفّ مطابق، ثم يصدر JWT.
-   ————————————————————————————————————————————————————————————— */
-app.post('/api/login', async (req, res) => {
-  const { code, pass } = req.body;
+ app.post('/api/login', async (req, res) => {
+  let { code, pass } = req.body;
   if (!code || !pass) {
     return res.status(400).json({ error: 'code and pass required' });
   }
+
+  // تطبيع الأرقام من العربية/الفارسية إلى إنجليزية
+  code = normalizeDigits(String(code).trim());
+  pass = normalizeDigits(String(pass).trim());
+
   try {
     const { headers, data } = await readSheet('Users');
     const iC = headers.indexOf('كود الموظف');
     const iP = headers.indexOf('كلمة المرور');
     const iN = headers.indexOf('الاسم');
 
-    // نبحث الصفّ المناسب
-    const row = data.find(r =>
-      String(r[iC]).trim() === code &&
-      String(r[iP]).trim() === pass
-    );
+    const row = data.find(r => {
+      const cellCode = normalizeDigits(String(r[iC] ?? '').trim());
+      const cellPass = normalizeDigits(String(r[iP] ?? '').trim());
+      return (cellCode === code && cellPass === pass);
+    });
+
     if (!row) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
     const payload = { code, name: row[iN] };
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
     return res.json({ token, user: payload });
