@@ -269,7 +269,8 @@ app.post('/api/register-token', (req, res) => {
 /* —————————————————————————————————————————————————————————————
    13) مسار /api/notify-all لإرسال إشعار FCM (للمشرف فقط)
    -------------------------------------------------------------
-   يحتاج JWT في الهيدر، ويتحقق أنّ req.user.code === SUPERVISOR_CODE
+   يحتاج JWT في الهيدر، ويتحقق أنّ req.user.code === SUPERVISOR_CODE.
+   نستخدم sendAll بدلاً من sendToDevice أو sendMulticast.
    ————————————————————————————————————————————————————————————— */
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
@@ -284,25 +285,18 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
     return res.json({ success: true, sent: 0 });
   }
 
-  // Payload الإشعار
-  const payload = {
+  // ننشئ مصفوفة رسائل منفصلة لكل توكن
+  const messages = list.map(token => ({
+    token,
     notification: { title, body }
-  };
+  }));
 
   try {
-    // نستخدم sendToDevice بدلاً من sendMulticast
-    const response = await admin.messaging().sendToDevice(list, payload);
-    // response.results مصفوفة من نتائج (نجاح/فشل) لكل توكن
-    let successCount = 0;
-    response.results.forEach(r => {
-      if (r.error) {
-        console.warn('⚠️ فشل إرسال إشعار إلى توكن:', r.error);
-      } else {
-        successCount++;
-      }
-    });
-    console.log(`✅ أرسل إشعار إلى ${successCount} جهاز، فشل ${list.length - successCount}`);
-    return res.json({ success: true, sent: successCount });
+    // نستخدم sendAll لإرسال مجموعة رسائل دفعة واحدة
+    const response = await admin.messaging().sendAll(messages);
+    // response.successCount يحتوي عدد الإشعارات المرسلة بنجاح
+    console.log(`✅ أرسل إشعار إلى ${response.successCount} جهاز، فشل ${messages.length - response.successCount}`);
+    return res.json({ success: true, sent: response.successCount });
   } catch (err) {
     console.error('FCM error:', err);
     return res.status(500).json({ error: err.message });
