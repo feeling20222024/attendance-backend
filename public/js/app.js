@@ -1,5 +1,3 @@
-// public/js/app.js
-
 // —————————————————————————————————————————
 // 1) نقطة النهاية وجزء التسجيل
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
@@ -154,7 +152,7 @@ async function login() {
 
     // خزنّا currentUser ليسمح لـ push.js بالوصول إليه
     currentUser = user.code;
-    window.currentUser = currentUser;   
+    window.currentUser = currentUser;
 
     console.log('🔑 login successful. currentUser =', currentUser);
 
@@ -303,25 +301,40 @@ async function showHwafez() {
 // —————————————————————————————————————————
 async function sendSupervisorNotification() {
   try {
+    // 1) نقرأ العنوان والنص من المدخلات
+    const title = document.getElementById('notifTitleInput').value.trim();
+    const body  = document.getElementById('notifBodyInput').value.trim();
+
+    if (!title || !body) {
+      alert('يرجى إدخال عنوان ونص الإشعار.');
+      return;
+    }
+
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${jwtToken}`
     };
+
+    // 2) نرسل الطلب مع العنوان والنص
     const res = await fetch(`${API_BASE}/notify-all`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        title: 'إشعار من المشرف',
-        body:  'يرجى مراجعة سجلات الدوام الآن.'
-      })
+      body: JSON.stringify({ title, body })
     });
+
     if (!res.ok) {
-      throw new Error(await res.text());
+      const text = await res.text();
+      throw new Error(text || `رمز الخطأ: ${res.status}`);
     }
+
     alert('✅ تم إرسال الإشعار لجميع المستخدمين.');
+    // مسح الحقول بعد الإرسال
+    document.getElementById('notifTitleInput').value = '';
+    document.getElementById('notifBodyInput').value  = '';
+
   } catch (err) {
     console.error('❌ sendSupervisorNotification error:', err);
-    alert('❌ خطأ في إرسال الإشعار');
+    alert('❌ خطأ في إرسال الإشعار: ' + err.message);
   }
 }
 
