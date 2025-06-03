@@ -10,16 +10,18 @@
   <meta http-equiv="Content-Security-Policy"
         content="
           default-src 'self' data: gap:;
-          script-src  'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com;
-          style-src   'self' 'unsafe-inline';
+          script-src  'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com;
+          style-src   'self' 'unsafe-inline' https://cdn.tailwindcss.com;
           connect-src 'self' https://dwam-app-by-omar.onrender.com https://www.gstatic.com;
         ">
 
   <!-- أيقونة التطبيق -->
   <link rel="icon" href="assets/icon.png" />
 
-  <!-- Tailwind CSS وأنماطك الخاصة -->
-  <link rel="stylesheet" href="css/tailwind.css" />
+  <!-- Tailwind CSS عبر CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- أيّ تنسيقات CSS إضافية لديك -->
   <link rel="stylesheet" href="css/style.css" />
 
   <!-- مكتبات Firebase (compat) للمتصفِّح -->
@@ -176,6 +178,7 @@
 
     </section>
   </div>
+
   <!-- 1) push.js يجب تحميله قبل app.js حتى يكون initPush متاحاً -->
   <script src="/js/push.js" defer></script>
   <script src="/js/app.js"  defer></script>
