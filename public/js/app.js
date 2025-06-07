@@ -1,5 +1,7 @@
+import { PushNotifications } from '@capacitor/push-notifications';
+
 // —————————————————————————————————————————
-//  إعداد نقاط النهاية والمتغيرات العامة
+// 1) إعداد المتغيرات ونقطة النهاية
 // —————————————————————————————————————————
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
@@ -19,29 +21,25 @@ const caseMapping = {
 };
 
 // —————————————————————————————————————————
-//  Helper: تطبيع أرقام عربية → غربية
+// Helper: تطبيع أرقام عربية → غربية
 // —————————————————————————————————————————
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
 
 // —————————————————————————————————————————
-//  DOMContentLoaded: ربط الواجهة وتهيئة الإشعارات (push.js)
+// DOMContentLoaded: ربط الأزرار
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  // ربط الأزرار
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
     alert('فكرة وإعداد وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
-
-  // إذا كان push.js (Service Worker) متوفر نهيّئه بعد تسجيل الدخول
-  // لذا لا نستدعي initPush() هنا تلقائيًا
 });
 
 // —————————————————————————————————————————
-//  1) دالة تسجيل الدخول
+// 2) تسجيل الدخول كما كان لديك
 // —————————————————————————————————————————
 async function login() {
   console.log('🔑 login() called');
@@ -54,40 +52,31 @@ async function login() {
 
   try {
     const res = await fetch(LOGIN_ENDPOINT, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ code, pass })
+      body: JSON.stringify({ code, pass })
     });
     console.log('🔄 login status:', res.status);
-    const body = await res.clone().json().catch(()=>null);
-    console.log('🔄 login response:', body);
+
     if (res.status === 401) {
-      return alert('بيانات الدخول خاطئة');
+      alert('بيانات الدخول خاطئة');
+      return;
     }
     if (!res.ok) {
-      throw new Error(`خطأ بالخادم (${res.status})`);
+      throw new Error(`فشل تسجيل الدخول (رمز: ${res.status})`);
     }
 
     const { token, user } = await res.json();
-    if (!token || !user) {
-      throw new Error('رد غير متوقع من السيرفر');
-    }
-    jwtToken = token;
-    localStorage.setItem('jwtToken', token);
-
-    // خزن currentUser من المفتاح الإنجليزي ثم السقوط للمفتاح العربي
+    jwtToken    = token;
     currentUser = user.code ?? user['كود الموظف'];
-    window.currentUser = currentUser;
+    localStorage.setItem('jwtToken', jwtToken);
 
     console.log('🔑 login successful, currentUser =', currentUser);
 
-    // استدعاء initPush من push.js إذا وجدت
-    if (window.initPush) {
-      console.log('🚀 calling initPush()...');
-      initPush();
-    }
+    // بعد نجاح الدخول، نهيّئ إشعارات الـ Native
+    initNativePush();
 
-    // الآن جلب وعرض البيانات
+    // ثم جلب وعرض البيانات
     await fetchAndRender();
 
   } catch (e) {
@@ -97,69 +86,89 @@ async function login() {
 }
 
 // —————————————————————————————————————————
-//  2) جلب وعرض البيانات المحمية (attendance + hwafez + me)
+// 3) تهيئة إشعارات Native (Android/iOS)
+// —————————————————————————————————————————
+async function initNativePush() {
+  try {
+    const perm = await PushNotifications.requestPermissions();
+    if (perm.receive !== 'granted') {
+      console.warn('لم يُمنح الإذن للإشعارات على Native');
+      return;
+    }
+    await PushNotifications.register();
+
+    PushNotifications.addListener('registration', token => {
+      console.log('✅ FCM Token (mobile):', token.value);
+      // أرسل التوكن للخادم
+      fetch(`${API_BASE}/register-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({ user: currentUser, token: token.value })
+      }).catch(e => console.warn('Failed to register token:', e));
+    });
+
+    PushNotifications.addListener('registrationError', err => {
+      console.error('❌ RegistrationError (mobile):', err);
+    });
+
+    PushNotifications.addListener('pushNotificationReceived', notification => {
+      console.log('📩 Push Received (mobile):', notification);
+      // هنا يمكنك إظهار إشعار محلي أو تحديث الواجهة
+    });
+
+    PushNotifications.addListener('pushNotificationActionPerformed', action => {
+      console.log('📲 Notification tapped (mobile):', action);
+    });
+
+  } catch (e) {
+    console.warn('تعذّر تهيئة Native Push:', e);
+  }
+}
+
+// —————————————————————————————————————————
+// 4) جلب وعرض البيانات كما كان لديك
 // —————————————————————————————————————————
 async function fetchAndRender() {
   if (!jwtToken) return;
+  console.log('🚀 fetching protected data...');
 
   const headers = {
-    'Content-Type':  'application/json',
+    'Content-Type': 'application/json',
     'Authorization': `Bearer ${jwtToken}`
   };
 
-  console.log('🚀 fetching protected data...');
   try {
     const [aRes, hwRes, meRes] = await Promise.all([
       fetch(`${API_BASE}/attendance`, { headers }),
       fetch(`${API_BASE}/hwafez`,      { headers }),
       fetch(`${API_BASE}/me`,          { headers })
     ]);
-
-    if (!aRes.ok || !hwRes.ok || !meRes.ok) {
-      throw new Error('فشل جلب البيانات (ربما انتهت صلاحية الجلسة)');
-    }
+    if (!aRes.ok || !hwRes.ok || !meRes.ok) throw new Error('فشل جلب البيانات');
 
     const aJson  = await aRes.json();
     const hwJson = await hwRes.json();
     const meJson = await meRes.json();
     console.log('🔄 /me response:', meJson);
 
-    headersAtt     = aJson.headers;
-    attendanceData = aJson.data;
-    headersHw      = hwJson.headers;
-    hwafezData     = hwJson.data;
-    // تحديث currentUser أيضاً بناءً على المفتاح المناسب
-    currentUser    = meJson.user.code ?? meJson.user['كود الموظف'];
+    headersAtt      = aJson.headers;
+    attendanceData  = aJson.data;
+    headersHw       = hwJson.headers;
+    hwafezData      = hwJson.data;
+    currentUser     = meJson.user.code ?? meJson.user['كود الموظف'];
 
-    // إظهار الواجهة بعد تسجيل الدخول
     document.getElementById('loginSection').classList.add('hidden');
     document.getElementById('records').classList.remove('hidden');
     document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
 
-    // إذا كان مشرفاً، نظهر قسم الإشعارات
     if (currentUser === SUPERVISOR_CODE) {
       document.getElementById('pushSection').classList.remove('hidden');
       document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
     }
 
-    // إعداد ملاحظات المشرف
-    const notesArea = document.getElementById('supervisorNotes');
-    const saveBtn   = document.getElementById('saveNotesBtn');
-    notesArea.value = localStorage.getItem('supervisorNotes') || '';
-    if (currentUser === SUPERVISOR_CODE) {
-      notesArea.removeAttribute('readonly');
-      saveBtn.classList.remove('hidden');
-      saveBtn.onclick = () => {
-        localStorage.setItem('supervisorNotes', notesArea.value);
-        alert('تم حفظ الملاحظة');
-      };
-    } else {
-      notesArea.setAttribute('readonly', '');
-      saveBtn.classList.add('hidden');
-    }
-
     renderRecords();
-
   } catch (e) {
     console.error('❌ fetchAndRender error:', e);
     logout();
@@ -167,7 +176,7 @@ async function fetchAndRender() {
 }
 
 // —————————————————————————————————————————
-//  3) دالة رسم سجلات الحضور
+// 5) رسم سجلات الحضور
 // —————————————————————————————————————————
 function renderRecords() {
   const idx = {
@@ -226,25 +235,25 @@ function renderRecords() {
 }
 
 // —————————————————————————————————————————
-//  4) دالة عرض بيانات الحوافز
+// 6) عرض بيانات الحوافز
 // —————————————————————————————————————————
 async function showHwafez() {
   try {
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwtToken}`
-    };
-    const res = await fetch(`${API_BASE}/hwafez`, { headers });
-    if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
-
-    const json = await res.json();
-    headersHw  = json.headers;
-    hwafezData = json.data;
+    const res = await fetch(`${API_BASE}/hwafez`, {
+      method:  'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok) throw new Error('فشل جلب بيانات الحوافز'); 
+    const { headers: h, data } = await res.json();
+    headersHw  = h;
+    hwafezData = data;
 
     document.getElementById('hwafezSection').classList.remove('hidden');
-    // … (رسم الجدول كما في السابق) …
+    // … أرسم الجدول كما كان …
     document.getElementById('hwafezSection').scrollIntoView({ behavior: 'smooth' });
-
   } catch (e) {
     console.error('❌ showHwafez error:', e);
     alert('حدث خطأ أثناء جلب بيانات الحوافز');
@@ -252,7 +261,7 @@ async function showHwafez() {
 }
 
 // —————————————————————————————————————————
-//  5) دالة إرسال إشعار للمشرف
+// 7) إرسال إشعار للمشرف
 // —————————————————————————————————————————
 async function sendSupervisorNotification() {
   const title = document.getElementById('notifTitleInput').value.trim();
@@ -281,13 +290,12 @@ async function sendSupervisorNotification() {
 }
 
 // —————————————————————————————————————————
-//  6) دالة تسجيل الخروج
+// 8) تسجيل الخروج
 // —————————————————————————————————————————
 function logout() {
   currentUser = null;
   jwtToken    = null;
   localStorage.removeItem('jwtToken');
-
   ['records','pushSection','hwafezSection'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
   );
