@@ -27,10 +27,10 @@
   <!-- أيقونة التطبيق -->
   <link rel="icon" href="assets/icon.png" />
 
-  <!-- تحميل Tailwind CSS من CDN -->
-  <script src="https://cdn.tailwindcss.com" defer></script>
+  <!-- تحميل Tailwind CSS من CDN -->  
+  <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- أيّ تنسيقات CSS إضافية لديك -->
+  <!-- رابط تنسيقات CSS إضافية (مسار نسبي) -->
   <link rel="stylesheet" href="css/style.css" />
 
   <!-- مكتبات Firebase (compat) للمتصفِّح -->
@@ -204,9 +204,9 @@
     </section>
   </main>
 
-  <!-- 1) يتم تحميل push.js قبل app.js لكي يكون initPush متاحاً -->
-  <script src="/js/push.js" defer></script>
-  <script src="/js/app.js"  defer></script>
+  <!-- تحميل ملفات الجافاسكربت (مسارات نسبية بدون "/") -->
+  <script src="js/push.js" defer></script>
+  <script type="module" src="js/app.js" defer></script>
 
 </body>
 </html>
