@@ -1,4 +1,3 @@
-// js/app.js
 // ====================================================================
 // إعداد نقاط النهاية والمتغيرات العامة
 // ====================================================================
@@ -37,14 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isNative) {
     import('@capacitor/push-notifications')
       .then(({ PushNotifications }) => {
-        // اطلب الإذن
         PushNotifications.requestPermissions().then(res => {
           if (res.receive === 'granted') {
             PushNotifications.register();
           }
         });
 
-        // مسجّل التوكن
         PushNotifications.addListener('registration', token => {
           console.log('✅ FCM Token:', token.value);
           // أرسل التوكن للخادم مع الـ JWT
@@ -59,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(e => console.warn('Failed to register token:', e));
           }
         });
-
         PushNotifications.addListener('registrationError', err => {
           console.error('❌ FCM Registration Error:', err);
         });
@@ -94,6 +90,7 @@ async function login() {
     console.log('🔄 login response status:', res.status);
     const body = await res.clone().json().catch(() => null);
     console.log('🔄 login response body:', body);
+
     if (res.status === 401) {
       alert('بيانات الدخول خاطئة');
       return;
@@ -101,7 +98,6 @@ async function login() {
     if (!res.ok) {
       throw new Error(`خطأ بالخادم (${res.status})`);
     }
-    // … الباقي كما هو
 
     const { token, user } = await res.json();
     jwtToken    = token;
@@ -130,6 +126,7 @@ async function login() {
 // ====================================================================
 async function fetchAndRender() {
   if (!jwtToken) return;
+  console.log('🚀 fetchAndRender called, jwtToken=', jwtToken);
 
   const headers = {
     'Content-Type':  'application/json',
@@ -147,12 +144,14 @@ async function fetchAndRender() {
     const aJson  = await aRes.json();
     const hwJson = await hwRes.json();
     const meJson = await meRes.json();
+    console.log('🔄 /me response body:', meJson);
 
     headersAtt     = aJson.headers;
     attendanceData = aJson.data;
     headersHw      = hwJson.headers;
     hwafezData     = hwJson.data;
-    currentUser    = meJson.user['كود الموظف'];
+    // ✏️ استخدام المفتاح الإنجليزي هنا:
+    currentUser    = meJson.user.code;
 
     // إظهار الواجهة بعد تسجيل الدخول
     document.getElementById('loginSection').classList.add('hidden');
