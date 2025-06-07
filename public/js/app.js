@@ -33,20 +33,33 @@ document.addEventListener('DOMContentLoaded', () => {
     alert('فكرة وإعداد وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
 
-  // 2) لو على Native، نهيّئ Push Notifications
+  // 2) إن كنا على Native، جهّز Push Notifications
   if (isNative) {
     import('@capacitor/push-notifications')
       .then(({ PushNotifications }) => {
+        // اطلب الإذن
         PushNotifications.requestPermissions().then(res => {
           if (res.receive === 'granted') {
             PushNotifications.register();
           }
         });
+
+        // مسجّل التوكن
         PushNotifications.addListener('registration', token => {
           console.log('✅ FCM Token:', token.value);
-          // بإمكانك إرسال token.value إلى الخادم:
-          // fetch(`${API_BASE}/register-token`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user: currentUser, token: token.value }) });
+          // أرسل التوكن للخادم مع الـ JWT
+          if (jwtToken && currentUser) {
+            fetch(`${API_BASE}/register-token`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwtToken}`
+              },
+              body: JSON.stringify({ user: currentUser, token: token.value })
+            }).catch(e => console.warn('Failed to register token:', e));
+          }
         });
+
         PushNotifications.addListener('registrationError', err => {
           console.error('❌ FCM Registration Error:', err);
         });
@@ -82,12 +95,21 @@ async function login() {
       throw new Error(`خطأ بالخادم (${res.status})`);
     }
 
-    const body = await res.json();
-    jwtToken    = body.token;
-    currentUser = body.user.code;
+    const { token, user } = await res.json();
+    jwtToken    = token;
+    currentUser = user.code;
     localStorage.setItem('jwtToken', jwtToken);
 
-    // بعد تسجيل الدخول الناجح نظهر البيانات
+    // بعد تسجيل الدخول الناجح: أعد تهيئة الإشعارات (Native فقط)
+    if (isNative) {
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+      const perm = await PushNotifications.requestPermissions();
+      if (perm.receive === 'granted') {
+        await PushNotifications.register();
+      }
+    }
+
+    // جلب البيانات وعرضها
     await fetchAndRender();
   } catch (e) {
     console.error('❌ login error:', e);
@@ -133,19 +155,6 @@ async function fetchAndRender() {
     if (currentUser === SUPERVISOR_CODE) {
       document.getElementById('pushSection').classList.remove('hidden');
       document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
-    }
-
-    // إعداد ملاحظات المشرف
-    const notesArea = document.getElementById('supervisorNotes');
-    const saveBtn   = document.getElementById('saveNotesBtn');
-    notesArea.value = localStorage.getItem('supervisorNotes') || '';
-    if (currentUser === SUPERVISOR_CODE) {
-      notesArea.removeAttribute('readonly');
-      saveBtn.classList.remove('hidden');
-      saveBtn.onclick = () => {
-        localStorage.setItem('supervisorNotes', notesArea.value);
-        alert('تم حفظ الملاحظة');
-      };
     }
 
     renderRecords();
@@ -222,7 +231,10 @@ async function showHwafez() {
   try {
     const res = await fetch(`${API_BASE}/hwafez`, {
       method:  'GET',
-      headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type':'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
     });
     if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
 
@@ -280,7 +292,10 @@ async function sendSupervisorNotification() {
   try {
     const res = await fetch(`${API_BASE}/notify-all`, {
       method:  'POST',
-      headers: { 'Authorization': `Bearer ${jwtToken}`, 'Content-Type':'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
       body:    JSON.stringify({ title, body })
     });
     if (!res.ok) throw new Error(await res.text() || res.status);
