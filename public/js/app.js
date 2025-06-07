@@ -80,20 +80,28 @@ document.addEventListener('DOMContentLoaded', () => {
 async function login() {
   const code = document.getElementById('codeInput').value.trim();
   const pass = document.getElementById('passwordInput').value.trim();
+  console.log('🚀 login() called with:', { code, pass });
   if (!code || !pass) {
-    return alert('يرجى إدخال الكود وكلمة المرور.');
+    alert('يرجى إدخال الكود وكلمة المرور.');
+    return;
   }
-
   try {
     const res = await fetch(LOGIN_ENDPOINT, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ code, pass })
     });
+    console.log('🔄 login response status:', res.status);
+    const body = await res.clone().json().catch(() => null);
+    console.log('🔄 login response body:', body);
+    if (res.status === 401) {
+      alert('بيانات الدخول خاطئة');
+      return;
+    }
     if (!res.ok) {
-      if (res.status === 401) return alert('بيانات الدخول خاطئة');
       throw new Error(`خطأ بالخادم (${res.status})`);
     }
+    // … الباقي كما هو
 
     const { token, user } = await res.json();
     jwtToken    = token;
