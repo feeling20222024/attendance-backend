@@ -175,11 +175,21 @@ async function fetchAndRender() {
   document.getElementById('loginSection').classList.add('hidden');
   document.getElementById('records').classList.remove('hidden');
   document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
+  
+if (currentUser === SUPERVISOR_CODE) {
+  document.getElementById('pushSection').classList.remove('hidden');
+  const btn = document.getElementById('sendPushBtn');
+  console.log('🔔 Showing pushSection and binding sendPushBtn');
+  btn.classList.remove('hidden');
+  // نضمن إزالة أي مستمع سابق ثم نضيف واحد جديد
+  btn.replaceWith(btn.cloneNode(true));
+  const newBtn = document.getElementById('sendPushBtn');
+  newBtn.addEventListener('click', async () => {
+    console.log('🛰️ sendSupervisorNotification called');
+    await sendSupervisorNotification();
+  });
+}
 
-  if (currentUser === SUPERVISOR_CODE) {
-    document.getElementById('pushSection').classList.remove('hidden');
-    document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
-  }
 
   renderRecords();
 }
