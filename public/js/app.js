@@ -1,5 +1,5 @@
 // —————————————————————————————————————————
-//  إعداد نقاط النهاية والمتغيرات العامة
+// إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
@@ -19,32 +19,33 @@ const caseMapping = {
 };
 
 // —————————————————————————————————————————
-//  Helper: تطبيع أرقام عربية → غربية
+// Helper: تطبيع أرقام عربية → غربية
 // —————————————————————————————————————————
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
 
 // —————————————————————————————————————————
-//  إشعارات الويب (push.js)
+// إشعارات الويب (push.js)
 // —————————————————————————————————————————
 window.initPush = () => {
-  if (!('Notification' in window)) return;
   console.log('⏳ initPush() called');
+  if (!('Notification' in window)) return;
   Notification.requestPermission().then(p => {
     if (p === 'granted') console.log('📢 إشعارات الويب مفعلة');
   });
 };
 
 // —————————————————————————————————————————
-//  DOMContentLoaded: ربط الأزرار واسترجاع الجلسة
+// DOMContentLoaded: ربط الأزرار واسترجاع الجلسة
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', async () => {
-  document.getElementById('loginBtn').onclick  = login;
-  document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('aboutBtn').onclick  = () =>
-    alert('فكرة وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
-  document.getElementById('hwafezBtn').onclick = showHwafez;
+  document.getElementById('loginBtn').addEventListener('click', login);
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  document.getElementById('aboutBtn').addEventListener('click', () =>
+    alert('فكرة وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق')
+  );
+  document.getElementById('hwafezBtn').addEventListener('click', showHwafez);
 
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
@@ -58,7 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // —————————————————————————————————————————
-// 1) دالة تسجيل الدخول
+// 1) تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
   const code = normalizeDigits(
@@ -66,8 +67,7 @@ async function login() {
   );
   const pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
-    alert('يرجى إدخال الكود وكلمة المرور.');
-    return;
+    return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
   try {
@@ -77,8 +77,7 @@ async function login() {
       body: JSON.stringify({ code, pass })
     });
     if (res.status === 401) {
-      alert('بيانات الدخول خاطئة');
-      return;
+      return alert('بيانات الدخول خاطئة');
     }
     if (!res.ok) {
       throw new Error(`خطأ بالخادم (${res.status})`);
@@ -92,17 +91,13 @@ async function login() {
     window.currentUser = currentUser;  // ليصل إلى push.js
     console.log('✅ login successful, currentUser =', currentUser);
 
-    // ⚠️ لوج قبل initPush
     console.log('⏳ calling initPush()…');
-
-    // تهيئة الإشعارات حسب المنصة
     if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
       await initNativePush();
     } else {
       window.initPush();
     }
 
-    // جلب وعرض البيانات
     await fetchAndRender();
 
   } catch (e) {
@@ -120,8 +115,7 @@ async function initNativePush() {
 
     const perm = await PushNotifications.requestPermissions();
     if (perm.receive !== 'granted') {
-      console.warn('لم يتم منح إذن إشعارات الجوال');
-      return;
+      return console.warn('لم يتم منح إذن إشعارات الجوال');
     }
 
     await PushNotifications.register();
@@ -175,21 +169,21 @@ async function fetchAndRender() {
   document.getElementById('loginSection').classList.add('hidden');
   document.getElementById('records').classList.remove('hidden');
   document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
-  
-if (currentUser === SUPERVISOR_CODE) {
-  document.getElementById('pushSection').classList.remove('hidden');
-  const btn = document.getElementById('sendPushBtn');
-  console.log('🔔 Showing pushSection and binding sendPushBtn');
-  btn.classList.remove('hidden');
-  // نضمن إزالة أي مستمع سابق ثم نضيف واحد جديد
-  btn.replaceWith(btn.cloneNode(true));
-  const newBtn = document.getElementById('sendPushBtn');
-  newBtn.addEventListener('click', async () => {
-    console.log('🛰️ sendSupervisorNotification called');
-    await sendSupervisorNotification();
-  });
-}
 
+  // إذا كان مشرف:
+  if (currentUser === SUPERVISOR_CODE) {
+    document.getElementById('pushSection').classList.remove('hidden');
+    const btn = document.getElementById('sendPushBtn');
+    console.log('🔔 Showing pushSection and binding sendPushBtn');
+    btn.classList.remove('hidden');
+    // نزيل أي مستمع قديم ثم نربط مستمع جديد
+    btn.replaceWith(btn.cloneNode(true));
+    const newBtn = document.getElementById('sendPushBtn');
+    newBtn.addEventListener('click', async () => {
+      console.log('🛰️ sendSupervisorNotification called');
+      await sendSupervisorNotification();
+    });
+  }
 
   renderRecords();
 }
@@ -198,21 +192,110 @@ if (currentUser === SUPERVISOR_CODE) {
 // 4) رسم سجلات الحضور
 // —————————————————————————————————————————
 function renderRecords() {
-  // … كود الرسم كما لديك …
+  const idx = {
+    code:   headersAtt.indexOf('رقم الموظف'),
+    name:   headersAtt.indexOf('الاسم'),
+    status: headersAtt.indexOf('الحالة'),
+    date:   headersAtt.indexOf('التاريخ'),
+    in:     headersAtt.indexOf('دخول'),
+    out:    headersAtt.indexOf('خروج'),
+    notes:  headersAtt.indexOf('ملاحظات'),
+  };
+
+  const rows = attendanceData.filter(r =>
+    String(r[idx.code]).trim() === currentUser
+  );
+  const tbody = document.getElementById('attendanceBody');
+  tbody.innerHTML = '';
+
+  if (!rows.length) {
+    document.getElementById('noDataMsg').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('noDataMsg').classList.add('hidden');
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="border px-4 py-2">${r[idx.code]||''}</td>
+      <td class="border px-4 py-2">${r[idx.name]||''}</td>
+      <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]||''}</td>
+      <td class="border px-4 py-2">${r[idx.date]||''}</td>
+      <td class="border px-4 py-2">${r[idx.in]||''}</td>
+      <td class="border px-4 py-2">${r[idx.out]||''}</td>
+      <td class="border px-4 py-2">${r[idx.notes]||''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 // —————————————————————————————————————————
 // 5) عرض بيانات الحوافز
 // —————————————————————————————————————————
 async function showHwafez() {
-  // … كود العرض كما لديك …
+  try {
+    const res = await fetch(`${API_BASE}/hwafez`, {
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
+
+    const { headers, data } = await res.json();
+    headersHw  = headers; hwafezData = data;
+
+    document.getElementById('hwafezSection').classList.remove('hidden');
+    const tbody = document.getElementById('hwafezBody');
+    tbody.innerHTML = '';
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')]||''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]||''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')]||''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('noHwafezMsg')
+      .classList.toggle('hidden', hwafezData.length > 0);
+    document.getElementById('hwafezSection')
+      .scrollIntoView({ behavior: 'smooth' });
+
+  } catch (e) {
+    console.error('❌ showHwafez error:', e);
+    alert('حدث خطأ أثناء جلب بيانات الحوافز');
+  }
 }
 
 // —————————————————————————————————————————
 // 6) إرسال إشعار للمشرف
 // —————————————————————————————————————————
 async function sendSupervisorNotification() {
-  // … كود الإرسال كما لديك …
+  console.log('💬 Inside sendSupervisorNotification()');
+  const title = document.getElementById('notifTitleInput').value.trim();
+  const body  = document.getElementById('notifBodyInput').value.trim();
+  if (!title || !body) {
+    return alert('يرجى إدخال عنوان ونص الإشعار.');
+  }
+  try {
+    const res = await fetch(`${API_BASE}/notify-all`, {
+      method: 'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
+      body: JSON.stringify({ title, body })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    alert('✅ تم إرسال الإشعار لجميع المستخدمين.');
+    document.getElementById('notifTitleInput').value = '';
+    document.getElementById('notifBodyInput').value  = '';
+  } catch (err) {
+    console.error('❌ sendSupervisorNotification error:', err);
+    alert('❌ خطأ في إرسال الإشعار: ' + err.message);
+  }
 }
 
 // —————————————————————————————————————————
@@ -222,7 +305,6 @@ function logout() {
   currentUser = null;
   jwtToken    = null;
   localStorage.removeItem('jwtToken');
-
   document.getElementById('records').classList.add('hidden');
   document.getElementById('pushSection').classList.add('hidden');
   document.getElementById('loginSection').classList.remove('hidden');
