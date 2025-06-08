@@ -83,15 +83,15 @@ async function login() {
     if (!res.ok) {
       throw new Error(`فشل تسجيل الدخول (${res.status})`);
     }
+const { token, user } = await res.json();
+jwtToken    = token;
+localStorage.setItem('jwtToken', token);
 
-    const { token, user } = await res.json();
-    jwtToken    = token;
-    localStorage.setItem('jwtToken', token);
-
-    // مهم: ضبط currentUser قبل تهيئة الـ push
-    currentUser = user.code ?? user['كود الموظف'];
-    window.currentUser = currentUser;
-    console.log('✅ login successful, currentUser =', currentUser);
+// مهم: ضبط currentUser قبل تهيئة الـ push
+currentUser = user.code ?? user['كود الموظف'];
+window.currentUser = currentUser;
+localStorage.setItem('currentUser', currentUser);
+console.log('✅ login successful, currentUser =', currentUser);
 
     // 2) تهيئة الإشعارات حسب المنصة
     if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
