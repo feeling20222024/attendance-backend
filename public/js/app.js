@@ -1,5 +1,7 @@
 // js/app.js
-
+// —————————————————————————————————————————
+//  إعداد نقاط النهاية والمتغيرات العامة
+// —————————————————————————————————————————
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
@@ -21,7 +23,7 @@ function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
 
-// إشعارات الويب (push.js)
+// إشعارات الويب
 window.initPush = () => {
   if (!('Notification' in window)) return;
   Notification.requestPermission().then(p => {
@@ -42,16 +44,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     jwtToken = saved;
     try {
       await fetchAndRender();
-    } catch {
+    } catch (err) {
+      console.warn('جلسة قديمة فشلت، يعاد تسجيل الخروج', err);
       logout();
     }
   }
 });
 
 async function login() {
-  const rawCode = document.getElementById('codeInput').value.trim();
-  const code    = normalizeDigits(rawCode);
-  const pass    = document.getElementById('passwordInput').value.trim();
+  let code = normalizeDigits(document.getElementById('codeInput').value.trim());
+  let pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
     return alert('يرجى إدخال الكود وكلمة المرور.');
   }
@@ -63,7 +65,7 @@ async function login() {
       body: JSON.stringify({ code, pass })
     });
     if (res.status === 401) return alert('بيانات الدخول خاطئة');
-    if (!res.ok) throw new Error('فشل تسجيل الدخول');
+    if (!res.ok) throw new Error(`خطأ تسجيل دخول (${res.status})`);
 
     const { token, user } = await res.json();
     jwtToken    = token;
@@ -106,7 +108,6 @@ async function initNativePush() {
         body: JSON.stringify({ user: currentUser, token: t.value })
       }).catch(()=>{});
     });
-
     PushNotifications.addListener('pushNotificationReceived', n => console.log('📩', n));
     PushNotifications.addListener('pushNotificationActionPerformed', a => console.log('📲', a));
   } catch (e) {
@@ -127,7 +128,16 @@ async function fetchAndRender() {
     fetch(`${API_BASE}/hwafez`,      { headers }),
     fetch(`${API_BASE}/me`,          { headers })
   ]);
-  if (!aRes.ok || !hwRes.ok || !meRes.ok) throw new Error();
+
+  // **هنا** نتأكد من 401 بالتحديد وننفّذ logout
+  if (aRes.status === 401 || hwRes.status === 401 || meRes.status === 401) {
+    console.warn('Unauthorized (401) عند fetch البيانات، يعاد تسجيل الخروج');
+    logout();
+    return;
+  }
+  if (!aRes.ok || !hwRes.ok || !meRes.ok) {
+    throw new Error('فشل جلب البيانات');
+  }
 
   const aJson  = await aRes.json();
   const hwJson = await hwRes.json();
