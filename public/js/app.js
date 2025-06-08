@@ -5,38 +5,44 @@ const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
 
-let jwtToken    = null;
-let currentUser = null;
+let jwtToken       = null;
+let currentUser    = null;
 let headersAtt, attendanceData;
 let headersHw, hwafezData;
 
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
   '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
-  '3': "خروج مبكر (أو عدم مهر البصمة مساءً)",
+  '3': "خروج مبكر أو عدم مهر البصمة مساءً",
   '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
-  '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
+  '5': "تجميع ساعات (كل ثماني ساعات يُحتسب يوم)"
 };
 
+// —————————————————————————————————————————
 // Helper: تطبيع أرقام عربية → غربية
+// —————————————————————————————————————————
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
 
+// —————————————————————————————————————————
 // إشعارات الويب (push.js)
+// —————————————————————————————————————————
 window.initPush = () => {
-  if (!("Notification" in window)) return;
-  Notification.requestPermission().then(p =>
-    p === "granted" && console.log('📢 إشعارات الويب مفعلة')
-  );
+  if (!('Notification' in window)) return;
+  Notification.requestPermission().then(p => {
+    if (p === 'granted') console.log('📢 إشعارات الويب مفعلة');
+  });
 };
 
-// DOMContentLoaded: ربط الأزرار واسترجاع الجلسة
+// —————————————————————————————————————————
+// عند تحميل المحتوى: ربط الأزرار واسترجاع الجلسة
+// —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
-    alert('فكرة وإعداد وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
+    alert('فكرة وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
 
   const saved = localStorage.getItem('jwtToken');
@@ -50,13 +56,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// 1) تسجيل الدخول
+// —————————————————————————————————————————
+// 1) دالة تسجيل الدخول
+// —————————————————————————————————————————
 async function login() {
   const code = normalizeDigits(
     document.getElementById('codeInput').value.trim()
   );
   const pass = document.getElementById('passwordInput').value.trim();
-  if (!code || !pass) return alert('يرجى إدخال الكود وكلمة المرور.');
+  if (!code || !pass) {
+    return alert('يرجى إدخال الكود وكلمة المرور.');
+  }
 
   try {
     const res = await fetch(LOGIN_ENDPOINT, {
@@ -64,18 +74,22 @@ async function login() {
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({ code, pass })
     });
-    if (res.status === 401) return alert('بيانات الدخول خاطئة');
-    if (!res.ok) throw new Error(`خطأ بالخادم (${res.status})`);
+    if (res.status === 401) {
+      return alert('بيانات الدخول خاطئة');
+    }
+    if (!res.ok) {
+      throw new Error(`خطأ بالخادم (${res.status})`);
+    }
 
     const { token, user } = await res.json();
-    jwtToken    = token;
+    jwtToken = token;
     localStorage.setItem('jwtToken', token);
 
     currentUser = user.code ?? user['كود الموظف'];
-    window.currentUser = currentUser;  // لضمان وصول push.js إليه
+    window.currentUser = currentUser; // لتصل إلى push.js
     console.log('✅ login successful, currentUser =', currentUser);
 
-    // تهيئة الإشعارات
+    // تهيئة الإشعارات حسب المنصة
     if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
       await initNativePush();
     } else {
@@ -91,13 +105,17 @@ async function login() {
   }
 }
 
-// 2) تهيئة إشعارات Native (Capacitor)
+// —————————————————————————————————————————
+// 2) تهيئة إشعارات Native (Android/iOS) عبر Capacitor
+// —————————————————————————————————————————
 async function initNativePush() {
   try {
     const { PushNotifications } = await import('@capacitor/push-notifications');
 
     const perm = await PushNotifications.requestPermissions();
-    if (perm.receive !== 'granted') return console.warn('لم يمنح إذن إشعارات الجوال');
+    if (perm.receive !== 'granted') {
+      return console.warn('لم يتم منح إذن إشعارات الجوال');
+    }
 
     await PushNotifications.register();
     PushNotifications.addListener('registration', async t => {
@@ -106,7 +124,7 @@ async function initNativePush() {
         method:'POST',
         headers:{
           'Content-Type':'application/json',
-          'Authorization':`Bearer ${jwtToken}`
+          'Authorization': `Bearer ${jwtToken}`
         },
         body: JSON.stringify({ user: currentUser, token: t.value })
       });
@@ -119,9 +137,12 @@ async function initNativePush() {
   }
 }
 
+// —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
+// —————————————————————————————————————————
 async function fetchAndRender() {
   if (!jwtToken) return;
+
   const headers = {
     'Content-Type':'application/json',
     'Authorization': `Bearer ${jwtToken}`
@@ -131,7 +152,9 @@ async function fetchAndRender() {
     fetch(`${API_BASE}/hwafez`,      { headers }),
     fetch(`${API_BASE}/me`,          { headers })
   ]);
-  if (!aRes.ok || !hwRes.ok || !meRes.ok) throw new Error('Unauthorized');
+  if (!aRes.ok || !hwRes.ok || !meRes.ok) {
+    throw new Error('Unauthorized');
+  }
 
   const aJson  = await aRes.json();
   const hwJson = await hwRes.json();
@@ -154,32 +177,18 @@ async function fetchAndRender() {
   renderRecords();
 }
 
-  } catch (e) {
-    console.error('❌ fetchAndRender error:', e);
-    logout();
-  }
-}
-
 // —————————————————————————————————————————
-//  3) دالة رسم سجلات الحضور
+// 4) عرض سجلات الحضور
 // —————————————————————————————————————————
 function renderRecords() {
   const idx = {
-    code:     headersAtt.indexOf('رقم الموظف'),
-    name:     headersAtt.indexOf('الاسم'),
-    status:   headersAtt.indexOf('الحالة'),
-    date:     headersAtt.indexOf('التاريخ'),
-    in:       headersAtt.indexOf('دخول'),
-    out:      headersAtt.indexOf('خروج'),
-    sFrom:    headersAtt.indexOf('ساعية (من الساعة)'),
-    sTo:      headersAtt.indexOf('ساعية (إلى الساعة)'),
-    mFrom:    headersAtt.indexOf('مهمة (من الساعة)'),
-    mTo:      headersAtt.indexOf('مهمة (إلى الساعة)'),
-    days:     headersAtt.indexOf('عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة'),
-    notes:    headersAtt.indexOf('ملاحظات'),
-    adminC:   headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
-    adminR:   headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
-    adminDue: headersAtt.indexOf('عدد الإجازات الإدارية المستحقة للعامل'),
+    code:   headersAtt.indexOf('رقم الموظف'),
+    name:   headersAtt.indexOf('الاسم'),
+    status: headersAtt.indexOf('الحالة'),
+    date:   headersAtt.indexOf('التاريخ'),
+    in:     headersAtt.indexOf('دخول'),
+    out:    headersAtt.indexOf('خروج'),
+    notes:  headersAtt.indexOf('ملاحظات'),
   };
 
   const rows = attendanceData.filter(r =>
@@ -194,25 +203,17 @@ function renderRecords() {
   }
   document.getElementById('noDataMsg').classList.add('hidden');
 
-  const first = rows[0];
-  document.getElementById('adminLeavesDue').textContent       = first[idx.adminDue]  || '--';
-  document.getElementById('adminLeavesCounted').textContent   = first[idx.adminC]    || '--';
-  document.getElementById('adminLeavesRemaining').textContent = first[idx.adminR]    || '--';
-
   rows.forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="border px-4 py-2">${r[idx.code]||''}</td>
       <td class="border px-4 py-2">${r[idx.name]||''}</td>
-      <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]||''}</td>
+      <td class="border px-4 py-2">${
+        caseMapping[String(r[idx.status]).trim()]||''
+      }</td>
       <td class="border px-4 py-2">${r[idx.date]||''}</td>
       <td class="border px-4 py-2">${r[idx.in]||''}</td>
       <td class="border px-4 py-2">${r[idx.out]||''}</td>
-      <td class="border px-4 py-2">${r[idx.sFrom]||''}</td>
-      <td class="border px-4 py-2">${r[idx.sTo]||''}</td>
-      <td class="border px-4 py-2">${r[idx.mFrom]||''}</td>
-      <td class="border px-4 py-2">${r[idx.mTo]||''}</td>
-      <td class="border px-4 py-2">${r[idx.days]||''}</td>
       <td class="border px-4 py-2">${r[idx.notes]||''}</td>
     `;
     tbody.appendChild(tr);
@@ -220,24 +221,38 @@ function renderRecords() {
 }
 
 // —————————————————————————————————————————
-//  4) دالة عرض بيانات الحوافز
+// 5) عرض بيانات الحوافز
 // —————————————————————————————————————————
 async function showHwafez() {
   try {
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwtToken}`
-    };
-    const res = await fetch(`${API_BASE}/hwafez`, { headers });
+    const res = await fetch(`${API_BASE}/hwafez`, {
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
     if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
 
-    const json = await res.json();
-    headersHw  = json.headers;
-    hwafezData = json.data;
+    const { headers, data } = await res.json();
+    headersHw  = headers; hwafezData = data;
 
     document.getElementById('hwafezSection').classList.remove('hidden');
-    // … (رسم الجدول كما في السابق) …
-    document.getElementById('hwafezSection').scrollIntoView({ behavior: 'smooth' });
+    const tbody = document.getElementById('hwafezBody');
+    tbody.innerHTML = '';
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')]||''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]||''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')]||''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('noHwafezMsg')
+      .classList.toggle('hidden', hwafezData.length > 0);
+    document.getElementById('hwafezSection')
+      .scrollIntoView({ behavior: 'smooth' });
 
   } catch (e) {
     console.error('❌ showHwafez error:', e);
@@ -246,25 +261,24 @@ async function showHwafez() {
 }
 
 // —————————————————————————————————————————
-//  5) دالة إرسال إشعار للمشرف
+// 6) إرسال إشعار للمشرف
 // —————————————————————————————————————————
 async function sendSupervisorNotification() {
   const title = document.getElementById('notifTitleInput').value.trim();
   const body  = document.getElementById('notifBodyInput').value.trim();
   if (!title || !body) {
-    alert('يرجى إدخال عنوان ونص الإشعار.');
-    return;
+    return alert('يرجى إدخال عنوان ونص الإشعار.');
   }
   try {
     const res = await fetch(`${API_BASE}/notify-all`, {
-      method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
+      method: 'POST',
+      headers:{
+        'Content-Type':'application/json',
         'Authorization': `Bearer ${jwtToken}`
       },
       body: JSON.stringify({ title, body })
     });
-    if (!res.ok) throw new Error(await res.text() || res.status);
+    if (!res.ok) throw new Error(await res.text());
     alert('✅ تم إرسال الإشعار لجميع المستخدمين.');
     document.getElementById('notifTitleInput').value = '';
     document.getElementById('notifBodyInput').value  = '';
@@ -275,27 +289,13 @@ async function sendSupervisorNotification() {
 }
 
 // —————————————————————————————————————————
-//  6) دالة تسجيل الخروج
+// 7) تسجيل الخروج
 // —————————————————————————————————————————
 function logout() {
   currentUser = null;
   jwtToken    = null;
   localStorage.removeItem('jwtToken');
-
-  ['records','pushSection','hwafezSection'].forEach(id =>
-    document.getElementById(id).classList.add('hidden')
-  );
+  document.getElementById('records').classList.add('hidden');
+  document.getElementById('pushSection').classList.add('hidden');
   document.getElementById('loginSection').classList.remove('hidden');
-}
-function renderRecords() { /* … */ }
-async function showHwafez() { /* … */ }
-async function sendSupervisorNotification() { /* … */ }
-function logout() {
-  jwtToken = null;
-  currentUser = null;
-  localStorage.removeItem('jwtToken');
-  localStorage.removeItem('currentUser');
-  document.getElementById('records').hidden      = true;
-  document.getElementById('pushSection').hidden  = true;
-  document.getElementById('loginSection').hidden = false;
 }
