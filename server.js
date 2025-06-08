@@ -317,5 +317,5 @@ app.get(/.*/, (_, r) =>
   r.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`✅ Server listening on port ${PORT}`));
