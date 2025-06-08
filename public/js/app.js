@@ -1,5 +1,5 @@
 // —————————————————————————————————————————
-// إعداد نقاط النهاية والمتغيرات العامة
+//  إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
@@ -19,24 +19,25 @@ const caseMapping = {
 };
 
 // —————————————————————————————————————————
-// Helper: تطبيع أرقام عربية → غربية
+//  Helper: تطبيع أرقام عربية → غربية
 // —————————————————————————————————————————
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
 
 // —————————————————————————————————————————
-// إشعارات الويب (push.js)
+//  إشعارات الويب (push.js)
 // —————————————————————————————————————————
 window.initPush = () => {
   if (!('Notification' in window)) return;
+  console.log('⏳ initPush() called');
   Notification.requestPermission().then(p => {
     if (p === 'granted') console.log('📢 إشعارات الويب مفعلة');
   });
 };
 
 // —————————————————————————————————————————
-// عند تحميل المحتوى: ربط الأزرار واسترجاع الجلسة
+//  DOMContentLoaded: ربط الأزرار واسترجاع الجلسة
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('loginBtn').onclick  = login;
@@ -65,7 +66,8 @@ async function login() {
   );
   const pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
-    return alert('يرجى إدخال الكود وكلمة المرور.');
+    alert('يرجى إدخال الكود وكلمة المرور.');
+    return;
   }
 
   try {
@@ -75,7 +77,8 @@ async function login() {
       body: JSON.stringify({ code, pass })
     });
     if (res.status === 401) {
-      return alert('بيانات الدخول خاطئة');
+      alert('بيانات الدخول خاطئة');
+      return;
     }
     if (!res.ok) {
       throw new Error(`خطأ بالخادم (${res.status})`);
@@ -86,8 +89,11 @@ async function login() {
     localStorage.setItem('jwtToken', token);
 
     currentUser = user.code ?? user['كود الموظف'];
-    window.currentUser = currentUser; // لتصل إلى push.js
+    window.currentUser = currentUser;  // ليصل إلى push.js
     console.log('✅ login successful, currentUser =', currentUser);
+
+    // ⚠️ لوج قبل initPush
+    console.log('⏳ calling initPush()…');
 
     // تهيئة الإشعارات حسب المنصة
     if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
@@ -106,7 +112,7 @@ async function login() {
 }
 
 // —————————————————————————————————————————
-// 2) تهيئة إشعارات Native (Android/iOS) عبر Capacitor
+// 2) تهيئة إشعارات Native (Capacitor)
 // —————————————————————————————————————————
 async function initNativePush() {
   try {
@@ -114,7 +120,8 @@ async function initNativePush() {
 
     const perm = await PushNotifications.requestPermissions();
     if (perm.receive !== 'granted') {
-      return console.warn('لم يتم منح إذن إشعارات الجوال');
+      console.warn('لم يتم منح إذن إشعارات الجوال');
+      return;
     }
 
     await PushNotifications.register();
@@ -178,114 +185,24 @@ async function fetchAndRender() {
 }
 
 // —————————————————————————————————————————
-// 4) عرض سجلات الحضور
+// 4) رسم سجلات الحضور
 // —————————————————————————————————————————
 function renderRecords() {
-  const idx = {
-    code:   headersAtt.indexOf('رقم الموظف'),
-    name:   headersAtt.indexOf('الاسم'),
-    status: headersAtt.indexOf('الحالة'),
-    date:   headersAtt.indexOf('التاريخ'),
-    in:     headersAtt.indexOf('دخول'),
-    out:    headersAtt.indexOf('خروج'),
-    notes:  headersAtt.indexOf('ملاحظات'),
-  };
-
-  const rows = attendanceData.filter(r =>
-    String(r[idx.code]).trim() === currentUser
-  );
-  const tbody = document.getElementById('attendanceBody');
-  tbody.innerHTML = '';
-
-  if (!rows.length) {
-    document.getElementById('noDataMsg').classList.remove('hidden');
-    return;
-  }
-  document.getElementById('noDataMsg').classList.add('hidden');
-
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="border px-4 py-2">${r[idx.code]||''}</td>
-      <td class="border px-4 py-2">${r[idx.name]||''}</td>
-      <td class="border px-4 py-2">${
-        caseMapping[String(r[idx.status]).trim()]||''
-      }</td>
-      <td class="border px-4 py-2">${r[idx.date]||''}</td>
-      <td class="border px-4 py-2">${r[idx.in]||''}</td>
-      <td class="border px-4 py-2">${r[idx.out]||''}</td>
-      <td class="border px-4 py-2">${r[idx.notes]||''}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+  // … كود الرسم كما لديك …
 }
 
 // —————————————————————————————————————————
 // 5) عرض بيانات الحوافز
 // —————————————————————————————————————————
 async function showHwafez() {
-  try {
-    const res = await fetch(`${API_BASE}/hwafez`, {
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      }
-    });
-    if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
-
-    const { headers, data } = await res.json();
-    headersHw  = headers; hwafezData = data;
-
-    document.getElementById('hwafezSection').classList.remove('hidden');
-    const tbody = document.getElementById('hwafezBody');
-    tbody.innerHTML = '';
-    data.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')]||''}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById('noHwafezMsg')
-      .classList.toggle('hidden', hwafezData.length > 0);
-    document.getElementById('hwafezSection')
-      .scrollIntoView({ behavior: 'smooth' });
-
-  } catch (e) {
-    console.error('❌ showHwafez error:', e);
-    alert('حدث خطأ أثناء جلب بيانات الحوافز');
-  }
+  // … كود العرض كما لديك …
 }
 
 // —————————————————————————————————————————
 // 6) إرسال إشعار للمشرف
 // —————————————————————————————————————————
 async function sendSupervisorNotification() {
-  const title = document.getElementById('notifTitleInput').value.trim();
-  const body  = document.getElementById('notifBodyInput').value.trim();
-  if (!title || !body) {
-    return alert('يرجى إدخال عنوان ونص الإشعار.');
-  }
-  try {
-    const res = await fetch(`${API_BASE}/notify-all`, {
-      method: 'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      body: JSON.stringify({ title, body })
-    });
-    if (!res.ok) throw new Error(await res.text());
-    alert('✅ تم إرسال الإشعار لجميع المستخدمين.');
-    document.getElementById('notifTitleInput').value = '';
-    document.getElementById('notifBodyInput').value  = '';
-  } catch (err) {
-    console.error('❌ sendSupervisorNotification error:', err);
-    alert('❌ خطأ في إرسال الإشعار: ' + err.message);
-  }
+  // … كود الإرسال كما لديك …
 }
 
 // —————————————————————————————————————————
@@ -295,6 +212,7 @@ function logout() {
   currentUser = null;
   jwtToken    = null;
   localStorage.removeItem('jwtToken');
+
   document.getElementById('records').classList.add('hidden');
   document.getElementById('pushSection').classList.add('hidden');
   document.getElementById('loginSection').classList.remove('hidden');
