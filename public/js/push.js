@@ -18,7 +18,7 @@ const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWW
 // —————————————————————————————————————————
 async function initPush() {
   try {
-    // 1) سجّل الـ Service Worker الخاص بـ Firebase (مسار الجذر)
+    // 1) سجّل Service Worker الخاص بـ Firebase Messaging
     const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('✅ Firebase SW registered:', swReg.scope);
 
@@ -33,7 +33,7 @@ async function initPush() {
       return;
     }
 
-    // 4) احصل على توكن FCM مع VAPID و Service Worker
+    // 4) اطلب FCM token
     const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
       serviceWorkerRegistration: swReg
@@ -44,19 +44,22 @@ async function initPush() {
     }
     console.log('✅ FCM token:', token);
 
-    // 5) أرسل التوكن إلى الخادم ليتم حفظه (حتى يتم إرسال الإشعارات لاحقاً)
-    if (!window.currentUser) {
+    // 5) تحقق من currentUser المعرّف في app.js
+    const user = window.currentUser || localStorage.getItem('currentUser');
+    if (!user) {
       console.warn('⚠️ currentUser غير مسجّل');
-    } else {
-      await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: window.currentUser, token })
-      });
-      console.log('✅ تم تسجيل توكن FCM على الخادم');
+      return;
     }
 
-    // 6) استمع للإشعارات عند فتح التطبيق (foreground)
+    // 6) أرسل التوكن إلى الخادم
+    await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ user, token })
+    });
+    console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
+
+    // 7) استمع للإشعارات أثناء تواجد التطبيق في الواجهة
     messaging.onMessage(payload => {
       console.log('📩 foreground message:', payload);
       const { title, body } = payload.notification || {};
@@ -68,5 +71,5 @@ async function initPush() {
   }
 }
 
-// نجعل الدالة متاحة عالمياً ليستدعيها app.js بعد تسجيل الدخول
+// نجعل الدالة متاحة للعالم الخارجي (app.js)
 window.initPush = initPush;
