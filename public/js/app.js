@@ -1,9 +1,8 @@
 // js/app.js
-import { PushNotifications } from '@capacitor/push-notifications';
 
-const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT = `${API_BASE}/login`;
-const SUPERVISOR_CODE= '35190';
+const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT  = `${API_BASE}/login`;
+const SUPERVISOR_CODE = '35190';
 
 let jwtToken       = null;
 let currentUser    = null;
@@ -22,11 +21,11 @@ function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
 
-// إشعارات الويب
+// إشعارات الويب (push.js)
 window.initPush = () => {
-  if (!("Notification" in window)) return;
+  if (!('Notification' in window)) return;
   Notification.requestPermission().then(p => {
-    if (p === "granted") console.log('📢 إشعارات الويب مفعلة');
+    if (p === 'granted') console.log('📢 إشعارات الويب مفعّلة');
   });
 };
 
@@ -50,11 +49,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function login() {
-  let code = normalizeDigits(document.getElementById('codeInput').value.trim());
-  let pass = document.getElementById('passwordInput').value.trim();
+  const rawCode = document.getElementById('codeInput').value.trim();
+  const code    = normalizeDigits(rawCode);
+  const pass    = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
-    alert('يرجى إدخال الكود وكلمة المرور.');
-    return;
+    return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
   try {
@@ -88,6 +87,7 @@ async function login() {
 
 async function initNativePush() {
   try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
     const perm = await PushNotifications.requestPermissions();
     if (perm.receive !== 'granted') {
       console.warn('لم يتم منح إذن إشعارات الجوال');
@@ -188,10 +188,7 @@ function renderRecords() {
 
 async function showHwafez() {
   const res = await fetch(`${API_BASE}/hwafez`, {
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':`Bearer ${jwtToken}`
-    }
+    headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${jwtToken}` }
   });
   if (!res.ok) return alert('فشل جلب بيانات الحوافز');
 
@@ -221,10 +218,7 @@ async function sendSupervisorNotification() {
 
   const res = await fetch(`${API_BASE}/notify-all`, {
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':`Bearer ${jwtToken}`
-    },
+    headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${jwtToken}` },
     body: JSON.stringify({ title, body })
   });
   if (!res.ok) return alert('فشل إرسال الإشعار');
