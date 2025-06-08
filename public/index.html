@@ -81,11 +81,9 @@
         .catch(err => console.warn('❌ SW register failed', err));
     }
   </script>
-
-  <!-- 2) Push notifications -->
-  <script src="js/push.js" defer></script>
-  <!-- 3) تطبيق الواجهة -->
-  <script type="module" src="js/app.js" defer></script>
+<!-- في الأسفل، قبل </body> -->
+<script src="js/push.js" defer></script>
+<script type="module" src="js/app.js" defer></script>
 
 </body>
 </html>
