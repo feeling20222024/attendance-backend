@@ -1,8 +1,9 @@
 // public/js/push.js
+
 // —————————————————————————————————————————
 //  إعدادات Firebase — استخدم مفاتيحك هنا
 // —————————————————————————————————————————
-const firebaseConfig = {
+var firebaseConfig = {
   apiKey: "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
   authDomain: "device-streaming-47cbe934.firebaseapp.com",
   projectId: "device-streaming-47cbe934",
@@ -10,40 +11,76 @@ const firebaseConfig = {
   messagingSenderId: "235398312189",
   appId: "1:235398312189:web:8febe5e63f7b134b808e94"
 };
-const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
-async function initPush() {
-  try {
--   const swReg = await navigator.serviceWorker.getRegistration();
-+   const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+var VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
+
+function initPush() {
+  // 1) احصل على التسجيل الحالي للـ Service Worker
+  navigator.serviceWorker.getRegistration().then(function(swReg) {
+    if (!swReg) {
+      console.warn('⚠️ Service Worker غير مسجّل بعد');
+      return;
+    }
+
+    // 2) ابدأ تطبيق Firebase
     firebase.initializeApp(firebaseConfig);
-    const messaging = firebase.messaging();
+    var messaging = firebase.messaging();
 
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return console.warn('لم يمنح إذن إشعارات');
+    // 3) اطلب إذن الإشعارات
+    Notification.requestPermission().then(function(permission) {
+      if (permission !== 'granted') {
+        console.warn('❌ المستخدم لم يمنح إذن الإشعارات');
+        return;
+      }
 
--   const token = await messaging.getToken({
--     vapidKey: VAPID_PUBLIC_KEY,
--     serviceWorkerRegistration: swReg
--   });
-+   const token = await messaging.getToken({ vapidKey: VAPID_PUBLIC_KEY, serviceWorkerRegistration: swReg });
-    if (!token) return console.warn('❌ لم يتم الحصول على FCM token');
-    console.log('✅ FCM token:', token);
+      // 4) احصل على الـ FCM token مع VAPID و Service Worker
+      messaging.getToken({
+        vapidKey: VAPID_PUBLIC_KEY,
+        serviceWorkerRegistration: swReg
+      }).then(function(token) {
+        if (!token) {
+          console.warn('❌ لم يتم الحصول على FCM token');
+          return;
+        }
+        console.log('✅ FCM token:', token);
 
-    // إرسال التوكن مع التأكد من وجود currentUser
-    await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ user: window.currentUser, token })
+        // 5) تأكد أن currentUser معرف
+        var user = window.currentUser || localStorage.getItem('currentUser');
+        if (!user) {
+          console.warn('⚠️ currentUser غير مسجّل');
+          return;
+        }
+
+        // 6) أرسل التوكن إلى الخادم
+        fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ user: user, token: token })
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error(res.statusText);
+          console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
+        })
+        .catch(function(err) {
+          console.error('❌ خطأ في تسجيل التوكن على الخادم:', err);
+        });
+
+        // 7) استمع للرسائل عند الواجهة (foreground)
+        messaging.onMessage(function(payload) {
+          console.log('📩 foreground:', payload);
+          var notif = payload.notification || {};
+          if (notif.title) {
+            new Notification(notif.title, { body: notif.body });
+          }
+        });
+
+      }).catch(function(err) {
+        console.error('❌ getToken error:', err);
+      });
     });
-
-    // الاستماع للإشعارات في الواجهة
-    messaging.onMessage(payload => {
-      const { title, body } = payload.notification || {};
-      if (title) new Notification(title, { body });
-    });
-  } catch (err) {
-    console.error('❌ initPush error:', err);
-  }
+  }).catch(function(err) {
+    console.error('❌ getRegistration error:', err);
+  });
 }
 
+// اجعل الدالة متاحة عالميًّا
 window.initPush = initPush;
