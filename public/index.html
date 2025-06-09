@@ -182,6 +182,19 @@
 
     </section>
   </main>
+  <script>
+  if ('serviceWorker' in navigator) {
+    // 1) sw.js للتخزين المؤقت
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('✅ SW registered:', reg.scope))
+      .catch(err => console.warn('❌ SW register failed', err));
+
+    // 2) firebase-messaging-sw.js لإشعارات FCM
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(reg => console.log('✅ Firebase SW registered:', reg.scope))
+      .catch(err => console.warn('❌ Firebase SW register failed', err));
+  }
+</script>
 
   <!-- 1) تحميل push.js -->
   <script src="/js/push.js" defer></script>
