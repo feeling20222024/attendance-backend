@@ -18,25 +18,22 @@ const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWW
 // —————————————————————————————————————————
 async function initPush() {
   try {
-    // (1) انتظر تفعيل أي Service Worker مسجّل
+    // 1) انتظر حتى يكون هناك Service Worker نشط
     const swReg = await navigator.serviceWorker.ready;
     console.log('⏳ Using active Service Worker:', swReg.scope);
 
-    // (2) ابدأ تطبيق Firebase
+    // 2) ابدأ تطبيق Firebase
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
 
-    // (3) أخبر المكتبة باستخدام الـ Service Worker هذا
-    messaging.useServiceWorker(swReg);
-
-    // (4) اطلب إذن الإشعارات
+    // 3) اطلب إذن الإشعارات
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       console.warn('❌ المستخدم لم يمنح إذن الإشعارات');
       return;
     }
 
-    // (5) احصل على FCM token
+    // 4) احصل على FCM token مع تمرير الـ Service Worker و VAPID
     const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
       serviceWorkerRegistration: swReg
@@ -47,7 +44,7 @@ async function initPush() {
     }
     console.log('✅ FCM token:', token);
 
-    // (6) أرسل التوكن إلى الخادم
+    // 5) أرسل التوكن إلى الخادم
     const user = window.currentUser || localStorage.getItem('currentUser');
     if (!user) {
       console.warn('⚠️ currentUser غير مسجّل');
@@ -60,7 +57,7 @@ async function initPush() {
       console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
     }
 
-    // (7) استمع للرسائل أثناء تواجد التطبيق في الواجهة
+    // 6) استمع للرسائل أثناء تواجد التطبيق في الواجهة
     messaging.onMessage(payload => {
       console.log('📩 foreground message:', payload);
       const { title, body } = payload.notification || {};
