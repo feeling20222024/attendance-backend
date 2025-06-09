@@ -180,18 +180,6 @@
     </section>
   </main>
 
-  <!-- سجلّ sw.js & firebase-messaging-sw.js -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('✅ SW registered:', reg.scope))
-        .catch(err => console.warn('❌ SW register failed', err));
-      navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then(reg => console.log('✅ Firebase SW registered:', reg.scope))
-        .catch(err => console.warn('❌ Firebase SW register failed', err));
-    }
-  </script>
-
   <!-- push.js ثم app.js -->
   <script src="/js/push.js" defer></script>
   <script src="/js/app.js" defer></script>
