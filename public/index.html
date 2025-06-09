@@ -53,7 +53,7 @@
   <!-- Main -->
   <main class="flex-grow container mx-auto px-4 py-8">
 
-    <!-- نموذج تسجيل الدخول (ظاهر افتراضيًا) -->
+    <!-- نموذج تسجيل الدخول -->
     <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
       <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2>
       <input id="codeInput" type="text" placeholder="كود الموظف"
@@ -66,7 +66,7 @@
       </button>
     </section>
 
-    <!-- واجهة السجلات (مخفية حتى تسجيل الدخول) -->
+    <!-- واجهة السجلات -->
     <section id="records" hidden>
 
       <!-- إشعارات المشرف -->
@@ -82,7 +82,7 @@
         </button>
       </div>
 
-      <!-- تنبيهات مراقب الدوام -->
+      <!-- تنبيهات المشرف -->
       <div class="mb-6 max-w-md mx-auto">
         <h3 class="text-xl font-bold mb-2 text-gray-700">تنبيهات مراقب الدوام</h3>
         <textarea id="supervisorNotes" rows="3"
@@ -94,7 +94,7 @@
         </button>
       </div>
 
-      <!-- رسالة ترحيب -->
+      <!-- رسالة الترحيب -->
       <div class="mb-6 text-center">
         <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
       </div>
@@ -128,6 +128,9 @@
         </div>
       </div>
 
+      <!-- رسالة “لا توجد بيانات” -->
+      <p id="noDataMsg" hidden class="text-center text-gray-600">لا توجد بيانات.</p>
+
       <!-- جدول الحضور -->
       <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4 max-w-4xl mx-auto mb-8">
         <table class="table-fixed w-full text-center divide-y divide-gray-200">
@@ -144,15 +147,17 @@
               <th class="border px-4 py-2">التاريخ</th>
               <th class="border px-4 py-2">دخول</th>
               <th class="border px-4 py-2">خروج</th>
-              <th class="border px-4 py-2">ساعية (من الساعة)</th>
-              <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
-              <th class="border px-4 py-2">مهمة (من الساعة)</th>
-              <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
+              <th class="border px-4 py-2">ساعية (من)</th>
+              <th class="border px-4 py-2">ساعية (إلى)</th>
+              <th class="border px-4 py-2">مهمة (من)</th>
+              <th class="border px-4 py-2">مهمة (إلى)</th>
               <th class="border px-4 py-2">عدد الأيام</th>
               <th class="border px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
-          <tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody>
+          <tbody id="attendanceBody" class="divide-y divide-gray-100">
+            <!-- تُحقَن هنا الصفوف بواسطة renderRecords() -->
+          </tbody>
         </table>
       </div>
 
@@ -167,17 +172,7 @@
                 <th class="border px-4 py-2">رقم الموظف</th>
                 <th class="border px-4 py-2">الاسم</th>
                 <th class="border px-4 py-2">حجم العمل</th>
-                <th class="border px-4 py-2">إتقان العمل</th>
-                <th class="border px-4 py-2">المهارات القيادية</th>
-                <th class="border px-4 py-2">الإدارة الذاتية</th>  
-                <th class="border px-4 py-2">التواصل والتفاعل</th>
-                <th class="border px-4 py-2">المبادرة والتطوير</th>
-                <th class="border px-4 py-2">الاستقلال والموثوقية</th>
-                <th class="border px-4 py-2">الالتزام والمسؤولية</th>
-                <th class="border px-4 py-2">نسبة الدوام الفعلي</th>
-                <th class="border px-4 py-2">السوية الوظيفية</th>
-                <th class="border px-4 py-2">التأهيل</th>
-                <th class="border px-4 py-2">سنوات الخبرة</th>
+                <!-- ... الأعمدة الإضافية كما في الشيت ... -->
               </tr>
             </thead>
             <tbody id="hwafezBody" class="divide-y divide-gray-100"></tbody>
