@@ -1,5 +1,6 @@
 // —————————————————————————————————————————
-// 1) نقطة النهاية وجزء التسجيل
+// 1) إعداد نقاط النهاية والمتغيرات العامة
+// —————————————————————————————————————————
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
@@ -17,152 +18,69 @@ const caseMapping = {
   '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  // 2) إذا كانت push.js متوفرة (Service Worker)، نهيّئ الإشعارات
-  //    ولكن لا نستدعي initPush هنا تلقائيًا؛ ننتظر نجاح تسجيل الدخول أولًا
-  if (window.initPush) {
-    try {
-      // لن نستدعي initPush إلا بعد تسجيل الدخول بنجاح
-    } catch {
-      console.warn('initPush غير متوفّرة أو Capacitor غير مدعوم هنا.');
-    }
-  }
+// —————————————————————————————————————————
+// Helper: تطبيع أرقام عربية → غربية
+// —————————————————————————————————————————
+function normalizeDigits(str) {
+  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
 
-  // 3) ربط أزرار الواجهة
+// —————————————————————————————————————————
+// DOMContentLoaded: ربط الأزرار
+// —————————————————————————————————————————
+document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
     alert('فكرة وإعداد وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
+
+  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات
+  const saved = localStorage.getItem('jwtToken');
+  if (saved) {
+    jwtToken = saved;
+    fetchAndRender().catch(logout);
+  }
 });
 
 // —————————————————————————————————————————
-// 4) دالة جلب البيانات (المحمية بـ JWT)
-// —————————————————————————————————————————
-async function fetchAndRender() {
-  if (!jwtToken) return;
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${jwtToken}`
-  };
-
-  console.log('🚀 fetching protected data...');
-  try {
-    // نجلب الحضور والحوافز والمستخدم في نفس الوقت
-    const [aRes, hwRes, meRes] = await Promise.all([
-      fetch(`${API_BASE}/attendance`, { headers }),
-      fetch(`${API_BASE}/hwafez`,     { headers }),
-      fetch(`${API_BASE}/me`,         { headers })
-    ]);
-
-    if (!aRes.ok || !hwRes.ok || !meRes.ok) {
-      throw new Error('فشل جلب البيانات (ربما انتهت صلاحية الجلسة)');
-    }
-
-    const aJson  = await aRes.json();
-    const hwJson = await hwRes.json();
-    const meJson = await meRes.json();
-
-    headersAtt      = aJson.headers;
-    attendanceData  = aJson.data;
-    headersHw       = hwJson.headers;
-    hwafezData      = hwJson.data;
-    currentUser     = meJson.user['كود الموظف'];
-
-    console.log('✅ Data fetched. currentUser =', currentUser);
-
-    // إظهار الواجهة بعد تسجيل الدخول
-    document.getElementById('loginSection').classList.add('hidden');
-    document.getElementById('records').classList.remove('hidden');
-    document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
-
-    // إذا كان المشرف، نظهر قسم الإشعارات
-    if (currentUser === SUPERVISOR_CODE) {
-      document.getElementById('pushSection').classList.remove('hidden');
-      document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
-    }
-
-    // إعداد ملاحظات المشرف
-    const notesArea = document.getElementById('supervisorNotes');
-    const saveBtn   = document.getElementById('saveNotesBtn');
-    notesArea.value = localStorage.getItem('supervisorNotes') || '';
-    if (currentUser === SUPERVISOR_CODE) {
-      notesArea.removeAttribute('readonly');
-      saveBtn.classList.remove('hidden');
-      saveBtn.onclick = () => {
-        localStorage.setItem('supervisorNotes', notesArea.value);
-        alert('تم حفظ الملاحظة');
-      };
-    } else {
-      notesArea.setAttribute('readonly', '');
-      saveBtn.classList.add('hidden');
-    }
-
-    // أخيرًا، عرض سجلات الحضور مباشرةً
-    renderRecords();
-
-  } catch (e) {
-    console.error('❌ fetchAndRender error:', e);
-    // إذا انتهت صلاحية التوكن أو حصل خطأ آخر، نعيد تسجيل الخروج
-    logout();
-  }
-}
-
-// —————————————————————————————————————————
-// 5) دالة تسجيل الدخول (POST إلى /api/login للحصول على JWT)
+// 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
-  console.log('🔑 login() called');
-  try {
-    let code = document.getElementById('codeInput').value.trim();
-    let pass = document.getElementById('passwordInput').value.trim();
-    if (!code || !pass) {
-      alert('يرجى إدخال الكود وكلمة المرور.');
-      return;
-    }
+  let code = document.getElementById('codeInput').value.trim();
+  let pass = document.getElementById('passwordInput').value.trim();
+  if (!code || !pass) {
+    alert('يرجى إدخال الكود وكلمة المرور.');
+    return;
+  }
 
-    // نرسل بيانات الدخول إلى المسار /api/login
+  try {
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, pass })
     });
-
-    if (!res.ok) {
-      if (res.status === 401) {
-        alert('بيانات الدخول خاطئة');
-        return;
-      }
-      throw new Error(`فشل تسجيل الدخول (رمز الخطأ: ${res.status})`);
-    }
-
-    const body = await res.json();
-    console.log('📝 login response:', body);
-    const { token, user } = body;
-
-    if (!token || !user || !user.code) {
-      console.error('⚠️ الرد من /login لا يحوي "token" أو "user.code"');
-      alert('حدث خطأ غير متوقع أثناء تسجيل الدخول');
+    if (res.status === 401) {
+      alert('بيانات الدخول خاطئة');
       return;
     }
+    if (!res.ok) throw new Error(`فشل تسجيل الدخول (${res.status})`);
 
+    const { token, user } = await res.json();
     jwtToken = token;
     localStorage.setItem('jwtToken', token);
 
-    // خزنّا currentUser ليسمح لـ push.js بالوصول إليه
     currentUser = user.code;
-    window.currentUser = currentUser;
+    window.currentUser = currentUser; // ليصل إلى push.js
+    console.log('✅ login successful, currentUser =', currentUser);
 
-    console.log('🔑 login successful. currentUser =', currentUser);
-
-    // فور نجاح تسجيل الدخول، نستدعي initPush إن وجدت
+    // فور تسجيل الدخول، نهيّئ إشعارات الويب إذا وجدت
     if (window.initPush) {
       console.log('🚀 calling initPush()...');
-      initPush();
+      await initPush();
     }
 
-    // نبدأ جلب وعرض البيانات
+    // ثم نبدأ جلب البيانات وعرض الواجهة
     await fetchAndRender();
 
   } catch (e) {
@@ -172,7 +90,62 @@ async function login() {
 }
 
 // —————————————————————————————————————————
-// 6) دالة رسم سجلات الحضور للمستخدم الحالي
+// 3) جلب وعرض البيانات (attendance + hwafez + me)
+// —————————————————————————————————————————
+async function fetchAndRender() {
+  if (!jwtToken) return;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${jwtToken}`
+  };
+  const [aRes, hwRes, meRes] = await Promise.all([
+    fetch(`${API_BASE}/attendance`, { headers }),
+    fetch(`${API_BASE}/hwafez`,      { headers }),
+    fetch(`${API_BASE}/me`,          { headers })
+  ]);
+  if (!aRes.ok || !hwRes.ok || !meRes.ok) throw new Error('Unauthorized');
+
+  const aJson  = await aRes.json();
+  const hwJson = await hwRes.json();
+  const meJson = await meRes.json();
+
+  headersAtt     = aJson.headers;     attendanceData = aJson.data;
+  headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
+  currentUser    = meJson.user['كود الموظف'];
+
+  // إظهار الواجهة بعد تسجيل الدخول
+  document.getElementById('loginSection').classList.add('hidden');
+  document.getElementById('records').classList.remove('hidden');
+  document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
+
+  // إذا كان المشرف
+  if (currentUser === SUPERVISOR_CODE) {
+    document.getElementById('pushSection').classList.remove('hidden');
+    document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
+  }
+
+  // ملاحظات المشرف
+  const notesArea = document.getElementById('supervisorNotes');
+  const saveBtn   = document.getElementById('saveNotesBtn');
+  notesArea.value = localStorage.getItem('supervisorNotes') || '';
+  if (currentUser === SUPERVISOR_CODE) {
+    notesArea.removeAttribute('readonly');
+    saveBtn.classList.remove('hidden');
+    saveBtn.onclick = () => {
+      localStorage.setItem('supervisorNotes', notesArea.value);
+      alert('تم حفظ الملاحظة');
+    };
+  } else {
+    notesArea.setAttribute('readonly', '');
+    saveBtn.classList.add('hidden');
+  }
+
+  renderRecords();
+}
+
+// —————————————————————————————————————————
+// 4) رسم سجلات الحضور للمستخدم الحالي
 // —————————————————————————————————————————
 function renderRecords() {
   const idx = {
@@ -196,7 +169,6 @@ function renderRecords() {
   const rows = attendanceData.filter(r =>
     String(r[idx.code]).trim() === currentUser
   );
-
   const tbody = document.getElementById('attendanceBody');
   tbody.innerHTML = '';
 
@@ -206,13 +178,12 @@ function renderRecords() {
   }
   document.getElementById('noDataMsg').classList.add('hidden');
 
-  // إحصائيات الصفّ الأول
+  // إحصائيات
   const first = rows[0];
   document.getElementById('adminLeavesDue').textContent       = first[idx.adminDue]  || '--';
   document.getElementById('adminLeavesCounted').textContent   = first[idx.adminC]    || '--';
   document.getElementById('adminLeavesRemaining').textContent = first[idx.adminR]    || '--';
 
-  // ملء الجدول
   rows.forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -234,61 +205,37 @@ function renderRecords() {
 }
 
 // —————————————————————————————————————————
-// 7) دالة عرض بيانات الحوافز (محميّة بJWT) + تمرير تلقائي للتمرير
+// 5) عرض بيانات الحوافز
 // —————————————————————————————————————————
 async function showHwafez() {
   try {
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwtToken}`
-    };
-    const res = await fetch(`${API_BASE}/hwafez`, { headers });
-    if (!res.ok) {
-      throw new Error('فشل جلب بيانات الحوافز');
-    }
-    const json = await res.json();
-    headersHw  = json.headers;
-    hwafezData = json.data;
+    const res = await fetch(`${API_BASE}/hwafez`, {
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
+    const { headers, data } = await res.json();
+    headersHw  = headers; hwafezData = data;
 
-    // إظهار قسم الحوافز
     document.getElementById('hwafezSection').classList.remove('hidden');
-
-    const idxHw = {
-      code:   headersHw.indexOf('رقم الموظف'),
-      name:   headersHw.indexOf('الاسم'),
-      fields: [
-        'حجم العمل', 'اتقان العمل وفعاليته', 'المهارات القيادية', 'مهارة الإدارة الذاتية',
-        'مهارات التواصل والتفاعل', 'المبادرة والتطوير الذاتي', 'الإستقلال والموثوقية',
-        'الإلتزام والمسؤولية', 'نسبة الدوام الفعلي للعامل', 'السويّة الوظيفيّة',
-        'مستوى التأهيل', 'سنوات الخبرة'
-      ].map(h => headersHw.indexOf(h))
-    };
-
-    const rows = hwafezData.filter(r =>
-      String(r[idxHw.code]).trim() === currentUser
-    );
-
     const tbody = document.getElementById('hwafezBody');
     tbody.innerHTML = '';
-
-    if (!rows.length) {
-      document.getElementById('noHwafezMsg').classList.remove('hidden');
-      return;
-    }
-    document.getElementById('noHwafezMsg').classList.add('hidden');
-
-    rows.forEach(r => {
+    data.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="border px-4 py-2">${r[idxHw.code]||''}</td>
-        <td class="border px-4 py-2">${r[idxHw.name]||''}</td>
-        ${idxHw.fields.map(i => `<td class="border px-4 py-2">${r[i]||''}</td>`).join('')}
+        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')]||''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]||''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')]||''}</td>
       `;
       tbody.appendChild(tr);
     });
 
-    // تمرير سلسٍّ إلى قسم الحوافز
-    document.getElementById('hwafezSection').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('noHwafezMsg')
+      .classList.toggle('hidden', hwafezData.length > 0);
+    document.getElementById('hwafezSection')
+      .scrollIntoView({ behavior: 'smooth' });
 
   } catch (e) {
     console.error('❌ showHwafez error:', e);
@@ -297,41 +244,28 @@ async function showHwafez() {
 }
 
 // —————————————————————————————————————————
-// 8) دالة إرسال إشعار للمشرف (محميّة بJWT)
+// 6) إرسال إشعار للمشرف
 // —————————————————————————————————————————
 async function sendSupervisorNotification() {
   try {
-    // 1) نقرأ العنوان والنص من المدخلات
     const title = document.getElementById('notifTitleInput').value.trim();
     const body  = document.getElementById('notifBodyInput').value.trim();
-
     if (!title || !body) {
       alert('يرجى إدخال عنوان ونص الإشعار.');
       return;
     }
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwtToken}`
-    };
-
-    // 2) نرسل الطلب مع العنوان والنص
     const res = await fetch(`${API_BASE}/notify-all`, {
       method: 'POST',
-      headers,
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
       body: JSON.stringify({ title, body })
     });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || `رمز الخطأ: ${res.status}`);
-    }
-
+    if (!res.ok) throw new Error(await res.text());
     alert('✅ تم إرسال الإشعار لجميع المستخدمين.');
-    // مسح الحقول بعد الإرسال
     document.getElementById('notifTitleInput').value = '';
     document.getElementById('notifBodyInput').value  = '';
-
   } catch (err) {
     console.error('❌ sendSupervisorNotification error:', err);
     alert('❌ خطأ في إرسال الإشعار: ' + err.message);
@@ -339,13 +273,12 @@ async function sendSupervisorNotification() {
 }
 
 // —————————————————————————————————————————
-// 9) تسجيل الخروج: مسح التوكن وإظهار واجهة تسجيل الدخول
+// 7) تسجيل الخروج
 // —————————————————————————————————————————
 function logout() {
   currentUser = null;
   jwtToken     = null;
   localStorage.removeItem('jwtToken');
-
   ['records','pushSection','hwafezSection'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
   );
