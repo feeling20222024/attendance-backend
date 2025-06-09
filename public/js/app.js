@@ -47,48 +47,63 @@ document.addEventListener('DOMContentLoaded', () => {
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
-  let code = document.getElementById('codeInput').value.trim();
-  let pass = document.getElementById('passwordInput').value.trim();
+  const code = normalizeDigits(
+    document.getElementById('codeInput').value.trim()
+  );
+  const pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
-    alert('يرجى إدخال الكود وكلمة المرور.');
-    return;
+    return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
+  // نحتفظ برسالة الخطأ الأصلية لأغراض الديباغ
+  let loginResponse;
   try {
+    // 1) طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({ code, pass })
     });
     if (res.status === 401) {
-      alert('بيانات الدخول خاطئة');
-      return;
+      return alert('بيانات الدخول خاطئة');
     }
-    if (!res.ok) throw new Error(`فشل تسجيل الدخول (${res.status})`);
+    if (!res.ok) {
+      throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
+    }
 
-    const { token, user } = await res.json();
-    jwtToken = token;
-    localStorage.setItem('jwtToken', token);
+    // 2) استلام التوكن
+    loginResponse = await res.json();
+    jwtToken = loginResponse.token;
+    localStorage.setItem('jwtToken', jwtToken);
 
-    currentUser = user.code;
-    window.currentUser = currentUser; // ليصل إلى push.js
+    // 3) currentUser وتهيئة الإشعارات
+    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+    window.currentUser = currentUser;
     console.log('✅ login successful, currentUser =', currentUser);
 
-    // فور تسجيل الدخول، نهيّئ إشعارات الويب إذا وجدت
-    if (window.initPush) {
-      console.log('🚀 calling initPush()...');
-      await initPush();
+    console.log('🚀 calling initPush()…');
+    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+      await initNativePush();
+    } else {
+      await window.initPush();
     }
 
-    // ثم نبدأ جلب البيانات وعرض الواجهة
-    await fetchAndRender();
-
   } catch (e) {
+    // هنا فقط نعرض أي خطأ وقع أثناء المصادقة أو initPush
     console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول');
+    return alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
+
+  // 4) إذا نجح تسجيل الدخول، نحاول جلب وعرض البيانات
+  try {
+    await fetchAndRender();
+  } catch (e) {
+    console.error('❌ fetchAndRender error:', e);
+    alert('لا يمكن تحميل البيانات حالياً: ' + e.message);
+    // إذا أردت، يمكنك هنا إعادة تسجيل الخروج أو إبقاء المستخدم في الواجهة
+    // logout();
   }
 }
-
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
