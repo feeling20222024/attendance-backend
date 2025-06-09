@@ -1,7 +1,5 @@
-// public/js/push.js
-
 // —————————————————————————————————————————
-// إعدادات Firebase
+// إعدادات Firebase — استخدم مفاتيحك هنا
 // —————————————————————————————————————————
 const firebaseConfig = {
   apiKey: "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
@@ -17,9 +15,8 @@ const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWW
 // initPush: تهيئة إشعارات الويب عبر FCM
 // —————————————————————————————————————————
 async function initPush() {
-  console.log('⏳ initPush() called');
   try {
-    // 1) سجّل Service Worker الخاص بفirebase-messaging
+    // 1) سجّل Service Worker الخاص بـ Firebase Messaging
     const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('✅ Firebase SW registered:', swReg.scope);
 
@@ -33,36 +30,28 @@ async function initPush() {
       console.warn('❌ المستخدم لم يمنح إذن الإشعارات');
       return;
     }
-    console.log('📢 إشعارات الويب مفعلة');
 
-    // 4) احصل على الـ FCM token
+    // 4) احصل على FCM token
     const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
       serviceWorkerRegistration: swReg
     });
-    if (!token) {
-      console.warn('❌ لم يتم الحصول على FCM token');
-      return;
-    }
     console.log('✅ FCM token:', token);
 
-    // 5) تأكد من وجود currentUser
+    // 5) أرسل التوكن إلى الخادم
     const user = window.currentUser;
-    if (!user) {
+    if (user) {
+      await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ user, token })
+      });
+      console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
+    } else {
       console.warn('⚠️ currentUser غير مسجّل');
-      return;
     }
 
-    // 6) أرسل التوكن للخادم
-    const res = await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user, token })
-    });
-    if (!res.ok) throw new Error(`register-token failed (${res.status})`);
-    console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
-
-    // 7) استمع للرسائل أثناء الواجهة
+    // 6) استمع للرسائل أثناء تواجد التطبيق في الواجهة
     messaging.onMessage(payload => {
       console.log('📩 foreground message:', payload);
       const { title, body } = payload.notification || {};
@@ -74,5 +63,5 @@ async function initPush() {
   }
 }
 
-// صرّح عن الدالة للـ app.js
+// نجعل الدالة متاحة للعالم الخارجي (app.js)
 window.initPush = initPush;
