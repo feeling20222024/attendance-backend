@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>تطبيق متابعة الدوام</title>
@@ -33,6 +34,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
 
+  <!-- Header -->
   <header class="bg-blue-600 text-white">
     <div class="container mx-auto px-4 py-4 flex justify-center">
       <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
@@ -41,7 +43,7 @@
 
   <main class="flex-grow container mx-auto px-4 py-8">
 
-    <!-- تسجيل الدخول -->
+    <!-- 1) نموذج تسجيل الدخول -->
     <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
       <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2>
       <input id="codeInput" type="text" placeholder="كود الموظف"
@@ -54,16 +56,87 @@
       </button>
     </section>
 
-    <!-- الواجهة الرئيسية -->
+    <!-- 2) واجهة السجلات (مخفية حتى تسجيل الدخول) -->
     <section id="records" class="hidden">
 
-      <!-- جدول الحضور مع جميع الأعمدة -->
+      <!-- إشعارات المشرف -->
+      <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">إرسال إشعار للمستخدمين</h3>
+        <input id="notifTitleInput" type="text" placeholder="عنوان الإشعار"
+               class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400" />
+        <textarea id="notifBodyInput" rows="3" placeholder="نص الإشعار"
+                  class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400"></textarea>
+        <button id="sendPushBtn"
+                class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition">
+          إرسال الإشعار
+        </button>
+      </div>
+
+      <!-- تنبيهات المشرف -->
+      <div class="mb-6 max-w-md mx-auto">
+        <h3 class="text-xl font-bold mb-2 text-gray-700">تنبيهات مراقب الدوام</h3>
+        <textarea id="supervisorNotes" rows="3"
+                  class="w-full border border-gray-300 rounded p-2 bg-gray-50 focus:ring-2 focus:ring-green-400"
+                  readonly></textarea>
+        <button id="saveNotesBtn" hidden
+                class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+          حفظ الملاحظة
+        </button>
+      </div>
+
+      <!-- رسالة ترحيب -->
+      <div class="mb-6 text-center">
+        <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
+      </div>
+
+      <!-- أزرار التحكم -->
+      <div class="flex flex-wrap gap-4 justify-center mb-6">
+        <button id="aboutBtn" class="text-blue-500 hover:underline">حول التطبيق</button>
+        <button id="hwafezBtn"
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
+          علامات الحوافز
+        </button>
+        <button id="logoutBtn"
+                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+          خروج
+        </button>
+      </div>
+
+      <!-- إحصائيات -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 max-w-4xl mx-auto">
+        <div class="bg-white p-4 rounded shadow border">
+          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المستحقة</p>
+          <span id="adminLeavesDue" class="text-2xl font-medium">--</span>
+        </div>
+        <div class="bg-white p-4 rounded shadow border">
+          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المحتسبة</p>
+          <span id="adminLeavesCounted" class="text-2xl font-medium">--</span>
+        </div>
+        <div class="bg-white p-4 rounded shadow border">
+          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المتبقية</p>
+          <span id="adminLeavesRemaining" class="text-2xl font-medium">--</span>
+        </div>
+      </div>
+
+      <!-- رسالة لا توجد بيانات -->
+      <p id="noDataMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
+
+      <!-- جدول الحضور (بكل الأعمدة) -->
       <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4 max-w-4xl mx-auto mb-8">
         <table class="table-fixed w-full text-center divide-y divide-gray-200">
           <colgroup>
-            <col class="w-20"><col class="w-32"><col class="w-32"><col class="w-28">
-            <col class="w-20"><col class="w-20"><col class="w-24"><col class="w-24">
-            <col class="w-24"><col class="w-24"><col class="w-32"><col class="w-40">
+            <col class="w-20">
+            <col class="w-32">
+            <col class="w-32">
+            <col class="w-28">
+            <col class="w-20">
+            <col class="w-20">
+            <col class="w-24">
+            <col class="w-24">
+            <col class="w-24">
+            <col class="w-24">
+            <col class="w-32">
+            <col class="w-40">
           </colgroup>
           <thead class="bg-gray-50 text-gray-700 text-sm">
             <tr>
@@ -85,7 +158,7 @@
         </table>
       </div>
 
-      <!-- جدول الحوافز مع جميع الأعمدة -->
+      <!-- جدول الحوافز (بكل الأعمدة) -->
       <div id="hwafezSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto">
         <h3 class="text-xl font-bold mb-4 text-gray-700">علامات الحوافز</h3>
         <div class="overflow-x-auto">
@@ -113,12 +186,12 @@
         </div>
       </div>
 
-      <!-- بقية الأقسام (ترحيب، إشعارات، ملاحظات...) كما كان لديك -->
     </section>
   </main>
 
   <!-- push.js ثم app.js -->
   <script src="/js/push.js" defer></script>
   <script src="/js/app.js" defer></script>
+
 </body>
 </html>
