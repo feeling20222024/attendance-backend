@@ -169,14 +169,6 @@
   </main>
 <!-- index.html -->
 …
-<!-- سجلّ sw.js للتخزين المؤقت -->
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(() => console.log('✅ SW registered'))
-      .catch(err => console.warn('❌ SW register failed', err));
-  }
-</script>
 
 <!-- 1) push.js -->
 <script src="/js/push.js" defer></script>
