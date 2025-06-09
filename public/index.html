@@ -166,19 +166,23 @@
 
     </section>
   </main>
+<!-- index.html -->
+…
+<!-- سجلّ sw.js للتخزين المؤقت -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('✅ SW registered'))
+      .catch(err => console.warn('❌ SW register failed', err));
+  }
+</script>
 
-  <!-- سجلّ sw.js -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(() => console.log('✅ SW registered'))
-        .catch(err => console.warn('❌ SW register failed', err));
-    }
-  </script>
-
-  <!-- push.js ثم app.js -->
-  <script src="js/push.js" defer></script>
-  <script type="module" src="js/app.js" defer></script>
+<!-- 1) push.js -->
+<script src="/js/push.js" defer></script>
+<!-- 2) app.js -->
+<script type="module" src="/js/app.js" defer></script>
+</body>
+</html>
 
 </body>
 </html>
