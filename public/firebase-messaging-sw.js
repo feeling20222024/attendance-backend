@@ -3,9 +3,7 @@
 importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
 
-// —————————————————————————————————————————
 // 1) إعداد Firebase
-// —————————————————————————————————————————
 firebase.initializeApp({
   apiKey:    "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
   authDomain:"device-streaming-47cbe934.firebaseapp.com",
@@ -14,23 +12,13 @@ firebase.initializeApp({
   messagingSenderId:"235398312189",
   appId:     "1:235398312189:web:8febe5e63f7b134b808e94"
 });
-
 const messaging = firebase.messaging();
 
-// —————————————————————————————————————————
-// 2) اجعل الـ SW ينشط فوراً ويتبنّى النوافذ المفتوحة
-// —————————————————————————————————————————
-self.addEventListener('install', event => {
-  self.skipWaiting();
-});
+// 2) تجاوز مرحلة waiting وتبنّي النوافذ المفتوحة
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 
-self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
-});
-
-// —————————————————————————————————————————
-// 3) استمع للرسائل في الخلفية
-// —————————————————————————————————————————
+// 3) التعامل مع الإشعارات في الخلفية
 messaging.onBackgroundMessage(payload => {
   const { title, body } = payload.notification || {};
   self.registration.showNotification(title, { body });
