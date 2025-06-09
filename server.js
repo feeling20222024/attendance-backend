@@ -317,7 +317,7 @@ app.get(/.*/, (_, r) =>
   r.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
 
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
