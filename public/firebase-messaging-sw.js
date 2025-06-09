@@ -1,4 +1,5 @@
-// نسخ مباشر من توجيهات Firebase للـ FCM background
+// public/firebase-messaging-sw.js
+
 importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
 
@@ -13,7 +14,9 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// هذا هو المعالج الذي يعرض الإشعار في الخلفية
 messaging.onBackgroundMessage(payload => {
+  console.log('🔔 Background message received:', payload);
   const { title, body } = payload.notification || {};
   self.registration.showNotification(title, { body });
 });
