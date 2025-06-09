@@ -1,12 +1,10 @@
 {
   "name": "تطبيق متابعة الدوام",
-  "short_name": "متابعة الدوام",
+  "short_name": "الدوام",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
-  // هذه الخاصّيّة هي نفسها Messaging Sender ID (دون أي شرطات)
-  "gcm_sender_id": "235398312189",
+  "theme_color": "#3b82f6",
   "icons": [
     {
       "src": "/assets/icon-192.png",
