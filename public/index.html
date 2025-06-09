@@ -25,10 +25,17 @@
                        https://www.googleapis.com;
         ">
 
-  <style>[hidden]{display:none!important;}</style>
+  <!-- منع وميض العناصر المخفية -->
+  <style>[hidden] { display: none !important; }</style>
+
+  <!-- أيقونة التطبيق -->
   <link rel="icon" href="assets/icon.png" />
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js"></script>
 </head>
@@ -41,9 +48,10 @@
     </div>
   </header>
 
+  <!-- Main -->
   <main class="flex-grow container mx-auto px-4 py-8">
 
-    <!-- 1) نموذج تسجيل الدخول -->
+    <!-- Login Form -->
     <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
       <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2>
       <input id="codeInput" type="text" placeholder="كود الموظف"
@@ -56,10 +64,10 @@
       </button>
     </section>
 
-    <!-- 2) واجهة السجلات (مخفية حتى تسجيل الدخول) -->
+    <!-- Records Section -->
     <section id="records" class="hidden">
 
-      <!-- إشعارات المشرف -->
+      <!-- Supervisor Push -->
       <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
         <h3 class="text-xl font-semibold mb-4 text-gray-700">إرسال إشعار للمستخدمين</h3>
         <input id="notifTitleInput" type="text" placeholder="عنوان الإشعار"
@@ -72,37 +80,34 @@
         </button>
       </div>
 
-      <!-- تنبيهات المشرف -->
+      <!-- Supervisor Notes -->
       <div class="mb-6 max-w-md mx-auto">
         <h3 class="text-xl font-bold mb-2 text-gray-700">تنبيهات مراقب الدوام</h3>
         <textarea id="supervisorNotes" rows="3"
                   class="w-full border border-gray-300 rounded p-2 bg-gray-50 focus:ring-2 focus:ring-green-400"
                   readonly></textarea>
-        <button id="saveNotesBtn" hidden
-                class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+        <button id="saveNotesBtn" class="hidden mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
           حفظ الملاحظة
         </button>
       </div>
 
-      <!-- رسالة ترحيب -->
+      <!-- Welcome -->
       <div class="mb-6 text-center">
         <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
       </div>
 
-      <!-- أزرار التحكم -->
+      <!-- Controls -->
       <div class="flex flex-wrap gap-4 justify-center mb-6">
         <button id="aboutBtn" class="text-blue-500 hover:underline">حول التطبيق</button>
-        <button id="hwafezBtn"
-                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
+        <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
           علامات الحوافز
         </button>
-        <button id="logoutBtn"
-                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
           خروج
         </button>
       </div>
 
-      <!-- إحصائيات -->
+      <!-- Leave Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 max-w-4xl mx-auto">
         <div class="bg-white p-4 rounded shadow border">
           <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المستحقة</p>
@@ -118,25 +123,25 @@
         </div>
       </div>
 
-      <!-- رسالة لا توجد بيانات -->
+      <!-- No Data Msg -->
       <p id="noDataMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
 
-      <!-- جدول الحضور (بكل الأعمدة) -->
+      <!-- Attendance Table -->
       <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4 max-w-4xl mx-auto mb-8">
         <table class="table-fixed w-full text-center divide-y divide-gray-200">
           <colgroup>
-            <col class="w-20">
-            <col class="w-32">
-            <col class="w-32">
-            <col class="w-28">
-            <col class="w-20">
-            <col class="w-20">
-            <col class="w-24">
-            <col class="w-24">
-            <col class="w-24">
-            <col class="w-24">
-            <col class="w-32">
-            <col class="w-40">
+            <col class="w-20"> <!-- كود -->
+            <col class="w-32"> <!-- اسم -->
+            <col class="w-32"> <!-- حالة -->
+            <col class="w-28"> <!-- تاريخ -->
+            <col class="w-20"> <!-- دخول -->
+            <col class="w-20"> <!-- خروج -->
+            <col class="w-24"> <!-- ساعية من -->
+            <col class="w-24"> <!-- ساعية إلى -->
+            <col class="w-24"> <!-- مهمة من -->
+            <col class="w-24"> <!-- مهمة إلى -->
+            <col class="w-32"> <!-- عدد الأيام -->
+            <col class="w-40"> <!-- ملاحظات -->
           </colgroup>
           <thead class="bg-gray-50 text-gray-700 text-sm">
             <tr>
@@ -154,13 +159,16 @@
               <th class="border px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
-          <tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody>
+          <tbody id="attendanceBody" class="divide-y divide-gray-100">
+            <!-- يُحقَن هنا -->
+          </tbody>
         </table>
       </div>
 
-      <!-- جدول الحوافز (بكل الأعمدة) -->
+      <!-- Hwafez Table -->
       <div id="hwafezSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto">
         <h3 class="text-xl font-bold mb-4 text-gray-700">علامات الحوافز</h3>
+        <p id="noHwafezMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
         <div class="overflow-x-auto">
           <table class="table-auto w-full text-center divide-y divide-gray-200">
             <thead class="bg-gray-50 text-gray-700 text-sm">
@@ -176,12 +184,14 @@
                 <th class="border px-4 py-2">الإستقلال والموثوقية</th>
                 <th class="border px-4 py-2">الإلتزام والمسؤولية</th>
                 <th class="border px-4 py-2">نسبة الدوام الفعلي للعامل</th>
-                <th class="border px-4 py-2">السويّة الوظيفيّة</th>
+                <th class="border px-4 py-2">السوية الوظيفية</th>
                 <th class="border px-4 py-2">مستوى التأهيل</th>
                 <th class="border px-4 py-2">سنوات الخبرة</th>
               </tr>
             </thead>
-            <tbody id="hwafezBody" class="divide-y divide-gray-100"></tbody>
+            <tbody id="hwafezBody" class="divide-y divide-gray-100">
+              <!-- يُحقَن هنا -->
+            </tbody>
           </table>
         </div>
       </div>
@@ -189,9 +199,9 @@
     </section>
   </main>
 
-  <!-- push.js ثم app.js -->
+  <!-- Scripts -->
   <script src="/js/push.js" defer></script>
-  <script src="/js/app.js" defer></script>
+  <script src="/js/app.js"  defer></script>
 
 </body>
 </html>
