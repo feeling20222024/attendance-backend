@@ -19,33 +19,45 @@ const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWW
 // —————————————————————————————————————————
 async function initPush() {
   try {
-    // 1) سجّل Firebase SW
-    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    // 1) سجّل SW الخاص بالإشعارات
+    const swReg = await navigator.serviceWorker.register(
+      '/firebase-messaging-sw.js',
+      { scope: '/' }
+    );
     console.log('✅ Firebase SW registered:', swReg.scope);
 
     // 2) ابدأ Firebase
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
 
-    // 3) إذن الإشعارات
+    // 3) اطلب إذن الإشعارات
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return console.warn('❌ إشعارات الويب مرفوضة');
+    if (permission !== 'granted') {
+      console.warn('❌ المستخدم لم يمنح إذن الإشعارات');
+      return;
+    }
 
     // 4) احصل على FCM token
-    const token = await messaging.getToken({ vapidKey: VAPID_PUBLIC_KEY, serviceWorkerRegistration: swReg });
+    const token = await messaging.getToken({
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: swReg
+    });
     console.log('✅ FCM token:', token);
 
-    // 5) أرسل التوكن للخادم
-    const user = window.currentUser;
-    if (!user) return console.warn('⚠️ currentUser غير مسجّل');
-    await fetch(`${API_BASE}/register-token`, {
+    // 5) أرسل التوكن إلى الخادم
+    const user = window.currentUser || localStorage.getItem('currentUser');
+    if (!user) {
+      console.warn('⚠️ currentUser غير مسجّل');
+      return;
+    }
+    await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({ user, token })
     });
-    console.log('✅ تم تسجيل توكن FCM على الخادم');
+    console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
 
-    // 6) استمع للإشعارات أثناء التواجد في الواجهة
+    // 6) استمع للإشعارات أثناء تواجد التطبيق في الواجهة
     messaging.onMessage(payload => {
       console.log('📩 foreground message:', payload);
       const { title, body } = payload.notification || {};
@@ -57,4 +69,5 @@ async function initPush() {
   }
 }
 
+// نجعل الدالة متاحة لعالم app.js
 window.initPush = initPush;
