@@ -1,122 +1,14 @@
-import { PushNotifications } from '@capacitor/push-notifications';
-
-
-
 // —————————————————————————————————————————
-async function initNativePush() {
-  try {
-    // 1) اطلب الأذونات
-    const perm = await PushNotifications.requestPermissions();
-    if (perm.receive !== 'granted') {
-      console.warn('⚠️ لم يتم منح إذن إشعارات الجوال');
-      return;
-    }
-
-    // 2) سجّل الجهاز لدى FCM
-    await PushNotifications.register();
-
-    // 3) عند التسجيل الناجح ستحصل على التوكن
-    PushNotifications.addListener('registration', async (token) => {
-      console.log('✅ FCM mobile token:', token.value);
-      // أرسل التوكن لخادمك
-      await fetch(`${API_BASE}/register-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jwtToken}`
-        },
-        body: JSON.stringify({ user: currentUser, token: token.value })
-      });
-      console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
-    });
-
-    // 4) مستمع للإشعارات أثناء تشغيل التطبيق في الواجهة
-    PushNotifications.addListener('pushNotificationReceived', (payload) => {
-      console.log('📩 pushNotificationReceived:', payload);
-    });
-
-    // 5) مستمع لنقر المستخدم على الإشعار
-    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('📲 pushNotificationActionPerformed:', action);
-    });
-
-  } catch (e) {
-    console.error('❌ initNativePush error:', e);
-  }
-}
-window.initNativePush = initNativePush;
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
+const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT  = `${API_BASE}/login`;
+const SUPERVISOR_CODE = '35190';
 
-
-
-const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT = `${API_BASE}/login`;
-const SUPERVISOR_CODE= '35190';
-
-let jwtToken = null;
-let currentUser = null;
-
-// 1) عند التحميل، ربط الأزرار واسترجاع الجلسة
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('loginBtn').onclick  = login;
-  document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('hwafezBtn').onclick = showHwafez;
-
-  const saved = localStorage.getItem('jwtToken');
-  if (saved) {
-    jwtToken = saved;
-    fetchAndRender().catch(logout);
-  }
-});
-
-// 2) دالة تسجيل الدخول (مشتركة للويب والجوال)
-async function login() {
-  const code = document.getElementById('codeInput').value.trim();
-  const pass = document.getElementById('passwordInput').value.trim();
-  if (!code || !pass) {
-    alert('يرجى إدخال الكود وكلمة المرور.');
-    return;
-  }
-
-  try {
-    const res = await fetch(LOGIN_ENDPOINT, {
-      method: 'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ code, pass })
-    });
-    if (res.status === 401) {
-      alert('بيانات الدخول خاطئة');
-      return;
-    }
-    if (!res.ok) throw new Error(`خطأ بالخادم (${res.status})`);
-
-    const { token, user } = await res.json();
-    jwtToken = token;
-    localStorage.setItem('jwtToken', token);
-
-    currentUser = user.code ?? user['كود الموظف'];
-    window.currentUser = currentUser; // ضروري لـ push.js
-
-    console.log('✅ login successful, currentUser =', currentUser);
-
-    // 3) تهيئة الإشعارات:
-    // إذا كنت تستخدم Capacitor (الجوال)، رُدّد initNativePush()
-    if (window.Capacitor && Capacitor.getPlatform() !== 'web' && window.initNativePush) {
-      await initNativePush();
-    } else {
-      await window.initPush();  // Web
-    }
-
-    // 4) عرض البيانات
-    await fetchAndRender();
-
-  } catch (e) {
-    console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
-  }
-}
-
+let headersAtt      = [], attendanceData = [];
+let headersHw       = [], hwafezData     = [];
+let currentUser     = null;
+let jwtToken        = null;
 
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
@@ -191,12 +83,10 @@ async function login() {
 
     console.log('🚀 calling initPush()…');
     if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-  // هنا يشغّل initNativePush الفعلي على الموبايل
-  await initNativePush();
-} else {
-  // إذا لم يكن عبر Capacitor، استدع دالة الويب فقط
-  window.initPush();
-}
+      await initNativePush();
+    } else {
+      await window.initPush();
+    }
 
   } catch (e) {
     // هنا فقط نعرض أي خطأ وقع أثناء المصادقة أو initPush
