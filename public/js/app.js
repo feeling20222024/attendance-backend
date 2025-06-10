@@ -13,9 +13,9 @@ let jwtToken        = null;
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
   '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
-  '3': "خروج مبكر أو عدم مهر البصمة مساءً",
+  '3': "خروج مبكر (أو عدم مهر البصمة مساءً)",
   '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
-  '5': "تجميع ساعات (كل ثماني ساعات يُحتسب يوم)"
+  '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
 };
 
 // —————————————————————————————————————————
@@ -26,60 +26,16 @@ function normalizeDigits(str) {
 }
 
 // —————————————————————————————————————————
-// 2) تهيئة إشعارات Native (Android/iOS) عبر Capacitor
-// —————————————————————————————————————————
-async function initNativePush() {
-  if (!window.Capacitor) {
-    console.warn('Native push غير مدعوم على هذه المنصة');
-    return;
-  }
-  try {
-    const { PushNotifications } = await import('@capacitor/push-notifications');
-    const perm = await PushNotifications.requestPermissions();
-    if (perm.receive !== 'granted') {
-      console.warn('لم يتم منح إذن إشعارات الجوال');
-      return;
-    }
-    await PushNotifications.register();
-    PushNotifications.addListener('registration', async t => {
-      console.log('✅ FCM mobile token:', t.value);
-      await fetch(`${API_BASE}/register-token`, {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'Authorization': `Bearer ${jwtToken}`
-        },
-        body: JSON.stringify({ user: currentUser, token: t.value })
-      });
-    });
-    PushNotifications.addListener('pushNotificationReceived', n => console.log('📩', n));
-    PushNotifications.addListener('pushNotificationActionPerformed', a => console.log('📲', a));
-  } catch (e) {
-    console.warn('❌ initNativePush error:', e);
-  }
-}
-
-// —————————————————————————————————————————
-// 3) إشعارات الويب (push.js)
-// —————————————————————————————————————————
-window.initPush = () => {
-  console.log('⏳ initPush() called');
-  if (!('Notification' in window)) return;
-  Notification.requestPermission().then(p => {
-    if (p === 'granted') console.log('📢 إشعارات الويب مفعلة');
-  });
-};
-
-// —————————————————————————————————————————
-// DOMContentLoaded: ربط الأزرار واسترجاع الجلسة
+// DOMContentLoaded: ربط الأزرار
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
-    alert('فكرة وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
+    alert('فكرة وإعداد وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
 
+  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
@@ -88,52 +44,74 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // —————————————————————————————————————————
-// 4) دالة تسجيل الدخول
+// 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
-  const code = normalizeDigits(document.getElementById('codeInput').value.trim());
+  const code = normalizeDigits(
+    document.getElementById('codeInput').value.trim()
+  );
   const pass = document.getElementById('passwordInput').value.trim();
-  if (!code || !pass) return alert('يرجى إدخال الكود وكلمة المرور.');
+  if (!code || !pass) {
+    return alert('يرجى إدخال الكود وكلمة المرور.');
+  }
 
+  // نحتفظ برسالة الخطأ الأصلية لأغراض الديباغ
+  let loginResponse;
   try {
+    // 1) طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
-      headers:{ 'Content-Type':'application/json' },
+      headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({ code, pass })
     });
-    if (res.status === 401) return alert('بيانات الدخول خاطئة');
-    if (!res.ok) throw new Error(`خطأ بالخادم (${res.status})`);
+    if (res.status === 401) {
+      return alert('بيانات الدخول خاطئة');
+    }
+    if (!res.ok) {
+      throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
+    }
 
-    const { token, user } = await res.json();
-    jwtToken = token;
-    localStorage.setItem('jwtToken', token);
+    // 2) استلام التوكن
+    loginResponse = await res.json();
+    jwtToken = loginResponse.token;
+    localStorage.setItem('jwtToken', jwtToken);
 
-    currentUser = user.code ?? user['كود الموظف'];
+    // 3) currentUser وتهيئة الإشعارات
+    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
     window.currentUser = currentUser;
     console.log('✅ login successful, currentUser =', currentUser);
 
     console.log('🚀 calling initPush()…');
-    // تهيئة إشعارات الجوال أولًا
-    await initNativePush();
-    // ثم إشعارات الويب كاحتياط
-    window.initPush();
-
-    // أخيرًا جلب البيانات
-    await fetchAndRender();
+    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+      await initNativePush();
+    } else {
+      await window.initPush();
+    }
 
   } catch (e) {
+    // هنا فقط نعرض أي خطأ وقع أثناء المصادقة أو initPush
     console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+    return alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
+
+  // 4) إذا نجح تسجيل الدخول، نحاول جلب وعرض البيانات
+  try {
+    await fetchAndRender();
+  } catch (e) {
+    console.error('❌ fetchAndRender error:', e);
+    alert('لا يمكن تحميل البيانات حالياً: ' + e.message);
+    // إذا أردت، يمكنك هنا إعادة تسجيل الخروج أو إبقاء المستخدم في الواجهة
+    // logout();
   }
 }
-
 // —————————————————————————————————————————
-// 5) جلب وعرض البيانات (attendance + hwafez + me)
+// 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
 async function fetchAndRender() {
   if (!jwtToken) return;
+
   const headers = {
-    'Content-Type':'application/json',
+    'Content-Type': 'application/json',
     'Authorization': `Bearer ${jwtToken}`
   };
   const [aRes, hwRes, meRes] = await Promise.all([
@@ -149,21 +127,40 @@ async function fetchAndRender() {
 
   headersAtt     = aJson.headers;     attendanceData = aJson.data;
   headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
-  currentUser    = meJson.user.code ?? meJson.user['كود الموظف'];
+  currentUser    = meJson.user['كود الموظف'];
 
+  // إظهار الواجهة بعد تسجيل الدخول
   document.getElementById('loginSection').classList.add('hidden');
   document.getElementById('records').classList.remove('hidden');
   document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
 
+  // إذا كان المشرف
   if (currentUser === SUPERVISOR_CODE) {
     document.getElementById('pushSection').classList.remove('hidden');
     document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
   }
+
+  // ملاحظات المشرف
+  const notesArea = document.getElementById('supervisorNotes');
+  const saveBtn   = document.getElementById('saveNotesBtn');
+  notesArea.value = localStorage.getItem('supervisorNotes') || '';
+  if (currentUser === SUPERVISOR_CODE) {
+    notesArea.removeAttribute('readonly');
+    saveBtn.classList.remove('hidden');
+    saveBtn.onclick = () => {
+      localStorage.setItem('supervisorNotes', notesArea.value);
+      alert('تم حفظ الملاحظة');
+    };
+  } else {
+    notesArea.setAttribute('readonly', '');
+    saveBtn.classList.add('hidden');
+  }
+
   renderRecords();
 }
 
 // —————————————————————————————————————————
-// 6) رسم سجلات الحضور للمستخدم الحالي
+// 4) رسم سجلات الحضور للمستخدم الحالي
 // —————————————————————————————————————————
 function renderRecords() {
   const idx = {
@@ -223,7 +220,7 @@ function renderRecords() {
 }
 
 // —————————————————————————————————————————
-// 7) عرض بيانات الحوافز
+// 5) عرض بيانات الحوافز
 // —————————————————————————————————————————
 async function showHwafez() {
   try {
@@ -273,7 +270,7 @@ async function showHwafez() {
   }
 }
 // —————————————————————————————————————————
-// 8) إرسال إشعار للمشرف
+// 6) إرسال إشعار للمشرف
 // —————————————————————————————————————————
 async function sendSupervisorNotification() {
   try {
@@ -302,7 +299,7 @@ async function sendSupervisorNotification() {
 }
 
 // —————————————————————————————————————————
-// 9) تسجيل الخروج
+// 7) تسجيل الخروج
 // —————————————————————————————————————————
 function logout() {
   currentUser = null;
