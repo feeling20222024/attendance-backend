@@ -128,38 +128,84 @@ async function fetchAndRenderWeb() {
 }
 
 // —————————————————————————————————————————
+// —————————————————————————————————————————
 // 5) رسم جدول الحضور (ويب)
 // —————————————————————————————————————————
 function renderAttendance(headers, data, userCode) {
-  document.getElementById('loginSection').classList.add('hidden');
-  document.getElementById('records').classList.remove('hidden');
+  // إظهار واجهة السجلات
+  document.getElementById('loginSection').hidden = true;
+  document.getElementById('records').hidden      = false;
   document.getElementById('welcomeMsg').textContent = `مرحباً ${userCode}`;
 
-  const idx = {
-    code: headers.indexOf('رقم الموظف'),
-    name: headers.indexOf('الاسم'),
-    status: headers.indexOf('الحالة'),
-    date: headers.indexOf('التاريخ'),
-    in: headers.indexOf('دخول'),
-    out: headers.indexOf('خروج'),
-    notes: headers.indexOf('ملاحظات'),
++ // إذا كان المشرف، أظهر قسم الإشعارات ورتّب حدث الضغط على الزر
++ if (String(userCode) === '35190') {
++   const pushSec = document.getElementById('pushSection');
++   pushSec.hidden = false;
++   document.getElementById('sendPushBtn').onclick = async () => {
++     const title = document.getElementById('notifTitleInput').value.trim();
++     const body  = document.getElementById('notifBodyInput').value.trim();
++     if (!title || !body) return alert('يرجى إدخال عنوان ونص الإشعار.');
++     // أرسل الإشعار للمشرف
++     const res = await fetch(`${API_BASE}/notify-all`, {
++       method: 'POST',
++       headers: {
++         'Content-Type':'application/json',
++         'Authorization':`Bearer ${jwtToken}`
++       },
++       body: JSON.stringify({ title, body })
++     });
++     if (res.ok) alert('✅ تم إرسال الإشعار');
++     else {
++       const err = await res.text();
++       alert('❌ خطأ في الإرسال: ' + err);
++     }
++   };
++ } else {
++   document.getElementById('pushSection').hidden = true;
++ }
+ const idx = {
+    code:     headers.indexOf('رقم الموظف'),
+    name:     headers.indexOf('الاسم'),
+    status:   headers.indexOf('الحالة'),
+    date:     headers.indexOf('التاريخ'),
+    in:       headers.indexOf('دخول'),
+    out:      headers.indexOf('خروج'),
+    sFrom:    headers.indexOf('ساعية (من الساعة)'),
+    sTo:      headers.indexOf('ساعية (إلى الساعة)'),
+    mFrom:    headers.indexOf('مهمة (من الساعة)'),
+    mTo:      headers.indexOf('مهمة (إلى الساعة)'),
+    days:     headers.indexOf('عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة'),
+    notes:    headers.indexOf('ملاحظات'),
+    adminC:   headers.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
+    adminR:   headers.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
+    adminDue: headers.indexOf('عدد الإجازات الإدارية المستحقة للعامل')
   };
+
   const tbody = document.getElementById('attendanceBody');
   tbody.innerHTML = '';
-  data.filter(r => String(r[idx.code]).trim()===String(userCode))
-      .forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="border px-4 py-2">${r[idx.code]||''}</td>
-          <td class="border px-4 py-2">${r[idx.name]||''}</td>
-          <td class="border px-4 py-2">${r[idx.status]||''}</td>
-          <td class="border px-4 py-2">${r[idx.date]||''}</td>
-          <td class="border px-4 py-2">${r[idx.in]||''}</td>
-          <td class="border px-4 py-2">${r[idx.out]||''}</td>
-          <td class="border px-4 py-2">${r[idx.notes]||''}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+  data
+    .filter(r => String(r[idx.code]||'').trim() === String(userCode))
+    .forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="border px-4 py-2">${r[idx.code]||''}</td>
+        <td class="border px-4 py-2">${r[idx.name]||''}</td>
+        <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]||''}</td>
+        <td class="border px-4 py-2">${r[idx.date]||''}</td>
+        <td class="border px-4 py-2">${r[idx.in]||''}</td>
+        <td class="border px-4 py-2">${r[idx.out]||''}</td>
+        <td class="border px-4 py-2">${r[idx.sFrom]||''}</td>
+        <td class="border px-4 py-2">${r[idx.sTo]||''}</td>
+        <td class="border px-4 py-2">${r[idx.mFrom]||''}</td>
+        <td class="border px-4 py-2">${r[idx.mTo]||''}</td>
+        <td class="border px-4 py-2">${r[idx.days]||''}</td>
+        <td class="border px-4 py-2">${r[idx.notes]||''}</td>
+        <td class="border px-4 py-2">${r[idx.adminC]||''}</td>
+        <td class="border px-4 py-2">${r[idx.adminR]||''}</td>
+        <td class="border px-4 py-2">${r[idx.adminDue]||''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
 }
 
 // —————————————————————————————————————————
