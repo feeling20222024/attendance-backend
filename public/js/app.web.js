@@ -1,6 +1,13 @@
 // public/js/app.web.js
 // —————————————————————————————————————————
 // Helper: تطبيع أرقام عربية → غربية
+// app.web.js
+if (document.currentScript.dataset.platform !== 'web') {
+  // إذا لم يُحمّل هذا السكربت لويب، اخرج
+  throw new Error('Not a web context');
+}
+// … كود ويب …
+
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
