@@ -200,8 +200,11 @@
   </main>
 
   <!-- Scripts -->
-<!-- index.html -->
-<script src="app.js"></script>
-<script src="app.web.js"></script>
+  <script src="/js/push.js" defer></script>
+  <script src="/js/app.web.js" defer data-platform="web"></script>
+
+  <!-- Capacitor bundle -->
+  <!-- هذا السطر يُفَعّل فقط داخل تطبيق Capacitor -->
+//  <script src="/js/app.js" defer data-platform="capacitor"></script>
 </body>
 </html>
