@@ -43,9 +43,11 @@ const ASSETS = [
 
 self.addEventListener('install', evt => {
   evt.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
-  );
+   caches.open(CACHE_NAME).then(cache => {
+  // تجنّب طلبات chrome-extension:
+  if (event.request.url.startsWith(self.location.origin)) {
+    cache.put(event.request, responseClone);
+  }
 });
 
 // —————————————————————————————————————————
