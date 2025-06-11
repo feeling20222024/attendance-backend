@@ -37,11 +37,15 @@ async function initPush() {
     return;
   }
 
-  const token = await messaging.getToken({
-    vapidKey: VAPID_PUBLIC_KEY,
-    serviceWorkerRegistration: reg
-  });
-  console.log('✅ FCM token:', token);
+  const token = await messaging.getToken({ … });
+console.log('✅ FCM token:', token);
+try {
+  const resp = await fetch(`${API_BASE}/register-token`, { … });
+  if (!resp.ok) console.error('❌ register failed:', await resp.text());
+  else console.log('✅ token registered on server');
+} catch (e) {
+  console.error('❌ token send error:', e);
+}
 
   // سجل التوكن على الخادم
   try {
