@@ -200,7 +200,22 @@
   </main>
 
   <!-- Scripts -->
-<!-- تحت </main> مباشرة -->
+
+<script>
+  if ('serviceWorker' in navigator) {
+    // تخزين مؤقّت
+    navigator.serviceWorker.register('/sw.js')
+      .then(r => console.log('✅ SW registered:', r.scope))
+      .catch(e => console.warn('❌ SW failed:', e));
+    // إشعارات FCM
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(r => console.log('✅ FCM SW registered:', r.scope))
+      .catch(e => console.warn('❌ FCM SW failed:', e));
+  }
+</script>
+<script src="/js/push.js" defer></script>
+<script src="/js/app.js"  defer></script>
+
 <script src="/js/push.js" defer></script>       <!-- يحتوي على initNativePush للـ Capacitor -->
 <script src="/js/app.web.js" defer></script>    <!-- يحتوي على initPush و loginWeb -->
 
