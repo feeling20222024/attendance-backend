@@ -14,35 +14,28 @@ const URLS_TO_CACHE = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(URLS_TO_CACHE))
+      .then(cache => cache.addAll(ASSETS))
       .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', event => {
-  // احذف أي cache قديم
-  event.waitUntil(
-    caches.keys().then(names =>
-      Promise.all(
-        names.filter(name => name !== CACHE_NAME)
-             .map(name => caches.delete(name))
-      )
-    ).then(() => self.clients.claim())
-  );
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
-      // رجّع من الكاش إن وجد، وإلا نفّذ fetch عادي ثم خزّن النتيجة
-      if (cachedResponse) return cachedResponse;
-      return fetch(event.request).then(networkResponse => {
-        // خزّن في الكاش لطلبات الموارد الثابتة
-        if (event.request.method === 'GET' && URLS_TO_CACHE.includes(new URL(event.request.url).pathname)) {
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResponse.clone()));
-        }
+      const fetchPromise = fetch(event.request).then(networkResponse => {
+        // clone قبل أيّ استهلاك
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME)
+          .then(cache => cache.put(event.request, responseClone));
         return networkResponse;
-      });
+      }).catch(() => cachedResponse);
+
+      // إذا كان في الكاش، أعدّه فورًا، وإلا انتظر الشبكة
+      return cachedResponse || fetchPromise;
     })
   );
 });
