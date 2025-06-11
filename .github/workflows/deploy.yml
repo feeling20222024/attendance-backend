@@ -1,0 +1,28 @@
+name: Build & Deploy to Render
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # خطوة بناء مشروعك (إن وُجدت)
+      - name: Install & Build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install Render CLI
+        run: npm install -g @renderinc/cli
+
+      - name: Deploy to Render
+        env:
+          RENDER_TOKEN:      ${{ secrets.RENDER_TOKEN }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          render login --api-key "$RENDER_TOKEN"
+          render deploy --service "$RENDER_SERVICE_ID"
