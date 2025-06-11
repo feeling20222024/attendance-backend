@@ -1,3 +1,4 @@
+# .github/workflows/deploy-render.yml
 name: Build & Deploy to Render
 
 on:
@@ -5,24 +6,26 @@ on:
     branches: [ main ]
 
 jobs:
-  build_and_deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # خطوة بناء مشروعك (إن وُجدت)
-      - name: Install & Build
-        run: |
-          npm ci
-          npm run build
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-      - name: Install Render CLI
-        run: npm install -g @renderinc/cli
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run build (if you have a build step)
+        run: npm run build
 
       - name: Deploy to Render
-        env:
-          RENDER_TOKEN:      ${{ secrets.RENDER_TOKEN }}
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: |
-          render login --api-key "$RENDER_TOKEN"
-          render deploy --service "$RENDER_SERVICE_ID"
+        # relies on the 3 inputs below being in your repo's Secrets
+        uses: render-examples/render-github-action@v1
+        with:
+          api-key: ${{ secrets.RENDER_TOKEN }}
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
