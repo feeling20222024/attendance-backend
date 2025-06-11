@@ -235,12 +235,21 @@ function renderHwafez(headers, data) {
       .forEach(r=>{
         const tr=document.createElement('tr');
         tr.innerHTML=`
-          <td class="border px-4 py-2">${r[idx.code]       ||''}</td>
-          <td class="border px-4 py-2">${r[idx.name]       ||''}</td>
-          <td class="border px-4 py-2">${r[idx.work]       ||''}</td>
-          <td class="border px-4 py-2">${r[idx.mastery]    ||''}</td>
-          <td class="border px-4 py-2">${r[idx.leadership] ||''}</td>
-          <td class="border px-4 py-2">${r[idx.self]       ||''}</td>
-          <td class="border px-4 py-2">${r[idx.comms]      ||''}</td>
-          <td class="border px-4 py-2">${r[idx.initiative] ||''}</td>
-          <td class="border px-4 py- passes truncated due to length
+        <td class="border px-4 py-2">${r[idx.code]         || ''}</td>
+          <td class="border px-4 py-2">${r[idx.name]         || ''}</td>
+          <td class="border px-4 py-2">${r[idx.work]         || ''}</td>
+          <td class="border px-4 py-2">${r[idx.mastery]      || ''}</td>
+          <td class="border px-4 py-2">${r[idx.leadership]   || ''}</td>
+          <td class="border px-4 py-2">${r[idx.self]         || ''}</td>
+          <td class="border px-4 py-2">${r[idx.comms]        || ''}</td>
+          <td class="border px-4 py-2">${r[idx.initiative]   || ''}</td>
+          <td class="border px-4 py-2">${r[idx.independence] || ''}</td>
+          <td class="border px-4 py-2">${r[idx.responsibility] || ''}</td>
+          <td class="border px-4 py-2">${r[idx.attendancePct]  || ''}</td>
+          <td class="border px-4 py-2">${r[idx.balance]        || ''}</td>
+          <td class="border px-4 py-2">${r[idx.qualification]  || ''}</td>
+          <td class="border px-4 py-2">${r[idx.experience]     || ''}</td>
+        `;
+        tbody.appendChild(tr);
+           });
+}
