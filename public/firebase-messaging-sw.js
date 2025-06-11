@@ -14,11 +14,7 @@ firebase.initializeApp({
 });
 const messaging = firebase.messaging();
 
-// 2) تجاوز مرحلة waiting وتبنّي النوافذ المفتوحة
-self.addEventListener('install', e => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-
-// 3) التعامل مع الإشعارات في الخلفية
+// 2) التعامل مع الإشعارات في الخلفية
 messaging.onBackgroundMessage(payload => {
   const { title, body } = payload.notification || {};
   self.registration.showNotification(title, { body });
