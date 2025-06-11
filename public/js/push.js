@@ -1,4 +1,7 @@
-// public/js/push.js
+// —————————————————————————————————————————
+// نقطتك الأساسية للـ API
+// —————————————————————————————————————————
+const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 
 // —————————————————————————————————————————
 // إعدادات Firebase — ضع هنا كامل المفاتيح كما في الـ SW
@@ -22,11 +25,17 @@ async function initPush() {
   const reg = await navigator.serviceWorker.ready;
   console.log('✅ Using active SW at', reg.scope);
 
-  firebase.initializeApp(firebaseConfig);
+  // لا تُهيّئ Firebase أكثر من مرة
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
   const messaging = firebase.messaging();
 
   const p = await Notification.requestPermission();
-  if (p !== 'granted') return console.warn('❌ no permission');
+  if (p !== 'granted') {
+    console.warn('❌ no permission');
+    return;
+  }
 
   const token = await messaging.getToken({
     vapidKey: VAPID_PUBLIC_KEY,
@@ -34,7 +43,28 @@ async function initPush() {
   });
   console.log('✅ FCM token:', token);
 
-  // سجل التوكن على الخادم…
-  // …
+  // سجل التوكن على الخادم
+  try {
+    const resp = await fetch(`${API_BASE}/register-token`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ user: window.currentUser, token })
+    });
+    if (!resp.ok) {
+      console.error('❌ failed to register token on server:', await resp.text());
+    } else {
+      console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
+    }
+  } catch (e) {
+    console.error('❌ error sending token to server:', e);
+  }
+
+  // استمع للرسائل في الـ foreground
+  messaging.onMessage(payload => {
+    console.log('📩 foreground message:', payload);
+    const { title, body } = payload.notification || {};
+    if (title) new Notification(title, { body });
+  });
 }
+
 window.initPush = initPush;
