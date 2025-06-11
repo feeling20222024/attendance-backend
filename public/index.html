@@ -204,13 +204,10 @@
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
-      .then(r => console.log('✅ SW registered:', r.scope))
-      .catch(e => console.warn('❌ SW failed:', e));
-
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      .then(r => console.log('✅ FCM SW registered:', r.scope))
-      .catch(e => console.warn('❌ FCM SW failed:', e));
+      .then(reg => console.log('✅ SW registered:', reg.scope))
+      .catch(err => console.warn('❌ SW register failed', err));
   }
+</script>
 </script>
 <script src="/js/push.js" defer></script>
 <script src="/js/app.js"  defer></script>
