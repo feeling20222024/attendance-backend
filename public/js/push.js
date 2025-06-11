@@ -19,45 +19,22 @@ const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWW
 // —————————————————————————————————————————
 async function initPush() {
   if (!('serviceWorker' in navigator)) return;
-  // انتظر SW فعّال
   const reg = await navigator.serviceWorker.ready;
   console.log('✅ Using active SW at', reg.scope);
 
-  // افتح Firebase
   firebase.initializeApp(firebaseConfig);
   const messaging = firebase.messaging();
 
-  // إذن
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    console.warn('❌ Notification permission denied');
-    return;
-  }
+  const p = await Notification.requestPermission();
+  if (p !== 'granted') return console.warn('❌ no permission');
 
-  // اشتراك FCM
   const token = await messaging.getToken({
     vapidKey: VAPID_PUBLIC_KEY,
     serviceWorkerRegistration: reg
   });
-  if (!token) {
-    console.warn('❌ Failed to get token');
-    return;
-  }
   console.log('✅ FCM token:', token);
 
-  // أرسل التوكن للخادم
-  await fetch('/api/register-token', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ user: window.currentUser, token })
-  });
-  console.log('✅ Token registered');
-
-  // استمع للإشعارات أثناء foreground
-  messaging.onMessage(payload => {
-    const { title, body } = payload.notification || {};
-    if (title) new Notification(title,{ body });
-  });
+  // سجل التوكن على الخادم…
+  // …
 }
-
 window.initPush = initPush;
