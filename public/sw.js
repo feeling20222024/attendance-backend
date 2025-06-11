@@ -48,6 +48,7 @@ self.addEventListener('install', evt => {
   if (event.request.url.startsWith(self.location.origin)) {
     cache.put(event.request, responseClone);
   }
+   }  
 });
 
 // —————————————————————————————————————————
