@@ -1,7 +1,7 @@
 // public/js/app.web.js
 
 // —————————————————————————————————————————
-// 1) إعداد Firebase (نفس القيم في firebase-messaging-sw.js)
+// 1) إعداد Firebase (مطابق لفirebase-messaging-sw.js)
 // —————————————————————————————————————————
 firebase.initializeApp({
   apiKey:    "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
@@ -15,10 +15,10 @@ firebase.initializeApp({
 // —————————————————————————————————————————
 // 2) المتغيرات العامة ونقاط النهاية
 // —————————————————————————————————————————
-const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT = `${API_BASE}/login`;
-const SUPERVISOR_CODE= '35190';
-let jwtToken = null, currentUser = null;
+const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT  = `${API_BASE}/login`;
+const SUPERVISOR_CODE = '35190';
+let jwtToken  = null, currentUser = null;
 
 // —————————————————————————————————————————
 // 3) initPush: تهيئة إشعارات الويب عبر FCM + SW
@@ -26,7 +26,7 @@ let jwtToken = null, currentUser = null;
 window.initPush = async () => {
   if (!('serviceWorker' in navigator) || !firebase.messaging) return;
 
-  // 3.1) انتظر أي Service Worker مسجَّل حالياً
+  // 3.1) انتظر أي SW فعّال
   const reg = await navigator.serviceWorker.ready;
   console.log('✅ Using active Service Worker at', reg.scope);
 
@@ -55,7 +55,7 @@ window.initPush = async () => {
   });
   console.log('✅ تم تسجيل التوكن على الخادم');
 
-  // 3.6) استمع للرسائل أثناء التواجد في الواجهة (foreground)
+  // 3.6) استمع للرسائل أثناء التواجد في الواجهة
   messaging.onMessage(payload => {
     console.log('📩 foreground message:', payload);
     const { title, body } = payload.notification || {};
@@ -83,7 +83,7 @@ async function loginWeb() {
   // 5.1) طلب المصادقة
   const res = await fetch(LOGIN_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type':'application/json' },
+    headers:{ 'Content-Type':'application/json' },
     body: JSON.stringify({ code, pass })
   });
   if (res.status === 401) {
@@ -95,10 +95,10 @@ async function loginWeb() {
 
   // 5.2) استلام الـ JWT والـ user
   const { token, user } = await res.json();
-  jwtToken      = token;
+  jwtToken = token;
   localStorage.setItem('jwtToken', token);
 
-  currentUser   = user.code ?? user['كود الموظف'];
+  currentUser = user.code ?? user['كود الموظف'];
   window.currentUser = currentUser;
   console.log('✅ loginWeb successful, currentUser =', currentUser);
 
@@ -114,7 +114,13 @@ async function loginWeb() {
 // —————————————————————————————————————————
 async function fetchAndRenderWeb() {
   if (!jwtToken) return;
-  const headers = { 'Content-Type':'application/json', 'Authorization':`Bearer ${jwtToken}` };
+
+  // مهم: أضف هيدر الـ Authorization
+  const headers = {
+    'Content-Type':'application/json',
+    'Authorization': `Bearer ${jwtToken}`
+  };
+
   const [aRes, hwRes, meRes] = await Promise.all([
     fetch(`${API_BASE}/attendance`, { headers }),
     fetch(`${API_BASE}/hwafez`,      { headers }),
@@ -129,44 +135,36 @@ async function fetchAndRenderWeb() {
   const meJson = await meRes.json();
 
   renderAttendance(aJson.headers, aJson.data, meJson.user['كود الموظف']);
-  renderHwafez(aJson.headers, hwJson.data);
+  renderHwafez     (hwJson.headers, hwJson.data);
 }
 
 // —————————————————————————————————————————
 // 7) رسم جدول الحضور (ويب)
 // —————————————————————————————————————————
 function renderAttendance(headers, data, userCode) {
-  // (أ) إظهار واجهة السجلات
-  document.getElementById('loginSection').hidden = true;
-  document.getElementById('records').hidden      = false;
+  document.getElementById('loginSection').hidden  = true;
+  document.getElementById('records').hidden       = false;
   document.getElementById('welcomeMsg').textContent = `مرحباً ${userCode}`;
 
-  // (ب) إظهار قسم الإشعارات للمشرف
   if (String(userCode) === SUPERVISOR_CODE) {
     document.getElementById('pushSection').hidden = false;
     document.getElementById('sendPushBtn').onclick = async () => {
       const title = document.getElementById('notifTitleInput').value.trim();
       const body  = document.getElementById('notifBodyInput').value.trim();
-      if (!title || !body) {
-        return alert('يرجى إدخال عنوان ونص الإشعار.');
-      }
-      const res = await fetch(`${API_BASE}/notify-all`, {
+      if (!title || !body) return alert('يرجى إدخال عنوان ونص الإشعار.');
+      const res2 = await fetch(`${API_BASE}/notify-all`, {
         method: 'POST',
         headers: {
           'Content-Type':'application/json',
-          'Authorization':`Bearer ${jwtToken}`
+          'Authorization': `Bearer ${jwtToken}`
         },
         body: JSON.stringify({ title, body })
       });
-      if (res.ok) alert('✅ تم إرسال الإشعار');
-      else {
-        const err = await res.text();
-        alert('❌ خطأ في الإرسال: ' + err);
-      }
+      if (res2.ok)  alert('✅ تم إرسال الإشعار');
+      else { const e = await res2.text(); alert('❌ خطأ في الإرسال: '+e); }
     };
   }
 
-  // (ج) فهرس الأعمدة
   const idx = {
     code:     headers.indexOf('رقم الموظف'),
     name:     headers.indexOf('الاسم'),
@@ -182,28 +180,27 @@ function renderAttendance(headers, data, userCode) {
     notes:    headers.indexOf('ملاحظات'),
     adminC:   headers.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
     adminR:   headers.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
-    adminDue: headers.indexOf('عدد الإجازات الإدارية المستحقة للعامل'),
+    adminDue: headers.indexOf('عدد الإجازات الإدارية المستحقة للعامل')
   };
 
-  // (د) ملء الصفوف
   const tbody = document.getElementById('attendanceBody');
   tbody.innerHTML = '';
-  data.filter(r => String(r[idx.code]).trim() === String(userCode))
-      .forEach(r => {
+  data.filter(r=>String(r[idx.code]||'').trim()===String(userCode))
+      .forEach(r=>{
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="border px-4 py-2">${r[idx.code]||''}</td>
-          <td class="border px-4 py-2">${r[idx.name]||''}</td>
+          <td class="border px-4 py-2">${r[idx.code]  ||''}</td>
+          <td class="border px-4 py-2">${r[idx.name]  ||''}</td>
           <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]||''}</td>
-          <td class="border px-4 py-2">${r[idx.date]||''}</td>
-          <td class="border px-4 py-2">${r[idx.in]||''}</td>
-          <td class="border px-4 py-2">${r[idx.out]||''}</td>
-          <td class="border px-4 py-2">${r[idx.sFrom]||''}</td>
-          <td class="border px-4 py-2">${r[idx.sTo]||''}</td>
-          <td class="border px-4 py-2">${r[idx.mFrom]||''}</td>
-          <td class="border px-4 py-2">${r[idx.mTo]||''}</td>
-          <td class="border px-4 py-2">${r[idx.days]||''}</td>
-          <td class="border px-4 py-2">${r[idx.notes]||''}</td>
+          <td class="border px-4 py-2">${r[idx.date]  ||''}</td>
+          <td class="border px-4 py-2">${r[idx.in]    ||''}</td>
+          <td class="border px-4 py-2">${r[idx.out]   ||''}</td>
+          <td class="border px-4 py-2">${r[idx.sFrom] ||''}</td>
+          <td class="border px-4 py-2">${r[idx.sTo]   ||''}</td>
+          <td class="border px-4 py-2">${r[idx.mFrom] ||''}</td>
+          <td class="border px-4 py-2">${r[idx.mTo]   ||''}</td>
+          <td class="border px-4 py-2">${r[idx.days]  ||''}</td>
+          <td class="border px-4 py-2">${r[idx.notes] ||''}</td>
           <td class="border px-4 py-2">${r[idx.adminC]||''}</td>
           <td class="border px-4 py-2">${r[idx.adminR]||''}</td>
           <td class="border px-4 py-2">${r[idx.adminDue]||''}</td>
@@ -235,34 +232,15 @@ function renderHwafez(headers, data) {
   const tbody = document.getElementById('hwafezBody');
   tbody.innerHTML = '';
   data.filter(r=>String(r[idx.code]).trim()===String(currentUser))
-      .forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="border px-4 py-2">${r[idx.code]||''}</td>
-          <td class="border px-4 py-2">${r[idx.name]||''}</td>
-          <td class="border px-4 py-2">${r[idx.work]||''}</td>
-          <td class="border px-4 py-2">${r[idx.mastery]||''}</td>
-          <td class="border px-4 py-2">${r[idx.leadership]||''}</td>
-          <td class="border px-4 py-2">${r[idx.self]||''}</td>
-          <td class="border px-4 py-2">${r[idx.comms]||''}</td>
-          <td class="border px-4 py-2">${r[idx.initiative]||''}</td>
-          <td class="border px-4 py-2">${r[idx.independence]||''}</td>
-          <td class="border px-4 py-2">${r[idx.responsibility]||''}</td>
-          <td class="border px-4 py-2">${r[idx.attendancePct]||''}</td>
-          <td class="border px-4 py-2">${r[idx.balance]||''}</td>
-          <td class="border px-4 py-2">${r[idx.qualification]||''}</td>
-          <td class="border px-4 py-2">${r[idx.experience]||''}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-}
-
-// —————————————————————————————————————————
-// 9) ربط الأزرار
-// —————————————————————————————————————————
-document.getElementById('loginBtn').onclick  = loginWeb;
-document.getElementById('logoutBtn').onclick = () => {
-  localStorage.removeItem('jwtToken');
-  document.getElementById('records').hidden = true;
-  document.getElementById('loginSection').hidden = false;
-};
+      .forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td class="border px-4 py-2">${r[idx.code]       ||''}</td>
+          <td class="border px-4 py-2">${r[idx.name]       ||''}</td>
+          <td class="border px-4 py-2">${r[idx.work]       ||''}</td>
+          <td class="border px-4 py-2">${r[idx.mastery]    ||''}</td>
+          <td class="border px-4 py-2">${r[idx.leadership] ||''}</td>
+          <td class="border px-4 py-2">${r[idx.self]       ||''}</td>
+          <td class="border px-4 py-2">${r[idx.comms]      ||''}</td>
+          <td class="border px-4 py-2">${r[idx.initiative] ||''}</td>
+          <td class="border px-4 py- passes truncated due to length
