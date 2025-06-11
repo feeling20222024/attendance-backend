@@ -18,56 +18,46 @@ const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWW
 // تهيئة إشعارات الويب عبر FCM
 // —————————————————————————————————————————
 async function initPush() {
-  try {
-    // 1) سجّل SW الخاص بالإشعارات
-    const swReg = await navigator.serviceWorker.register(
-      '/firebase-messaging-sw.js',
-      { scope: '/' }
-    );
-    console.log('✅ Firebase SW registered:', swReg.scope);
+  if (!('serviceWorker' in navigator)) return;
+  // انتظر SW فعّال
+  const reg = await navigator.serviceWorker.ready;
+  console.log('✅ Using active SW at', reg.scope);
 
-    // 2) ابدأ Firebase
-    firebase.initializeApp(firebaseConfig);
-    const messaging = firebase.messaging();
+  // افتح Firebase
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
 
-    // 3) اطلب إذن الإشعارات
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.warn('❌ المستخدم لم يمنح إذن الإشعارات');
-      return;
-    }
-
-    // 4) احصل على FCM token
-    const token = await messaging.getToken({
-      vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration: swReg
-    });
-    console.log('✅ FCM token:', token);
-
-    // 5) أرسل التوكن إلى الخادم
-    const user = window.currentUser || localStorage.getItem('currentUser');
-    if (!user) {
-      console.warn('⚠️ currentUser غير مسجّل');
-      return;
-    }
-    await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ user, token })
-    });
-    console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
-
-    // 6) استمع للإشعارات أثناء تواجد التطبيق في الواجهة
-    messaging.onMessage(payload => {
-      console.log('📩 foreground message:', payload);
-      const { title, body } = payload.notification || {};
-      if (title) new Notification(title, { body });
-    });
-
-  } catch (err) {
-    console.error('❌ initPush error:', err);
+  // إذن
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    console.warn('❌ Notification permission denied');
+    return;
   }
+
+  // اشتراك FCM
+  const token = await messaging.getToken({
+    vapidKey: VAPID_PUBLIC_KEY,
+    serviceWorkerRegistration: reg
+  });
+  if (!token) {
+    console.warn('❌ Failed to get token');
+    return;
+  }
+  console.log('✅ FCM token:', token);
+
+  // أرسل التوكن للخادم
+  await fetch('/api/register-token', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ user: window.currentUser, token })
+  });
+  console.log('✅ Token registered');
+
+  // استمع للإشعارات أثناء foreground
+  messaging.onMessage(payload => {
+    const { title, body } = payload.notification || {};
+    if (title) new Notification(title,{ body });
+  });
 }
 
-// نجعل الدالة متاحة لعالم app.js
 window.initPush = initPush;
