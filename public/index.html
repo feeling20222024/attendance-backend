@@ -1,258 +1,207 @@
-// —————————————————————————————————————————
-// 1) إعداد Firebase (قيمك كما في SW)
-firebase.initializeApp({
-  apiKey:    "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
-  authDomain:"device-streaming-47cbe934.firebaseapp.com",
-  projectId: "device-streaming-47cbe934",
-  storageBucket:"device-streaming-47cbe934.appspot.com",
-  messagingSenderId:"235398312189",
-  appId:     "1:235398312189:web:8febe5e63f7b134b808e94"
-});
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+<link rel="manifest" href="/manifest.json" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تطبيق متابعة الدوام</title>
 
-// —————————————————————————————————————————
-// 2) المتغيرات والنهايات
-const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT = `${API_BASE}/login`;
-const SUPERVISOR_CODE= '35190';
+  <!-- CSP مخفّفة -->
+  <meta http-equiv="Content-Security-Policy"
+        content="
+          default-src 'self' data: gap:;
+          script-src  'self' 'unsafe-inline' 'unsafe-eval'
+                       https://www.gstatic.com
+                       https://cdn.tailwindcss.com;
+          style-src   'self' 'unsafe-inline'
+                       https://cdn.tailwindcss.com;
+          connect-src 'self'
+                       https://dwam-app-by-omar.onrender.com
+                       https://www.gstatic.com
+                       https://firebaseinstallations.googleapis.com
+                       https://fcm.googleapis.com
+                       https://fcmregistrations.googleapis.com
+                       https://www.googleapis.com;
+        ">
 
-let jwtToken   = null;
-let currentUser= null;
+  <!-- منع وميض العناصر المخفية -->
+  <style>[hidden] { display: none !important; }</style>
 
-// ماب للحالات
-const caseMapping = {
-  '1': "غياب غير مبرر (بدون إذن رسمي)",
-  '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
-  '3': "خروج مبكر (أو عدم مهر البصمة مساءً)",
-  '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
-  '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
-};
+  <!-- أيقونة التطبيق -->
+  <link rel="icon" href="assets/icon.png" />
 
-// Helper: تطبيع أرقام عربية → غربية
-function normalizeDigits(str) {
-  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-}
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css" />
 
-// —————————————————————————————————————————
-// 3) initPush: تهيئة إشعارات الويب عبر FCM+SW
-// —————————————————————————————————————————
-window.initPush = async () => {
-  if (!('serviceWorker' in navigator) || !firebase.messaging) return;
-  const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
-  console.log('✅ Firebase SW registered:', reg.scope);
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
-  const messaging = firebase.messaging();
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    console.warn('❌ إشعارات الويب مرفوضة');
-    return;
-  }
-  const token = await messaging.getToken({
-    vapidKey: "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ",
-    serviceWorkerRegistration: reg
-  });
-  console.log('✅ FCM token (web):', token);
+  <!-- Header -->
+  <header class="bg-blue-600 text-white">
+    <div class="container mx-auto px-4 py-4 flex justify-center">
+      <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
+    </div>
+  </header>
 
-  // سجل التوكن في الخادم
-  await fetch(`${API_BASE}/register-token`, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ user: currentUser, token })
-  });
-  console.log('✅ تم تسجيل التوكن على الخادم');
+  <!-- Main -->
+  <main class="flex-grow container mx-auto px-4 py-8">
 
-  // استمع للرسائل في الواجهة
-  messaging.onMessage(payload => {
-    const { title, body } = payload.notification || {};
-    if (title) new Notification(title, { body });
-  });
-};
+    <!-- Login Form -->
+    <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
+      <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2>
+      <input id="codeInput" type="text" placeholder="كود الموظف"
+             class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
+      <input id="passwordInput" type="password" placeholder="كلمة المرور"
+             class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
+      <button id="loginBtn"
+              class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+        دخول
+      </button>
+    </section>
 
-// —————————————————————————————————————————
-// 4) loginWeb: عملية تسجيل الدخول في الويب
-// —————————————————————————————————————————
-async function loginWeb() {
-  const code = normalizeDigits(document.getElementById('codeInput').value.trim());
-  const pass = document.getElementById('passwordInput').value.trim();
-  if (!code || !pass) {
-    return alert('يرجى إدخال الكود وكلمة المرور.');
-  }
+    <!-- Records Section -->
+    <section id="records" class="hidden">
 
-  const res = await fetch(LOGIN_ENDPOINT, {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json' },
-    body: JSON.stringify({ code, pass })
-  });
-  if (res.status === 401) {
-    return alert('بيانات الدخول خاطئة');
-  }
-  if (!res.ok) {
-    throw new Error(`خطأ بالخادم (${res.status})`);
-  }
+      <!-- Supervisor Push -->
+      <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">إرسال إشعار للمستخدمين</h3>
+        <input id="notifTitleInput" type="text" placeholder="عنوان الإشعار"
+               class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400" />
+        <textarea id="notifBodyInput" rows="3" placeholder="نص الإشعار"
+                  class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400"></textarea>
+        <button id="sendPushBtn"
+                class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition">
+          إرسال الإشعار
+        </button>
+      </div>
 
-  const { token, user } = await res.json();
-  jwtToken = token;
-  localStorage.setItem('jwtToken', token);
+      <!-- Supervisor Notes -->
+      <div class="mb-6 max-w-md mx-auto">
+        <h3 class="text-xl font-bold mb-2 text-gray-700">تنبيهات مراقب الدوام</h3>
+        <textarea id="supervisorNotes" rows="3"
+                  class="w-full border border-gray-300 rounded p-2 bg-gray-50 focus:ring-2 focus:ring-green-400"
+                  readonly></textarea>
+        <button id="saveNotesBtn" class="hidden mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+          حفظ الملاحظة
+        </button>
+      </div>
 
-  currentUser = user.code ?? user['كود الموظف'];
-  window.currentUser = currentUser;
-  console.log('✅ loginWeb:', currentUser);
+      <!-- Welcome -->
+      <div class="mb-6 text-center">
+        <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
+      </div>
 
-  // تهيئة إشعارات الويب
-  await window.initPush();
+      <!-- Controls -->
+      <div class="flex flex-wrap gap-4 justify-center mb-6">
+        <button id="aboutBtn" class="text-blue-500 hover:underline">حول التطبيق</button>
+        <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
+          علامات الحوافز
+        </button>
+        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+          خروج
+        </button>
+      </div>
 
-  // جلب وعرض البيانات
-  await fetchAndRenderWeb();
-}
+      <!-- Leave Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 max-w-4xl mx-auto">
+        <div class="bg-white p-4 rounded shadow border">
+          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المستحقة</p>
+          <span id="adminLeavesDue" class="text-2xl font-medium">--</span>
+        </div>
+        <div class="bg-white p-4 rounded shadow border">
+          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المحتسبة</p>
+          <span id="adminLeavesCounted" class="text-2xl font-medium">--</span>
+        </div>
+        <div class="bg-white p-4 rounded shadow border">
+          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المتبقية</p>
+          <span id="adminLeavesRemaining" class="text-2xl font-medium">--</span>
+        </div>
+      </div>
 
-// —————————————————————————————————————————
-// 5) fetchAndRenderWeb: جلب البيانات وعرضها في الويب
-// —————————————————————————————————————————
-async function fetchAndRenderWeb() {
-  if (!jwtToken) return;
-  const headers = {
-    'Content-Type':'application/json',
-    'Authorization': `Bearer ${jwtToken}`
-  };
-  const [aRes, hwRes, meRes] = await Promise.all([
-    fetch(`${API_BASE}/attendance`, { headers }),
-    fetch(`${API_BASE}/hwafez`,      { headers }),
-    fetch(`${API_BASE}/me`,          { headers })
-  ]);
-  if (!aRes.ok || !hwRes.ok || !meRes.ok) {
-    throw new Error('Unauthorized');
-  }
-  const aJson  = await aRes.json();
-  const hwJson = await hwRes.json();
-  const meJson = await meRes.json();
+      <!-- No Data Msg -->
+      <p id="noDataMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
 
-  renderAttendance(aJson.headers, aJson.data, meJson.user['كود الموظف']);
-  renderHwafez   (hwJson.headers, hwJson.data);
-}
+      <!-- Attendance Table -->
+      <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4 max-w-4xl mx-auto mb-8">
+        <table class="table-fixed w-full text-center divide-y divide-gray-200">
+          <colgroup>
+            <col class="w-20"> <!-- كود -->
+            <col class="w-32"> <!-- اسم -->
+            <col class="w-32"> <!-- حالة -->
+            <col class="w-28"> <!-- تاريخ -->
+            <col class="w-20"> <!-- دخول -->
+            <col class="w-20"> <!-- خروج -->
+            <col class="w-24"> <!-- ساعية من -->
+            <col class="w-24"> <!-- ساعية إلى -->
+            <col class="w-24"> <!-- مهمة من -->
+            <col class="w-24"> <!-- مهمة إلى -->
+            <col class="w-32"> <!-- عدد الأيام -->
+            <col class="w-40"> <!-- ملاحظات -->
+          </colgroup>
+          <thead class="bg-gray-50 text-gray-700 text-sm">
+            <tr>
+              <th class="border px-4 py-2">رقم الموظف</th>
+              <th class="border px-4 py-2">الاسم</th>
+              <th class="border px-4 py-2">الحالة</th>
+              <th class="border px-4 py-2">التاريخ</th>
+              <th class="border px-4 py-2">دخول</th>
+              <th class="border px-4 py-2">خروج</th>
+              <th class="border px-4 py-2">ساعية (من الساعة)</th>
+              <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
+              <th class="border px-4 py-2">مهمة (من الساعة)</th>
+              <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
+              <th class="border px-4 py-2">عدد الأيام</th>
+              <th class="border px-4 py-2">ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceBody" class="divide-y divide-gray-100">
+            <!-- يُحقَن هنا -->
+          </tbody>
+        </table>
+      </div>
 
-// —————————————————————————————————————————
-// 6) renderAttendance: عرض جدول الحضور في الويب
-// —————————————————————————————————————————
-function renderAttendance(headers, data, userCode) {
-  // إظهار الواجهة
-  document.getElementById('loginSection').hidden = true;
-  document.getElementById('records').hidden      = false;
-  document.getElementById('welcomeMsg').textContent = `مرحباً ${userCode}`;
+      <!-- Hwafez Table -->
+      <div id="hwafezSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto">
+        <h3 class="text-xl font-bold mb-4 text-gray-700">علامات الحوافز</h3>
+        <p id="noHwafezMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
+        <div class="overflow-x-auto">
+          <table class="table-auto w-full text-center divide-y divide-gray-200">
+            <thead class="bg-gray-50 text-gray-700 text-sm">
+              <tr>
+                <th class="border px-4 py-2">رقم الموظف</th>
+                <th class="border px-4 py-2">الاسم</th>
+                <th class="border px-4 py-2">حجم العمل</th>
+                <th class="border px-4 py-2">اتقان العمل وفعاليته</th>
+                <th class="border px-4 py-2">المهارات القيادية</th>
+                <th class="border px-4 py-2">مهارة الإدارة الذاتية</th>
+                <th class="border px-4 py-2">مهارات التواصل والتفاعل</th>
+                <th class="border px-4 py-2">المبادرة والتطوير الذاتي</th>
+                <th class="border px-4 py-2">الإستقلال والموثوقية</th>
+                <th class="border px-4 py-2">الإلتزام والمسؤولية</th>
+                <th class="border px-4 py-2">نسبة الدوام الفعلي للعامل</th>
+                <th class="border px-4 py-2">السوية الوظيفية</th>
+                <th class="border px-4 py-2">مستوى التأهيل</th>
+                <th class="border px-4 py-2">سنوات الخبرة</th>
+              </tr>
+            </thead>
+            <tbody id="hwafezBody" class="divide-y divide-gray-100">
+              <!-- يُحقَن هنا -->
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-  // مشرف؟ نظهر قسم الإشعارات
-  if (String(userCode) === SUPERVISOR_CODE) {
-    document.getElementById('pushSection').hidden = false;
-    document.getElementById('sendPushBtn').onclick = async () => {
-      const t = document.getElementById('notifTitleInput').value.trim();
-      const b = document.getElementById('notifBodyInput').value.trim();
-      if (!t||!b) return alert('يرجى عنوان ونص الإشعار');
-      const r = await fetch(`${API_BASE}/notify-all`, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${jwtToken}` },
-        body: JSON.stringify({ title:t, body:b })
-      });
-      r.ok ? alert('✅ تم الإرسال') : alert('❌ فشل الإرسال');
-    };
-  } else {
-    document.getElementById('pushSection').hidden = true;
-  }
+    </section>
+  </main>
 
-  // تعاريف الأعمدة
-  const idx = {
-    code:    headers.indexOf('رقم الموظف'),
-    name:    headers.indexOf('الاسم'),
-    status:  headers.indexOf('الحالة'),
-    date:    headers.indexOf('التاريخ'),
-    in:      headers.indexOf('دخول'),
-    out:     headers.indexOf('خروج'),
-    sFrom:   headers.indexOf('ساعية (من الساعة)'),
-    sTo:     headers.indexOf('ساعية (إلى الساعة)'),
-    mFrom:   headers.indexOf('مهمة (من الساعة)'),
-    mTo:     headers.indexOf('مهمة (إلى الساعة)'),
-    days:    headers.indexOf('عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة'),
-    notes:   headers.indexOf('ملاحظات'),
-    adminC:  headers.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
-    adminR:  headers.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
-    adminDue:headers.indexOf('عدد الإجازات الإدارية المستحقة للعامل')
-  };
+  <!-- Scripts -->
+<script src="/js/app.web.js" defer></script>
 
-  const tbody = document.getElementById('attendanceBody');
-  tbody.innerHTML = '';
-  data.filter(r => String(r[idx.code]||'').trim() === String(userCode))
-      .forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="border px-4 py-2">${r[idx.code]||''}</td>
-          <td class="border px-4 py-2">${r[idx.name]||''}</td>
-          <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]||''}</td>
-          <td class="border px-4 py-2">${r[idx.date]||''}</td>
-          <td class="border px-4 py-2">${r[idx.in]||''}</td>
-          <td class="border px-4 py-2">${r[idx.out]||''}</td>
-          <td class="border px-4 py-2">${r[idx.sFrom]||''}</td>
-          <td class="border px-4 py-2">${r[idx.sTo]||''}</td>
-          <td class="border px-4 py-2">${r[idx.mFrom]||''}</td>
-          <td class="border px-4 py-2">${r[idx.mTo]||''}</td>
-          <td class="border px-4 py-2">${r[idx.days]||''}</td>
-          <td class="border px-4 py-2">${r[idx.notes]||''}</td>
-          <td class="border px-4 py-2">${r[idx.adminC]||''}</td>
-          <td class="border px-4 py-2">${r[idx.adminR]||''}</td>
-          <td class="border px-4 py-2">${r[idx.adminDue]||''}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-}
 
-// —————————————————————————————————————————
-// 7) renderHwafez: عرض جدول الحوافز في الويب
-// —————————————————————————————————————————
-function renderHwafez(headers, data) {
-  const idx = {
-    code:         headers.indexOf('رقم الموظف'),
-    name:         headers.indexOf('الاسم'),
-    work:         headers.indexOf('حجم العمل'),
-    mastery:      headers.indexOf('اتقان العمل وفعاليته'),
-    leadership:   headers.indexOf('المهارات القيادية'),
-    self:         headers.indexOf('مهارة الإدارة الذاتية'),
-    comms:        headers.indexOf('مهارات التواصل والتفاعل'),
-    initiative:   headers.indexOf('المبادرة والتطوير الذاتي'),
-    independence: headers.indexOf('الإستقلال والموثوقية'),
-    resp:         headers.indexOf('الإلتزام والمسؤولية'),
-    pct:          headers.indexOf('نسبة الدوام الفعلي للعامل'),
-    balance:      headers.indexOf('السويّة الوظيفيّة'),
-    qual:         headers.indexOf('مستوى التأهيل'),
-    exp:          headers.indexOf('سنوات الخبرة')
-  };
-
-  const tbody = document.getElementById('hwafezBody');
-  tbody.innerHTML = '';
-  data.filter(r => String(r[idx.code]||'').trim() === String(currentUser))
-      .forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="border px-4 py-2">${r[idx.code]||''}</td>
-          <td class="border px-4 py-2">${r[idx.name]||''}</td>
-          <td class="border px-4 py-2">${r[idx.work]||''}</td>
-          <td class="border px-4 py-2">${r[idx.mastery]||''}</td>
-          <td class="border px-4 py-2">${r[idx.leadership]||''}</td>
-          <td class="border px-4 py-2">${r[idx.self]||''}</td>
-          <td class="border px-4 py-2">${r[idx.comms]||''}</td>
-          <td class="border px-4 py-2">${r[idx.initiative]||''}</td>
-          <td class="border px-4 py-2">${r[idx.independence]||''}</td>
-          <td class="border px-4 py-2">${r[idx.resp]||''}</td>
-          <td class="border px-4 py-2">${r[idx.pct]||''}</td>
-          <td class="border px-4 py-2">${r[idx.balance]||''}</td>
-          <td class="border px-4 py-2">${r[idx.qual]||''}</td>
-          <td class="border px-4 py-2">${r[idx.exp]||''}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-}
-
-// —————————————————————————————————————————
-// 8) ربط الأزرار (ويب فقط)
-// —————————————————————————————————————————
-document.getElementById('loginBtn').onclick  = loginWeb;
-document.getElementById('logoutBtn').onclick = () => {
-  localStorage.removeItem('jwtToken');
-  document.getElementById('records').hidden = true;
-  document.getElementById('loginSection').hidden = false;
-};
+</body>
+</html>
