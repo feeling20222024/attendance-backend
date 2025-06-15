@@ -29,3 +29,6 @@ jobs:
         with:
           api-key: ${{ secrets.RENDER_TOKEN }}
           service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          env:
+  RENDER_TOKEN: ${{ secrets.RENDER_TOKEN }}
+  RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
