@@ -2,7 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-<link rel="manifest" href="/manifest.json" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>تطبيق متابعة الدوام</title>
@@ -10,7 +15,7 @@
   <!-- CSP مخفّفة -->
   <meta http-equiv="Content-Security-Policy"
         content="
-          default-src 'self' data: gap:;
+          default-src 'self' data:;
           script-src  'self' 'unsafe-inline' 'unsafe-eval'
                        https://www.gstatic.com
                        https://cdn.tailwindcss.com;
@@ -18,32 +23,88 @@
                        https://cdn.tailwindcss.com;
           connect-src 'self'
                        https://dwam-app-by-omar.onrender.com
-                       https://www.gstatic.com
-                       https://firebaseinstallations.googleapis.com
+                       https://www.googleapis.com
                        https://fcm.googleapis.com
-                       https://fcmregistrations.googleapis.com
-                       https://www.googleapis.com;
+                       https://firebaseinstallations.googleapis.com
+                       https://fcmregistrations.googleapis.com;
         ">
 
-  <!-- منع وميض العناصر المخفية -->
-  <style>[hidden] { display: none !important; }</style>
-
-  <!-- أيقونة التطبيق -->
-  <link rel="icon" href="assets/icon.png" />
-
-  <!-- Tailwind CSS -->
+  <!-- Tailwind + ستايلات عامة -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="/css/style.css" />
 
+  <style>
+    /* dropdown notifications */
+    #notificationsPanel {
+      position: absolute; top: 3.5rem; right: 1rem;
+      width: 300px; max-height: 400px; overflow-y: auto;
+      background: #fff; border: 1px solid #ccc;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      padding: 0.5rem; display: none; z-index: 1000;
+    }
+    #notifBell {
+      position: absolute; top: 1rem; right: 1rem;
+      cursor: pointer; font-size: 1.5rem;
+    }
+    #notifBell .badge {
+      font-size: 0.75rem; background: red; color: white;
+      border-radius: 50%; padding: 0 5px;
+      vertical-align: top; margin-left: 4px;
+    }
+    #clearNotifications {
+      display: none; margin: 0.5rem auto 0;
+      background: #f44336; color: white; border: none;
+      padding: 0.25rem 0.5rem; cursor: pointer;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
 
-  <!-- Header -->
-  <header class="bg-blue-600 text-white">
-    <div class="container mx-auto px-4 py-4 flex justify-center">
-      <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
-    </div>
-  </header>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <!-- Header مع أيقونة الجرس والعداد -->
+  <header class="relative bg-blue-600 text-white">
+  <div class="container mx-auto px-4 py-4 text-center">
+    <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
+  </div>
+  <div id="notifBell" style="position:absolute; top:1rem; right:1rem; cursor:pointer;">
+    🔔<span id="notifCount" class="badge" style="
+        font-size:0.75rem;
+        background:red;
+        color:white;
+        border-radius:50%;
+        padding:0 5px;
+        vertical-align:top;
+        margin-left:2px;
+      ">0</span>
+  </div>
+</header>
+
+<!-- لوحة الإشعارات المنسدلة -->
+<div id="notificationsPanel" style="
+     display:none;
+     position:absolute;
+     top:4rem; /* تحت الهيدر */
+     right:1rem;
+     width:300px;
+     max-height:400px;
+     overflow-y:auto;
+     background:#fff;
+     border:1px solid #ccc;
+     box-shadow:0 2px 6px rgba(0,0,0,0.2);
+     padding:0.5rem;
+     z-index:1000;
+">
+  <h3>📩 سجل الإشعارات</h3>
+  <ul id="notificationsLog" class="list-none p-0 m-0"></ul>
+  <button id="clearNotifications" style="
+      display:none;
+      margin-top:0.5rem;
+      background:#f44336;
+      color:white;
+      border:none;
+      padding:0.25rem 0.5rem;
+      cursor:pointer;
+    ">🗑️ مسح الإشعارات</button>
+</div>
 
   <!-- Main -->
   <main class="flex-grow container mx-auto px-4 py-8">
@@ -129,7 +190,7 @@
           <colgroup>
             <col class="w-20"> <!-- كود -->
             <col class="w-32"> <!-- اسم -->
-            <col class="w-32"> <!-- حالة -->
+            <col class="w-40"> <!-- حالة -->
             <col class="w-28"> <!-- تاريخ -->
             <col class="w-20"> <!-- دخول -->
             <col class="w-20"> <!-- خروج -->
@@ -137,7 +198,7 @@
             <col class="w-24"> <!-- ساعية إلى -->
             <col class="w-24"> <!-- مهمة من -->
             <col class="w-24"> <!-- مهمة إلى -->
-            <col class="w-32"> <!-- عدد الأيام -->
+            <col class="w-32"> <!-- عدد الأيام المحتسبة بتقرير الساعيات أوالتأخر أقل من ساعة -->
             <col class="w-40"> <!-- ملاحظات -->
           </colgroup>
           <thead class="bg-gray-50 text-gray-700 text-sm">
@@ -152,7 +213,7 @@
               <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
               <th class="border px-4 py-2">مهمة (من الساعة)</th>
               <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
-              <th class="border px-4 py-2">عدد الأيام</th>
+              <th class="border px-4 py-2">عدد الأيام المحتسبة بتقرير الساعيات أوالتأخر أقل من ساعة</th>
               <th class="border px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
@@ -195,18 +256,26 @@
 
     </section>
   </main>
-
+ 
   <!-- Scripts -->
 
 <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('✅ SW registered:', reg.scope))
-      .catch(err => console.warn('❌ SW register failed', err));
-  }
-</script>
-<script src="/js/push.js" defer></script>
-<script src="/js/app.js"  defer></script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(r => console.log('✅ SW registered:', r.scope))
+        .catch(e => console.warn('❌ SW register failed', e));
+    }
+  </script>
 
+  <!-- سكربتات الإشعارات وفاقتها -->
+ <script src="/js/notifications.js"></script>
+<script src="/js/push.js" type="module"></script>
+<script src="/js/app.js"  type="module"></script>
+<script>
+  // بعد تحميل الـ DOM: شغّل لوحة الإشعارات (حتى قبل تسجيل الدخول تُظهر العداد)
+  document.addEventListener('DOMContentLoaded', () => {
+    window.initNotifications?.();
+  });
+</script>
 </body>
 </html>
