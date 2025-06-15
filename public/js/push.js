@@ -76,4 +76,8 @@ async function initPush() {
     console.error('❌ initPush error:', err);
   }
 }
+<<<<<<< HEAD
 window.initPush = initPush;
+=======
+window.initPush = initPush;
+>>>>>>> 14278bbae2167215013fc0e26d7b845248f2a020
