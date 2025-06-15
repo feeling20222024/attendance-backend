@@ -1,0 +1,48 @@
+// public/js/notifications.js
+
+window.initNotifications = function() {
+  const bell   = document.getElementById('notifBell');
+  const panel  = document.getElementById('notificationsPanel');
+  const ul     = document.getElementById('notificationsLog');
+  const count  = document.getElementById('notifCount');
+  const clearB = document.getElementById('clearNotifications');
+
+  function render() {
+    const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
+    ul.innerHTML = '';
+    saved.forEach(n => {
+      const li = document.createElement('li');
+      li.style.padding = '0.5rem 0';
+      li.innerHTML = `
+        <strong>${n.title}</strong><br>
+        ${n.body}<br>
+        <small>📅 ${n.time}</small>
+        <hr style="margin:0.5rem 0">
+      `;
+      ul.appendChild(li);
+    });
+    count.textContent = saved.length;
+  }
+
+  // عند الضغط على الجرس
+  bell.addEventListener('click', () => {
+    if (!window.currentUser) return;
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    if (panel.style.display === 'block') {
+      count.textContent = '0'; // تصفير العداد عند الفتح
+    }
+  });
+
+  // زر المسح للمشرف
+  if (window.currentUser === '35190') {
+    clearB.style.display = 'block';
+    clearB.addEventListener('click', () => {
+      if (confirm('مسح جميع الإشعارات؟')) {
+        localStorage.removeItem('notifications');
+        render();
+      }
+    });
+  }
+
+  render();
+};
