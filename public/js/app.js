@@ -1,7 +1,7 @@
 // —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
-const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
 
@@ -32,18 +32,24 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
-    alert('فكرة وإعداد وتصميم عمر عوني الماضي – دائرة الموارد البشرية – اتصالات دمشق');
+    alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
 
-  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات
+  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات + تهيئة الإشعارات
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    fetchAndRender().catch(logout);
+    // currentUser أيضاً من localStorage إن أردت تخزينه هناك
+    fetchAndRender().then(() => {
+      if (typeof window.initNotifications === 'function') {
+        window.initNotifications();
+      }
+    }).catch(logout);
   }
 });
 
 // —————————————————————————————————————————
+// ——————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
@@ -55,13 +61,12 @@ async function login() {
     return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
-  // نحتفظ برسالة الخطأ الأصلية لأغراض الديباغ
   let loginResponse;
   try {
     // 1) طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type':'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, pass })
     });
     if (res.status === 401) {
@@ -81,29 +86,27 @@ async function login() {
     window.currentUser = currentUser;
     console.log('✅ login successful, currentUser =', currentUser);
 
+    // 4) تهيئة Push
     console.log('🚀 calling initPush()…');
     if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
       await initNativePush();
     } else {
-      await window.initPush();
+      await initPush();
     }
 
-  } catch (e) {
-    // هنا فقط نعرض أي خطأ وقع أثناء المصادقة أو initPush
-    console.error('❌ login error:', e);
-    return alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
-  }
+    // 5) تهيئة لوحة الإشعارات
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
 
-  // 4) إذا نجح تسجيل الدخول، نحاول جلب وعرض البيانات
-  try {
+    // 6) جلب وعرض البيانات
     await fetchAndRender();
   } catch (e) {
-    console.error('❌ fetchAndRender error:', e);
-    alert('لا يمكن تحميل البيانات حالياً: ' + e.message);
-    // إذا أردت، يمكنك هنا إعادة تسجيل الخروج أو إبقاء المستخدم في الواجهة
-    // logout();
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
 }
+
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
