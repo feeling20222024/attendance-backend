@@ -190,7 +190,7 @@
           <colgroup>
             <col class="w-20"> <!-- كود -->
             <col class="w-32"> <!-- اسم -->
-            <col class="w-40"> <!-- حالة -->
+            <col class="w-32"> <!-- حالة -->
             <col class="w-28"> <!-- تاريخ -->
             <col class="w-20"> <!-- دخول -->
             <col class="w-20"> <!-- خروج -->
@@ -198,7 +198,7 @@
             <col class="w-24"> <!-- ساعية إلى -->
             <col class="w-24"> <!-- مهمة من -->
             <col class="w-24"> <!-- مهمة إلى -->
-            <col class="w-32"> <!-- عدد الأيام المحتسبة بتقرير الساعيات أوالتأخر أقل من ساعة -->
+            <col class="w-32"> <!-- عدد الأيام -->
             <col class="w-40"> <!-- ملاحظات -->
           </colgroup>
           <thead class="bg-gray-50 text-gray-700 text-sm">
@@ -213,7 +213,7 @@
               <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
               <th class="border px-4 py-2">مهمة (من الساعة)</th>
               <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
-              <th class="border px-4 py-2">عدد الأيام المحتسبة بتقرير الساعيات أوالتأخر أقل من ساعة</th>
+              <th class="border px-4 py-2">عدد الأيام</th>
               <th class="border px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
@@ -259,6 +259,8 @@
  
   <!-- Scripts -->
 
+<<!-- Scripts -->
+
 <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
@@ -268,13 +270,12 @@
   </script>
 
   <!-- سكربتات الإشعارات وفاقتها -->
- <script src="/js/notifications.js"></script>
-<script src="/js/push.js" type="module"></script>
-<script src="/js/app.js"  type="module"></script>
+<script src="/js/notifications.js"></script>
+<script type="module" src="/js/push.js"></script>
+<script type="module" src="/js/app.js"></script>
 <script>
-  // بعد تحميل الـ DOM: شغّل لوحة الإشعارات (حتى قبل تسجيل الدخول تُظهر العداد)
   document.addEventListener('DOMContentLoaded', () => {
-    window.initNotifications?.();
+    window.initNotifications();
   });
 </script>
 </body>
