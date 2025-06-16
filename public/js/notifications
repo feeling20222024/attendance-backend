@@ -1,5 +1,6 @@
-// public/js/notifications.js
-
+// —————————————————————————————————————————
+// دالة تهيئة واجهة لوحة الإشعارات
+// —————————————————————————————————————————
 window.initNotifications = function() {
   const bell   = document.getElementById('notifBell');
   const panel  = document.getElementById('notificationsPanel');
@@ -7,6 +8,7 @@ window.initNotifications = function() {
   const count  = document.getElementById('notifCount');
   const clearB = document.getElementById('clearNotifications');
 
+  // إعادة عرض الإشعارات المخزّنة
   function render() {
     const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
     ul.innerHTML = '';
@@ -24,25 +26,30 @@ window.initNotifications = function() {
     count.textContent = saved.length;
   }
 
-  // عند الضغط على الجرس
+  // فتح/غلق اللوحة عند الضغط على الجرس (مُتاح بعد login)
   bell.addEventListener('click', () => {
-    if (!window.currentUser) return;
+    if (!window.currentUser) return;      // لا يفتح قبل login
     panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    // عند الفتح، لا نحذف سجل الإشعارات، لكن نصفر العداد
     if (panel.style.display === 'block') {
-      count.textContent = '0'; // تصفير العداد عند الفتح
+      count.textContent = '0';
     }
   });
 
-  // زر المسح للمشرف
+  // زر المسح يظهر فقط للمشرف
   if (window.currentUser === '35190') {
     clearB.style.display = 'block';
     clearB.addEventListener('click', () => {
-      if (confirm('مسح جميع الإشعارات؟')) {
+      if (confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) {
         localStorage.removeItem('notifications');
         render();
+        alert('✅ تم مسح الإشعارات بنجاح');
       }
     });
+  } else {
+    clearB.style.display = 'none';
   }
 
+  // في كل مرة تُستدعى initNotifications، أعد العرض
   render();
 };
