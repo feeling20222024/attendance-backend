@@ -313,5 +313,3 @@ function logout() {
   );
   document.getElementById('loginSection').classList.remove('hidden');
 }
-
-
