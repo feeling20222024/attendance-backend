@@ -34,15 +34,17 @@ try {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
-
 /* —————————————————————————————————————————————————————————————
-   4) دالة لإرسال إشعار FCM إلى توكن معيّن
+   4) دالة لإرسال إشعار FCM إلى توكن معيّن (باستخدام data فقط)
    ————————————————————————————————————————————————————————————— */
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
-    notification: { title, body },
-    data
+    data: {
+      title,
+      body,
+      ...data
+    }
   };
   try {
     const resp = await admin.messaging().send(message);
