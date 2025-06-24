@@ -40,11 +40,19 @@ admin.initializeApp({
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
-    data: {
+    notification: {
       title,
-      body,
-      ...data
-    }
+      body
+    },
+    android: {
+      priority: 'high',
+      notification: {
+        android_channel_id: 'default', // → نفس الـ id اللذي أنشأته في setupChannels
+        sound: 'default',
+        vibrate_timings: [100,200,100]
+      }
+    },
+    data // إذا كان لديك حقول إضافية
   };
   try {
     const resp = await admin.messaging().send(message);
@@ -53,7 +61,6 @@ async function sendPushTo(token, title, body, data = {}) {
     console.error(`❌ فشل الإرسال إلى ${token}:`, err);
   }
 }
-
 /* —————————————————————————————————————————————————————————————
    5) تهيئة Express
    ————————————————————————————————————————————————————————————— */
