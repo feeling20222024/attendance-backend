@@ -35,7 +35,8 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 /* —————————————————————————————————————————————————————————————
-   4) دالة لإرسال إشعار FCM إلى توكن معيّن (باستخدام data فقط)
+/* —————————————————————————————————————————————————————————————
+   4) دالة لإرسال إشعار FCM إلى توكن معيّن (مع android_channel_id + sound + vibrate)
    ————————————————————————————————————————————————————————————— */
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
@@ -47,13 +48,14 @@ async function sendPushTo(token, title, body, data = {}) {
     android: {
       priority: 'high',
       notification: {
-        android_channel_id: 'default', // → نفس الـ id اللذي أنشأته في setupChannels
-        sound: 'default',
-        vibrate_timings: [100,200,100]
+        android_channel_id: 'default', // ← نفس الـ id الذي أنشأته في setupChannels()
+        sound:             'default',  // لتشغيل الصوت الافتراضي
+        vibrate_timings:   [100, 200, 100]
       }
     },
-    data // إذا كان لديك حقول إضافية
+    data  // إذا كان لديك بيانات إضافية تريد إرسالها
   };
+
   try {
     const resp = await admin.messaging().send(message);
     console.log(`✅ تم الإرسال إلى ${token}: ${resp}`);
