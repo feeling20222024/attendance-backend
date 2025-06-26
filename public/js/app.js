@@ -29,24 +29,28 @@ function normalizeDigits(str) {
 // DOMContentLoaded: ربط الأزرار
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
+  // 1) شغّل فقط المسار المناسب للمنصة:
+  if (Capacitor.getPlatform() === 'web') {
+    window.initNotifications?.();
+  } else {
+    initPushNative?.();
+  }
+
+  // 2) ثم اربط الأزرار:
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
 
-  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات + تهيئة الإشعارات
+  // 3) واسترجع التوكين إذا كان محفوظاً:
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    // currentUser أيضاً من localStorage إن أردت تخزينه هناك
-    fetchAndRender().then(() => {
-      if (typeof window.initNotifications === 'function') {
-        window.initNotifications();
-      }
-    }).catch(logout);
+    fetchAndRender().catch(logout);
   }
 });
+
 
 // —————————————————————————————————————————
 // ——————————————————————————————
@@ -93,12 +97,6 @@ async function login() {
     } else {
       await initPush();
     }
-
-    // 5) تهيئة لوحة الإشعارات
-    if (typeof window.initNotifications === 'function') {
-      window.initNotifications();
-    }
-
     // 6) جلب وعرض البيانات
     await fetchAndRender();
   } catch (e) {
