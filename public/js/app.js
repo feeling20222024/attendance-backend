@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-
 // —————————————————————————————————————————
 // ——————————————————————————————
 // 2) دالة تسجيل الدخول
@@ -94,6 +93,12 @@ async function login() {
     } else {
       await initPush();
     }
+
+    // 5) تهيئة لوحة الإشعارات
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
+
     // 6) جلب وعرض البيانات
     await fetchAndRender();
   } catch (e) {
