@@ -1,1 +1,71 @@
-function _0x1250(){const _0x4aa45f=['notifications','8045jVRPNv','1356EbKlCP','initPush','toLocaleString','/firebase-messaging-sw.js','BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ','application/json','parse','24093RgFTIE','currentUser','532860FKLUkK','AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y','initNotifications','235398312189','initializeApp','/register-token','device-streaming-47cbe934','stringify','getToken','register','❌\x20currentUser\x20غير\x20معرف،\x20لم\x20يُرسل\x20التوكن\x20للخادم','error','warn','granted','notification','1:235398312189:web:8febe5e63f7b134b808e94','POST','serviceWorker','setItem','length','addNotification','messaging','❌\x20المستخدم\x20لم\x20يمنح\x20إذن\x20الإشعارات','560uxdetB','8IJtbwG','502572xKGMgW','https://dwam-app-by-omar.onrender.com/api','function','getItem','✅\x20Service\x20Worker\x20for\x20Firebase\x20registered:','log','184242WdKvAa','575506uzEywz','2hSaLrD','onMessage','14230887VabMaT'];_0x1250=function(){return _0x4aa45f;};return _0x1250();}function _0x1b2c(_0x1b6e07,_0x2bee9f){const _0x12503b=_0x1250();return _0x1b2c=function(_0x1b2c34,_0x4679b6){_0x1b2c34=_0x1b2c34-0x11d;let _0x550993=_0x12503b[_0x1b2c34];return _0x550993;},_0x1b2c(_0x1b6e07,_0x2bee9f);}const _0x377bfd=_0x1b2c;(function(_0x4ec72c,_0x1ce98e){const _0xcfa712=_0x1b2c,_0xf836d3=_0x4ec72c();while(!![]){try{const _0x32cbf2=-parseInt(_0xcfa712(0x13a))/0x1*(parseInt(_0xcfa712(0x13b))/0x2)+parseInt(_0xcfa712(0x139))/0x3*(-parseInt(_0xcfa712(0x132))/0x4)+parseInt(_0xcfa712(0x13f))/0x5*(-parseInt(_0xcfa712(0x140))/0x6)+-parseInt(_0xcfa712(0x133))/0x7+-parseInt(_0xcfa712(0x131))/0x8*(-parseInt(_0xcfa712(0x147))/0x9)+-parseInt(_0xcfa712(0x149))/0xa+parseInt(_0xcfa712(0x13d))/0xb;if(_0x32cbf2===_0x1ce98e)break;else _0xf836d3['push'](_0xf836d3['shift']());}catch(_0x1e450e){_0xf836d3['push'](_0xf836d3['shift']());}}}(_0x1250,0x47ca9));const API_BASE=_0x377bfd(0x134),firebaseConfig={'apiKey':_0x377bfd(0x14a),'authDomain':'device-streaming-47cbe934.firebaseapp.com','projectId':_0x377bfd(0x120),'storageBucket':'device-streaming-47cbe934.appspot.com','messagingSenderId':_0x377bfd(0x11d),'appId':_0x377bfd(0x129)},VAPID_PUBLIC_KEY=_0x377bfd(0x144);window[_0x377bfd(0x12e)]=({title:_0x4ed028,body:_0x59646a,time:_0x2be074})=>{const _0x364c70=_0x377bfd,_0x2f042a=JSON[_0x364c70(0x146)](localStorage[_0x364c70(0x136)](_0x364c70(0x13e))||'[]');_0x2f042a['unshift']({'title':_0x4ed028,'body':_0x59646a,'time':_0x2be074}),localStorage[_0x364c70(0x12c)]('notifications',JSON[_0x364c70(0x121)](_0x2f042a)),typeof window['initNotifications']===_0x364c70(0x135)&&window[_0x364c70(0x14b)]();};async function initPush(){const _0x187e3a=_0x377bfd;try{const _0x1c61f1=await navigator[_0x187e3a(0x12b)][_0x187e3a(0x123)](_0x187e3a(0x143));console[_0x187e3a(0x138)](_0x187e3a(0x137),_0x1c61f1['scope']);!firebase['apps'][_0x187e3a(0x12d)]&&firebase[_0x187e3a(0x11e)](firebaseConfig);const _0x32d974=firebase[_0x187e3a(0x12f)](),_0x593296=await Notification['requestPermission']();if(_0x593296!==_0x187e3a(0x127)){console[_0x187e3a(0x126)](_0x187e3a(0x130));return;}const _0x2538e7=await _0x32d974[_0x187e3a(0x122)]({'vapidKey':VAPID_PUBLIC_KEY,'serviceWorkerRegistration':_0x1c61f1});if(!_0x2538e7){console[_0x187e3a(0x126)]('❌\x20لم\x20يتمكّن\x20من\x20الحصول\x20على\x20FCM\x20token');return;}console['log']('✅\x20FCM\x20Registration\x20Token\x20obtained:',_0x2538e7),window[_0x187e3a(0x148)]?(await fetch(API_BASE+_0x187e3a(0x11f),{'method':_0x187e3a(0x12a),'headers':{'Content-Type':_0x187e3a(0x145)},'body':JSON[_0x187e3a(0x121)]({'user':window[_0x187e3a(0x148)],'token':_0x2538e7})}),console[_0x187e3a(0x138)]('✅\x20تم\x20تسجيل\x20توكن\x20FCM\x20بنجاح\x20على\x20الخادم')):console['warn'](_0x187e3a(0x124)),_0x32d974[_0x187e3a(0x13c)](_0x9eeeed=>{const _0x27fbbf=_0x187e3a,{title:_0x350f55,body:_0x3eef04}=_0x9eeeed[_0x27fbbf(0x128)]||{};if(!_0x350f55)return;new Notification(_0x350f55,{'body':_0x3eef04});const _0x25185f=new Date()[_0x27fbbf(0x142)]();window['addNotification']({'title':_0x350f55,'body':_0x3eef04,'time':_0x25185f});});}catch(_0x4af154){console[_0x187e3a(0x125)]('❌\x20خطأ\x20أثناء\x20تهيئة\x20الإشعارات\x20(initPush):',_0x4af154);}}window[_0x377bfd(0x141)]=initPush;
+// push.js
+
+// —————————————————————————————————————————
+// 1) نقطة النهاية للـ API
+// —————————————————————————————————————————
+const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
+
+// —————————————————————————————————————————
+// 2) إعدادات Firebase (مطابقة firebase-messaging-sw.js)
+// —————————————————————————————————————————
+const firebaseConfig = {
+  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
+  projectId:        "device-streaming-47cbe934",
+  storageBucket:    "device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
+};
+const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
+
+// —————————————————————————————————————————
+// 3) دالة تخزين الإشعار وتحديث اللوحة
+// —————————————————————————————————————————
+window.addNotification = ({ title, body, time }) => {
+  const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
+  saved.unshift({ title, body, time });
+  localStorage.setItem('notifications', JSON.stringify(saved));
+};
+
+export async function initPushNative() {
+  const { PushNotifications } = Capacitor.Plugins;
+  if (!PushNotifications) return;
+
+  // طلب الأذونات
+  const perm = await PushNotifications.requestPermissions();
+  if (perm.receive !== 'granted') return;
+
+  // تسجيل الجهاز
+  await PushNotifications.register();
+
+  // مستمع تسجيل التوكن
+  PushNotifications.addListener('registration', ({ value }) => {
+    console.log('✅ Native token:', value);
+    if (window.currentUser) {
+      fetch(`${API_BASE}/register-token`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ user: window.currentUser, token: value })
+      }).catch(console.error);
+    }
+  });
+
+  // مستمع استقبال الإشعار في الـ foreground
+  PushNotifications.addListener('pushNotificationReceived', notif => {
+    console.log('📩 pushReceived (native):', notif);
+    // عرض banner محلي
+    if (Notification.permission === 'granted') {
+      new Notification(notif.title, { body: notif.body });
+    }
+    window.addNotification({
+      title: notif.title,
+      body: notif.body,
+      time: new Date().toLocaleString()
+    });
+  });
+
+  // مستمع عند النقر على الإشعار
+  PushNotifications.addListener('pushNotificationActionPerformed', action => {
+    console.log('➡️ Native action:', action);
+  });
+}
