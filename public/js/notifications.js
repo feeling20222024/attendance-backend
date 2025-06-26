@@ -53,4 +53,3 @@ window.initNotifications = function() {
   // في كل مرة تُستدعى initNotifications، أعد العرض
   render();
 };
-
