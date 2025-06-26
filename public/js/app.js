@@ -7,6 +7,7 @@ const SUPERVISOR_CODE = '35190';
 
 let headersAtt      = [], attendanceData = [];
 let headersHw       = [], hwafezData     = [];
+let headersTq       = [], tqeemData      = [];
 let currentUser     = null;
 let jwtToken        = null;
 
@@ -260,7 +261,42 @@ async function showHwafez() {
       `;
       tbody.appendChild(tr);
     });
+      async function showTqeem() {
+  try {
+    const res = await fetch(`${API_BASE}/tqeem`, {
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwtToken}` }
+    });
+    if (!res.ok) throw new Error('فشل جلب بيانات التقييم السنوي');
+    const { headers, data } = await res.json();
+    headersTq = headers;
+    tqeemData = data;
 
+    document.getElementById('tqeemSection').classList.remove('hidden');
+    const tbody = document.getElementById('tqeemBody');
+    tbody.innerHTML = '';
+
+    if (data.length === 0) {
+      document.getElementById('noTqeemMsg').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('noTqeemMsg').classList.add('hidden');
+
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('اتقان العمل وفعاليته')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('المهارات القيادية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('مهارة الإدارة الذاتية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('مهارات التواصل والتفاعل')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('المبادرة والتطوير الذاتي')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الإستقلال والموثوقية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الإلتزام والمسؤولية')] || ''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
     document.getElementById('noHwafezMsg')
       .classList.toggle('hidden', hwafezData.length > 0);
     document.getElementById('hwafezSection')
