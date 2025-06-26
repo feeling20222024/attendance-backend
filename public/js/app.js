@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('aboutBtn').onclick  = () =>
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
+  document.getElementById('tqeemBtn').onclick  = showTqeem;
 
   // إذا كان هناك JWT محفوظ، نحاول جلب البيانات + تهيئة الإشعارات
   const saved = localStorage.getItem('jwtToken');
