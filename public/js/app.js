@@ -29,22 +29,25 @@ function normalizeDigits(str) {
 // DOMContentLoaded: ربط الأزرار
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('loginBtn').onclick  = login;
+  // فقط استدعِ Web-FCM على الويب، و Native على الجوال:
+  if (Capacitor.getPlatform() === 'web') {
+    window.initNotifications?.();
+  } else {
+    initPushNative?.();
+  }
+
+  // ربط أزرار الواجهة (كما كان لديك)
+  document.getElementById('loginBtn').onclick = login;
   document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('aboutBtn').onclick  = () =>
+  document.getElementById('aboutBtn').onclick = () =>
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
 
-  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات + تهيئة الإشعارات
+  // استعادة التوكن إن وجد
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    // currentUser أيضاً من localStorage إن أردت تخزينه هناك
-    fetchAndRender().then(() => {
-      if (typeof window.initNotifications === 'function') {
-        window.initNotifications();
-      }
-    }).catch(logout);
+    fetchAndRender().catch(logout);
   }
 });
 
