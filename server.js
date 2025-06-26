@@ -209,7 +209,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 /* —————————————————————————————————————————————————————————————
    12) الحوافز
    ————————————————————————————————————————————————————————————— */
-app.get('/api/hwafez', authenticate, async (req, res) => {
+('/apiapp.get/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
     const idx    = headers.indexOf('رقم الموظف');
@@ -224,8 +224,27 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
   }
 });
 
+   13) التقييم السنوي
+   ————————————————————————————————————————————————————————————— */
+('/apiapp.get/tqeem', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('tqeem');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    return res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+
+
 /* —————————————————————————————————————————————————————————————
-   13) تسجيل توكن FCM
+   14) تسجيل توكن FCM
    ————————————————————————————————————————————————————————————— */
 const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
@@ -239,7 +258,7 @@ app.post('/api/register-token', (req, res) => {
 });
 
 /* —————————————————————————————————————————————————————————————
-   14) إرسال إشعارات لجميع التوكنات (للمشرف فقط)
+   15) إرسال إشعارات لجميع التوكنات (للمشرف فقط)
    ————————————————————————————————————————————————————————————— */
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
@@ -270,7 +289,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
 });
 
 /* —————————————————————————————————————————————————————————————
-   15) SPA fallback & تشغيل الخادم
+   16) SPA fallback & تشغيل الخادم
    ————————————————————————————————————————————————————————————— */
 app.get(/.*/, (_, r) =>
   r.sendFile(path.join(__dirname, 'public', 'index.html'))
