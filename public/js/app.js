@@ -1,15 +1,14 @@
-// —————————————————————————————————————————
-// 1) إعداد نقاط النهاية والمتغيرات العامة
-// —————————————————————————————————————————
+"use strict";
+
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT  = `${API_BASE}/login`;
+const LOGIN_ENDPOINT = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
-
-let headersAtt      = [], attendanceData = [];
-let headersHw       = [], hwafezData     = [];
-let currentUser     = null;
-let jwtToken        = null;
-
+let headersAtt = [],
+  attendanceData = [];
+let headersHw = [],
+  hwafezData = [];
+let currentUser = null;
+let jwtToken = null;
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
   '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
@@ -17,29 +16,23 @@ const caseMapping = {
   '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
   '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
 };
-
-// —————————————————————————————————————————
-// Helper: تطبيع أرقام عربية → غربية
-// —————————————————————————————————————————
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
-
-// —————————————————————————————————————————
-// DOMContentLoaded: ربط الأزرار
-// —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('loginBtn').onclick  = login;
+  if (typeof window.initNotifications === 'function') {
+    window.initNotifications();
+  }
+  if (typeof initPushNative === 'function') {
+    initPushNative();
+  }
+  document.getElementById('loginBtn').onclick = login;
   document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('aboutBtn').onclick  = () =>
-    alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
+  document.getElementById('aboutBtn').onclick = () => alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
-
-  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات + تهيئة الإشعارات
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    // currentUser أيضاً من localStorage إن أردت تخزينه هناك
     fetchAndRender().then(() => {
       if (typeof window.initNotifications === 'function') {
         window.initNotifications();
@@ -47,66 +40,110 @@ document.addEventListener('DOMContentLoaded', () => {
     }).catch(logout);
   }
 });
-
-// —————————————————————————————————————————
-// ——————————————————————————————
-// 2) دالة تسجيل الدخول
-// —————————————————————————————————————————
+async function setupChannels() {
+  const PushNotifications = Capacitor.Plugins.PushNotifications;
+  if (!PushNotifications || Capacitor.getPlatform() === 'web') return;
+  try {
+    await PushNotifications.createChannel({
+      id: 'default',
+      name: 'الإشعارات الرئيسية',
+      importance: 5,
+      description: 'القناة الأساسية لإشعارات التطبيق',
+      vibrationPattern: [100, 200, 100],
+      sound: 'default'
+    });
+    console.log('🔔 قناة default أنشئت مع صوت وهزة');
+  } catch (err) {
+    console.warn('⚠️ فشل إنشاء القناة:', err);
+  }
+}
 async function login() {
-  const code = normalizeDigits(
-    document.getElementById('codeInput').value.trim()
-  );
+  const code = normalizeDigits(document.getElementById('codeInput').value.trim());
   const pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
-    return alert('يرجى إدخال الكود وكلمة المرور.');
+    alert('يرجى إدخال الكود وكلمة المرور.');
+    return;
   }
-
-  let loginResponse;
   try {
-    // 1) طلب المصادقة
+    var _user$code;
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, pass })
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        code,
+        pass
+      })
     });
     if (res.status === 401) {
-      return alert('بيانات الدخول خاطئة');
+      alert('بيانات الدخول خاطئة');
+      return;
     }
     if (!res.ok) {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
-
-    // 2) استلام التوكن
-    loginResponse = await res.json();
-    jwtToken = loginResponse.token;
+    const {
+      token,
+      user
+    } = await res.json();
+    jwtToken = token;
     localStorage.setItem('jwtToken', jwtToken);
-
-    // 3) currentUser وتهيئة الإشعارات
-    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+    currentUser = (_user$code = user.code) !== null && _user$code !== void 0 ? _user$code : user['كود الموظف'];
     window.currentUser = currentUser;
     console.log('✅ login successful, currentUser =', currentUser);
-
-    // 4) تهيئة Push
-    console.log('🚀 calling initPush()…');
-    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-      await initNativePush();
-    } else {
-      await initPush();
+    console.log('⚙️ setupChannels…');
+    await setupChannels();
+    console.log('⚙️ setupChannels done');
+    const {
+      PushNotifications
+    } = Capacitor.Plugins;
+    if (PushNotifications) {
+      console.log('⚙️ requesting permissions…');
+      const perm = await PushNotifications.requestPermissions();
+      console.log('⚙️ permission result:', perm);
+      if (perm.receive === 'granted') {
+        await PushNotifications.register();
+      }
+      PushNotifications.addListener('registration', _ref => {
+        let {
+          value
+        } = _ref;
+        console.log('✅ Native Push Token:', value);
+        fetch(`${API_BASE}/register-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwtToken}`
+          },
+          body: JSON.stringify({
+            user: currentUser,
+            token: value
+          })
+        }).then(() => console.log('🔸 token sent to server')).catch(console.error);
+      });
+      PushNotifications.addListener('pushNotificationReceived', notif => {
+        console.log('📩 Push Received:', notif);
+        const now = new Date().toLocaleString();
+        window.addNotification({
+          title: notif.title,
+          body: notif.body,
+          time: now
+        });
+      });
+      PushNotifications.addListener('pushNotificationActionPerformed', action => {
+        console.log('➡️ Push Action:', action);
+      });
     }
-
-    // 5) تهيئة لوحة الإشعارات
+    await fetchAndRender();
     if (typeof window.initNotifications === 'function') {
       window.initNotifications();
     }
-
-    // 6) جلب وعرض البيانات
-    await fetchAndRender();
   } catch (e) {
     console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+    alert('حدث خطأ أثناء تسجيل الدخول أو تهيئة الإشعارات: ' + e.message);
   }
 }
-
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
