@@ -209,7 +209,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 /* —————————————————————————————————————————————————————————————
    12) الحوافز
    ————————————————————————————————————————————————————————————— */
-('/apiapp.get/hwafez', authenticate, async (req, res) => {
+app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
     const idx    = headers.indexOf('رقم الموظف');
@@ -228,7 +228,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
    ————————————————————————————————————————————————————————————— */
 app.get('/api/tqeem', authenticate, async (req, res) => {
   try {
-    const { headers, data } = await readSheet('tqeem');  // اسم الشيت كما هو في Google Sheets
+    const { headers, data } = await readSheet('tqeem');
     const idx    = headers.indexOf('رقم الموظف');
     const target = normalizeDigits(String(req.user.code).trim());
     const filtered = data.filter(r =>
@@ -236,10 +236,11 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
     );
     return res.json({ headers, data: filtered });
   } catch (e) {
-    console.error('❌ showTqeem server error:', e);
+    console.error(e);
     return res.status(500).json({ error: e.message });
   }
 });
+
 
 
 
