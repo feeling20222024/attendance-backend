@@ -299,7 +299,7 @@ async function showTqeem() {
     // إذا أتى الرد HTML بدلاً من JSON
     if (!res.ok || !contentType.includes('application/json')) {
       console.warn('🚧 showTqeem: expected JSON, got', contentType);
-      alert('عذراً، خدمة التقييم السنوي غير متاحة حالياً. الرجاء المحاولة لاحقاً.');
+      alert('البيانات غير متوفرة حالياً وسيتم إضافتها قريباً.');
       return;
     }
 
