@@ -64,49 +64,43 @@ async function sendPushTo(token, title, body, data = {}) {
   }
 }
 
-   12) الحوافز
-   ————————————————————————————————————————————————————————————— */
-app.get('/api/hwafez', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('hwafez');
-    const idx    = headers.indexOf('رقم الموظف');
-    const target = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits(String(r[idx] ?? '').trim()) === target
-    );
-    return res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: e.message });
-  }
-});
 
-   13) التقييم السنوي
-   ————————————————————————————————————————————————————————————— */
-app.get('/api/tqeem', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('tqeem');
-    const idx    = headers.indexOf('رقم الموظف');
-    const target = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits(String(r[idx] ?? '').trim()) === target
-    );
-    return res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-
-/* —————————————————————————————————————————————————————————————
-   5) تهيئة Express
-   ————————————————————————————————————————————————————————————— */
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 12) الحوافز
+app.get('/api/hwafez', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('hwafez');
+    const idx = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 13) التقييم السنوي
+app.get('/api/tqeem', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('tqeem');
+    const idx = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
 /* —————————————————————————————————————————————————————————————
    6) قراءة متغيّرات البيئة الأساسية
    ————————————————————————————————————————————————————————————— */
@@ -291,11 +285,11 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
 /* —————————————————————————————————————————————————————————————
    16) SPA fallback & تشغيل الخادم
    ————————————————————————————————————————————————————————————— */
-app.get(/.*/, (_, r) =>
-  r.sendFile(path.join(__dirname, 'public', 'index.html'))
+app.get(/.*/, (_, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
-});
+});   
