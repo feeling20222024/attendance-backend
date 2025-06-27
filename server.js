@@ -226,9 +226,9 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 
    13) التقييم السنوي
    ————————————————————————————————————————————————————————————— */
-('/apiapp.get/tqeem', authenticate, async (req, res) => {
+app.get('/api/tqeem', authenticate, async (req, res) => {
   try {
-    const { headers, data } = await readSheet('tqeem');
+    const { headers, data } = await readSheet('tqeem');  // اسم الشيت كما هو في Google Sheets
     const idx    = headers.indexOf('رقم الموظف');
     const target = normalizeDigits(String(req.user.code).trim());
     const filtered = data.filter(r =>
@@ -236,7 +236,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     );
     return res.json({ headers, data: filtered });
   } catch (e) {
-    console.error(e);
+    console.error('❌ showTqeem server error:', e);
     return res.status(500).json({ error: e.message });
   }
 });
