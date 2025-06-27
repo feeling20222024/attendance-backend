@@ -63,6 +63,42 @@ async function sendPushTo(token, title, body, data = {}) {
     console.error(`❌ فشل الإرسال إلى ${token}:`, err);
   }
 }
+
+   12) الحوافز
+   ————————————————————————————————————————————————————————————— */
+app.get('/api/hwafez', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('hwafez');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    return res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+   13) التقييم السنوي
+   ————————————————————————————————————————————————————————————— */
+app.get('/api/tqeem', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('tqeem');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    return res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+
 /* —————————————————————————————————————————————————————————————
    5) تهيئة Express
    ————————————————————————————————————————————————————————————— */
@@ -205,43 +241,6 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 });
-
-/* —————————————————————————————————————————————————————————————
-   12) الحوافز
-   ————————————————————————————————————————————————————————————— */
-app.get('/api/hwafez', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('hwafez');
-    const idx    = headers.indexOf('رقم الموظف');
-    const target = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits(String(r[idx] ?? '').trim()) === target
-    );
-    return res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-   13) التقييم السنوي
-   ————————————————————————————————————————————————————————————— */
-app.get('/api/tqeem', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('tqeem');
-    const idx    = headers.indexOf('رقم الموظف');
-    const target = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits(String(r[idx] ?? '').trim()) === target
-    );
-    return res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: e.message });
-  }
-});
-
-
 
 
 /* —————————————————————————————————————————————————————————————
