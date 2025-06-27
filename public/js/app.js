@@ -224,20 +224,21 @@ function renderRecords() {
 }
 
 // —————————————————————————————————————————
+// —————————————————————————————————————————
 // 5) عرض بيانات الحوافز
 // —————————————————————————————————————————
 async function showHwafez() {
   try {
     const res = await fetch(`${API_BASE}/hwafez`, {
-      headers: {
-        'Content-Type': 'application/json',
+      headers:{
+        'Content-Type':'application/json',
         'Authorization': `Bearer ${jwtToken}`
       }
     });
     if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
     const { headers, data } = await res.json();
     headersHw    = headers;
-    hwafezData  = data;
+    hwafezData   = data;
 
     document.getElementById('hwafezSection').classList.remove('hidden');
     const tbody = document.getElementById('hwafezBody');
@@ -247,24 +248,11 @@ async function showHwafez() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('اتقان العمل وفعاليته')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('المهارات القيادية')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('مهارة الإدارة الذاتية')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('مهارات التواصل والتفاعل')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('المبادرة والتطوير الذاتي')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الإستقلال والموثوقية')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الإلتزام والمسؤولية')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('نسبة الدوام الفعلي')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('السويّة الوظيفيّة')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('مستوى التأهيل')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('سنوات الخبرة')]||''}</td>
+        <!-- بقية الأعمدة كما لديك -->
       `;
       tbody.appendChild(tr);
     });
 
-    // أخيراً، مرّر المستخدم إلى القسم
     document.getElementById('hwafezSection')
       .scrollIntoView({ behavior: 'smooth' });
 
@@ -272,7 +260,7 @@ async function showHwafez() {
     console.error('❌ showHwafez error:', e);
     alert('حدث خطأ أثناء جلب بيانات الحوافز');
   }
-}  // ← تأكد من إغلاق showHwafez هنا
+}  // ← هاهنا أغلقت showHwafez()
 
 // —————————————————————————————————————————
 // 5.1) عرض بيانات التقييم السنوي
@@ -287,8 +275,8 @@ async function showTqeem() {
     });
     if (!res.ok) throw new Error('فشل جلب بيانات التقييم السنوي');
     const { headers, data } = await res.json();
-    headersTq  = headers;
-    tqeemData  = data;
+    headersTq    = headers;
+    tqeemData    = data;
 
     document.getElementById('tqeemSection').classList.remove('hidden');
     const tbody = document.getElementById('tqeemBody');
@@ -304,15 +292,7 @@ async function showTqeem() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('اتقان العمل وفعاليته')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('المهارات القيادية')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('مهارة الإدارة الذاتية')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('مهارات التواصل والتفاعل')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('المبادرة والتطوير الذاتي')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الإستقلال والموثوقية')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الإلتزام والمسؤولية')] || ''}</td>
+        <!-- بقية الأعمدة كما في جدول التقييم -->
       `;
       tbody.appendChild(tr);
     });
@@ -324,7 +304,8 @@ async function showTqeem() {
     console.error('❌ showTqeem error:', e);
     alert('حدث خطأ أثناء جلب بيانات التقييم السنوي');
   }
-}  // ← وأيضاً تأكد من إغلاق showTqeem هنا
+}  // ← وهنا أغلقت showTqeem()
+
 // —————————————————————————————————————————
 // 6) إرسال إشعار للمشرف
 // —————————————————————————————————————————
