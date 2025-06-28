@@ -73,22 +73,23 @@ async function initPush() {
     } else {
       console.warn('❌ currentUser غير معرف، لم يُرسل التوكن للخادم');
     }
-// 4.6) استقبال الرسائل في الواجهة (foreground)
-messaging.onMessage(payload => {
-  const { title, body } = payload.notification || {};
-  if (!title) return;
 
-  // عرض إشعار نظامي
-  new Notification(title, { body });
+    // 4.6) استقبال الرسائل في الواجهة (foreground)
+    messaging.onMessage(payload => {
+      const { title, body } = payload.notification || {};
+      if (!title) return;
 
-  // طابع الوقت
-  const now = new Date().toLocaleString();
+      // عرض إشعار نظامي
+      new Notification(title, { body });
 
-  // خزن الإشعار في اللوغ (تحتاج لتعريف addNotificationToLog)
-  window.addNotificationToLog({ title, body, time: now });
+      // خزن الإشعار فوريًا مع طابع الوقت
+      const now = new Date().toLocaleString();
+      window.addNotification({ title, body, time: now });
+    });
 
-  // حدّث العدّاد والقائمة الظاهرة
-  if (typeof window.initNotifications === 'function') {
-    window.initNotifications();
+  } catch (err) {
+    console.error('❌ خطأ أثناء تهيئة الإشعارات (initPush):', err);
   }
-});
+}
+// إتاحة الدالة عالميًا
+window.initPush = initPush;
