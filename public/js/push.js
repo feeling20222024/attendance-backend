@@ -1,1 +1,94 @@
-const _0x27a996=_0x102c;(function(_0x31811c,_0x4ef7ac){const _0x190ee6=_0x102c,_0x57a008=_0x31811c();while(!![]){try{const _0x3d83af=parseInt(_0x190ee6(0x1ab))/0x1+-parseInt(_0x190ee6(0x1ad))/0x2*(parseInt(_0x190ee6(0x1a9))/0x3)+parseInt(_0x190ee6(0x194))/0x4+parseInt(_0x190ee6(0x1a7))/0x5*(-parseInt(_0x190ee6(0x1b8))/0x6)+-parseInt(_0x190ee6(0x1b4))/0x7+parseInt(_0x190ee6(0x198))/0x8+parseInt(_0x190ee6(0x1a3))/0x9*(parseInt(_0x190ee6(0x1b9))/0xa);if(_0x3d83af===_0x4ef7ac)break;else _0x57a008['push'](_0x57a008['shift']());}catch(_0x1a7ff3){_0x57a008['push'](_0x57a008['shift']());}}}(_0x3e9a,0x5fb67));const API_BASE=_0x27a996(0x19c),firebaseConfig={'apiKey':_0x27a996(0x1bb),'authDomain':'device-streaming-47cbe934.firebaseapp.com','projectId':'device-streaming-47cbe934','storageBucket':_0x27a996(0x1a6),'messagingSenderId':_0x27a996(0x1a2),'appId':_0x27a996(0x196)},VAPID_PUBLIC_KEY=_0x27a996(0x1aa);window['addNotification']=({title:_0x3dc384,body:_0x594b84,time:_0x406d5d})=>{const _0x91a113=_0x27a996,_0x2537b9=JSON[_0x91a113(0x191)](localStorage['getItem'](_0x91a113(0x199))||'[]');_0x2537b9['unshift']({'title':_0x3dc384,'body':_0x594b84,'time':_0x406d5d}),localStorage[_0x91a113(0x193)](_0x91a113(0x199),JSON[_0x91a113(0x19a)](_0x2537b9)),typeof window[_0x91a113(0x19f)]===_0x91a113(0x1bd)&&window[_0x91a113(0x19f)]();};async function initPush(){const _0x91d9a0=_0x27a996;try{const _0x3dbc65=await navigator[_0x91d9a0(0x1ac)]['register']('/firebase-messaging-sw.js');console[_0x91d9a0(0x1b5)]('✅\x20Service\x20Worker\x20for\x20Firebase\x20registered:',_0x3dbc65[_0x91d9a0(0x19d)]);!firebase[_0x91d9a0(0x1bf)][_0x91d9a0(0x1a0)]&&firebase['initializeApp'](firebaseConfig);const _0xbf03ea=firebase[_0x91d9a0(0x195)](),_0x4a87c4=await Notification[_0x91d9a0(0x1bc)]();if(_0x4a87c4!==_0x91d9a0(0x1af)){console[_0x91d9a0(0x1b3)](_0x91d9a0(0x1ae));return;}const _0x4c965a=await _0xbf03ea[_0x91d9a0(0x197)]({'vapidKey':VAPID_PUBLIC_KEY,'serviceWorkerRegistration':_0x3dbc65});if(!_0x4c965a){console[_0x91d9a0(0x1b3)](_0x91d9a0(0x1b2));return;}console['log'](_0x91d9a0(0x1be),_0x4c965a),window[_0x91d9a0(0x19b)]?(await fetch(API_BASE+_0x91d9a0(0x1a5),{'method':_0x91d9a0(0x1ba),'headers':{'Content-Type':_0x91d9a0(0x1b1)},'body':JSON['stringify']({'user':window['currentUser'],'token':_0x4c965a})}),console[_0x91d9a0(0x1b5)](_0x91d9a0(0x1a8))):console['warn'](_0x91d9a0(0x1b7)),_0xbf03ea[_0x91d9a0(0x1b6)](_0x22725d=>{const _0xf30283=_0x91d9a0,{title:_0x304fc5,body:_0x13e521}=_0x22725d[_0xf30283(0x1a4)]||{};if(!_0x304fc5)return;new Notification(_0x304fc5,{'body':_0x13e521});const _0x5bff31=new Date()[_0xf30283(0x192)]();window[_0xf30283(0x1b0)]({'title':_0x304fc5,'body':_0x13e521,'time':_0x5bff31});});}catch(_0x2dbdec){console[_0x91d9a0(0x19e)](_0x91d9a0(0x1a1),_0x2dbdec);}}function _0x102c(_0x279ada,_0x187129){const _0x3e9a92=_0x3e9a();return _0x102c=function(_0x102c50,_0xfa5d94){_0x102c50=_0x102c50-0x191;let _0x3ca019=_0x3e9a92[_0x102c50];return _0x3ca019;},_0x102c(_0x279ada,_0x187129);}window['initPush']=initPush;function _0x3e9a(){const _0x1cacd1=['requestPermission','function','✅\x20FCM\x20Registration\x20Token\x20obtained:','apps','parse','toLocaleString','setItem','2040024Lskhzf','messaging','1:235398312189:web:8febe5e63f7b134b808e94','getToken','299728AOAUpA','notifications','stringify','currentUser','https://dwam-app-by-omar.onrender.com/api','scope','error','initNotifications','length','❌\x20خطأ\x20أثناء\x20تهيئة\x20الإشعارات\x20(initPush):','235398312189','30888wlpYAx','notification','/register-token','device-streaming-47cbe934.appspot.com','265EHFgqM','✅\x20تم\x20تسجيل\x20توكن\x20FCM\x20بنجاح\x20على\x20الخادم','1239uMUPVF','BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ','500215sSJley','serviceWorker','1510CqSwjg','❌\x20المستخدم\x20لم\x20يمنح\x20إذن\x20الإشعارات','granted','addNotification','application/json','❌\x20لم\x20يتمكّن\x20من\x20الحصول\x20على\x20FCM\x20token','warn','1757973jjWGpu','log','onMessage','❌\x20currentUser\x20غير\x20معرف،\x20لم\x20يُرسل\x20التوكن\x20للخادم','35748qocUMs','650rDrwVc','POST','AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y'];_0x3e9a=function(){return _0x1cacd1;};return _0x3e9a();}
+// —————————————————————————————————————————
+// 1) نقطة النهاية للـ API
+// —————————————————————————————————————————
+const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
+
+// —————————————————————————————————————————
+// 2) إعدادات Firebase (مطابقة firebase-messaging-sw.js)
+// —————————————————————————————————————————
+const firebaseConfig = {
+  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
+  projectId:        "device-streaming-47cbe934",
+  storageBucket:    "device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
+};
+const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
+
+// —————————————————————————————————————————
+// 3) دالة تُخزّن الإشعار في localStorage وتُحدّث الواجهة
+// —————————————————————————————————————————
+window.addNotification = ({ title, body, time }) => {
+  const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
+  saved.unshift({ title, body, time });
+  localStorage.setItem('notifications', JSON.stringify(saved));
+  // إذا كانت لوحة الإشعارات مُهيّأة، حدّثها
+  if (typeof window.initNotifications === 'function') {
+    window.initNotifications();
+  }
+};
+
+// —————————————————————————————————————————
+// 4) دالة تهيئة إشعارات الويب عبر FCM + SW
+// —————————————————————————————————————————
+async function initPush() {
+  try {
+    // 4.1) تسجيل Service Worker الخاصّ بـ FCM
+    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('✅ Service Worker for Firebase registered:', swRegistration.scope);
+
+    // 4.2) تهيئة Firebase وMessaging
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const messaging = firebase.messaging();
+
+    // 4.3) طلب إذن الإشعارات
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.warn('❌ المستخدم لم يمنح إذن الإشعارات');
+      return;
+    }
+
+    // 4.4) جلب FCM token
+    const currentToken = await messaging.getToken({
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: swRegistration
+    });
+    if (!currentToken) {
+      console.warn('❌ لم يتمكّن من الحصول على FCM token');
+      return;
+    }
+    console.log('✅ FCM Registration Token obtained:', currentToken);
+
+    // 4.5) إرسال التوكن للخادم (إذا كان currentUser معرف)
+    if (window.currentUser) {
+      await fetch(`${API_BASE}/register-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: window.currentUser, token: currentToken })
+      });
+      console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
+    } else {
+      console.warn('❌ currentUser غير معرف، لم يُرسل التوكن للخادم');
+    }
+// 4.6) استقبال الرسائل في الواجهة (foreground)
+messaging.onMessage(payload => {
+  const { title, body } = payload.notification || {};
+  if (!title) return;
+
+  // عرض إشعار نظامي
+  new Notification(title, { body });
+
+  // طابع الوقت
+  const now = new Date().toLocaleString();
+
+  // خزن الإشعار في اللوغ (تحتاج لتعريف addNotificationToLog)
+  window.addNotificationToLog({ title, body, time: now });
+
+  // حدّث العدّاد والقائمة الظاهرة
+  if (typeof window.initNotifications === 'function') {
+    window.initNotifications();
+  }
+});
