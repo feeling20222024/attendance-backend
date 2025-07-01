@@ -24,19 +24,15 @@ window.initNotifications = function() {
       ul.appendChild(li);
     });
     count.textContent = saved.length;
+    count.style.display = saved.length > 0 ? 'inline-block' : 'none';
   }
 
-  // فتح/غلق اللوحة عند الضغط على الجرس (مُتاح بعد login)
+  // عند الضغط على الجرس: فتح/غلق اللوحة
   bell.addEventListener('click', () => {
-    if (!window.currentUser) return;      // لا يفتح قبل login
     panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-    // عند الفتح، لا نحذف سجل الإشعارات، لكن نصفر العداد
-    if (panel.style.display === 'block') {
-      count.textContent = '0';
-    }
   });
 
-  // زر المسح يظهر فقط للمشرف
+  // إظهار زر المسح فقط للمشرف بعد login
   if (window.currentUser === '35190') {
     clearB.style.display = 'block';
     clearB.addEventListener('click', () => {
@@ -50,17 +46,11 @@ window.initNotifications = function() {
     clearB.style.display = 'none';
   }
 
-  // في كل مرة تُستدعى initNotifications، أعد العرض
+  // عرض السجل فور التهيئة
   render();
 };
 
-window.addNotificationToLog = ({ title, body, time }) => {
-  // نقرأ السجل الحالي من localStorage
-  const existing = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
-  // نضيف الإشعار الجديد في رأس القائمة
-  existing.unshift({ title, body, time });
-  // نحافظ على أقصى عدد (مثلاً 50)
-  if (existing.length > 50) existing.pop();
-  // نعيد تخزين السجل
-  localStorage.setItem('notificationsLog', JSON.stringify(existing));
-};
+// استدعاء initNotifications عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+  window.initNotifications();
+});
