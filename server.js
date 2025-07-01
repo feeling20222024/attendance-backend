@@ -1,1 +1,245 @@
-function _0x53a1(){var _0x3d0507=['12kkgIdB','3363vKutuu','3425841yUPcSh','4707pbNzEs','98ppvOdG','8071943momjAM','484QnHTJP','447090BprWIe','log','352DgpvAm','2779uHkSWk','15726uKCLdj','485KEiIkZ'];_0x53a1=function(){return _0x3d0507;};return _0x53a1();}function _0x4a0d(_0x33a2ce,_0x5796c7){var _0x53a14b=_0x53a1();return _0x4a0d=function(_0x4a0d94,_0x5dc081){_0x4a0d94=_0x4a0d94-0x19b;var _0x2132f2=_0x53a14b[_0x4a0d94];return _0x2132f2;},_0x4a0d(_0x33a2ce,_0x5796c7);}(function(_0x42f436,_0x473d1a){var _0x127a51=_0x4a0d,_0xc2fdf7=_0x42f436();while(!![]){try{var _0x355e23=parseInt(_0x127a51(0x19f))/0x1*(-parseInt(_0x127a51(0x1a2))/0x2)+-parseInt(_0x127a51(0x1a1))/0x3*(parseInt(_0x127a51(0x1a4))/0x4)+-parseInt(_0x127a51(0x19d))/0x5*(-parseInt(_0x127a51(0x19c))/0x6)+parseInt(_0x127a51(0x19b))/0x7*(-parseInt(_0x127a51(0x1a7))/0x8)+-parseInt(_0x127a51(0x1a0))/0x9+-parseInt(_0x127a51(0x1a5))/0xa+parseInt(_0x127a51(0x1a3))/0xb*(parseInt(_0x127a51(0x19e))/0xc);if(_0x355e23===_0x473d1a)break;else _0xc2fdf7['push'](_0xc2fdf7['shift']());}catch(_0x1c4c85){_0xc2fdf7['push'](_0xc2fdf7['shift']());}}}(_0x53a1,0x2e87c));function hi(){var _0x38eda2=_0x4a0d;console[_0x38eda2(0x1a6)]('Hello\x20World!');}hi();
+// 1) تحميل متغيّرات البيئة
+require('dotenv').config();
+
+const express               = require('express');
+const cors                  = require('cors');
+const path                  = require('path');
+const jwt                   = require('jsonwebtoken');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const admin                 = require('firebase-admin');
+
+// 2) دالة لتحويل الأرقام العربية/الفارسية إلى لاتينية
+function normalizeDigits(str) {
+  if (!str) return str;
+  return str.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, ch => {
+    const code = ch.charCodeAt(0);
+    if (code >= 0x0660 && code <= 0x0669) return String(code - 0x0660);
+    if (code >= 0x06F0 && code <= 0x06F9) return String(code - 0x06F0);
+    return ch;
+  });
+}
+
+// 3) تهيئة Firebase Admin
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch {
+  console.error('❌ خطأ: FIREBASE_SERVICE_ACCOUNT غير صالح.');
+  process.exit(1);
+}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+// 4) دالة لإرسال إشعار FCM
+async function sendPushTo(token, title, body, data = {}) {
+  const message = {
+    token,
+    notification: { title, body },
+    android: {
+      // تنتهي الرسالة بعد 3600 ثانية (1 ساعة)
+      ttl: '172800s',
+      priority: 'high',
+      notification: {
+        android_channel_id: 'default',
+        sound:             'default',
+        vibrate_timings:   [100, 200, 100]
+      }
+    },
+    data  // بيانات إضافية إن وجدت
+  };
+
+  try {
+    const resp = await admin.messaging().send(message);
+    console.log(`✅ تم الإرسال إلى ${token}: ${resp}`);
+  } catch (err) {
+    console.error(`❌ فشل الإرسال إلى ${token}:`, err);
+  }
+}
+
+// 5) تهيئة Express
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 6) قراءة متغيّرات البيئة الأساسية
+const {
+  JWT_SECRET,
+  SUPERVISOR_CODE,
+  GOOGLE_SHEET_ID: SHEET_ID,
+  GOOGLE_SERVICE_KEY
+} = process.env;
+
+if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY) {
+  console.error('❌ بعض متغيرات البيئة مفقودة.');
+  process.exit(1);
+}
+
+let sheetCreds;
+try {
+  sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY);
+} catch {
+  console.error('❌ GOOGLE_SERVICE_KEY ليس JSON صالح.');
+  process.exit(1);
+}
+
+// 7) دوال الوصول إلى Google Sheets
+async function accessSheet() {
+  const doc = new GoogleSpreadsheet(SHEET_ID);
+  await doc.useServiceAccountAuth({
+    client_email: sheetCreds.client_email,
+    private_key: sheetCreds.private_key.replace(/\\n/g, '\n')
+  });
+  await doc.loadInfo();
+  return doc;
+}
+
+async function readSheet(title) {
+  const doc   = await accessSheet();
+  const sheet = doc.sheetsByTitle[title];
+  if (!sheet) throw new Error(`Sheet "${title}" غير موجود`);
+  await sheet.loadHeaderRow();
+  const headers = sheet.headerValues;
+  const rows    = await sheet.getRows();
+  const data    = rows.map(r => headers.map(h => r[h] ?? ''));
+  return { headers, data };
+}
+
+// 8) Middleware للتحقّق من JWT
+function authenticate(req, res, next) {
+  const h = req.headers.authorization;
+  if (!h || !h.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    req.user = jwt.verify(h.slice(7), JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// 9) تسجيل الدخول
+app.post('/api/login', async (req, res) => {
+  let { code, pass } = req.body;
+  if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
+
+  code = normalizeDigits(String(code).trim());
+  pass = normalizeDigits(String(pass).trim());
+
+  try {
+    const { headers, data } = await readSheet('Users');
+    const iC = headers.indexOf('كود الموظف');
+    const iP = headers.indexOf('كلمة المرور');
+    const iN = headers.indexOf('الاسم');
+
+    const row = data.find(r => {
+      const cellCode = normalizeDigits(String(r[iC] ?? '').trim());
+      const cellPass = normalizeDigits(String(r[iP] ?? '').trim());
+      return cellCode === code && cellPass === pass;
+    });
+    if (!row) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const payload = { code, name: row[iN] };
+    const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    res.json({ token, user: payload });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// 10) معلومات المستخدم الحالي
+app.get('/api/me', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('Users');
+    const idxCode = headers.indexOf('كود الموظف');
+    const target  = normalizeDigits(String(req.user.code).trim());
+    const row     = data.find(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
+    if (!row) return res.status(404).json({ error: 'User not found' });
+
+    const single = {};
+    headers.forEach((h,i) => single[h] = row[i] ?? '');
+    res.json({ user: single });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 11) الحضور
+app.get('/api/attendance', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('Attendance');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 12) الحوافز
+app.get('/api/hwafez', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('hwafez');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 13) التقييم السنوي
+app.get('/api/tqeem', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('tqeem');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 14) تسجيل توكن FCM
+const tokens = new Map();
+app.post('/api/register-token', (req, res) => {
+  const { user, token } = req.body;
+  if (!user || !token) return res.status(400).json({ error: 'user and token required' });
+  tokens.set(token, user);
+  res.json({ success: true });
+});
+
+// 15) إشعار لجميع الأجهزة (للمشرف فقط)
+app.post('/api/notify-all', authenticate, async (req, res) => {
+  if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
+  const { title, body } = req.body;
+  const list = Array.from(tokens.keys());
+  await Promise.allSettled(list.map(t => sendPushTo(t, title, body)));
+  res.json({ success: true });
+});
+
+// 16) SPA fallback (يجب أن يكون آخر شيء)
+app.get(/.*/, (_, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
+
+// بدء الخادم
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 الخادم يعمل على ${PORT}`));
