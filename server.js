@@ -31,31 +31,34 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 // 4) دالة لإرسال إشعار FCM
+// 4) دالة لإرسال إشعار FCM
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
     notification: { title, body },
     android: {
-      // تنتهي الرسالة بعد 3600 ثانية (1 ساعة)
-      ttl: '172800s',
+      // تنتهي الرسالة بعد 172800000 ميلي‑ثانية = 48 ساعة
+      ttl: 172800000,
       priority: 'high',
       notification: {
-        android_channel_id: 'default',
-        sound:             'default',
-        vibrate_timings:   [100, 200, 100]
+        channel_id: 'default',
+        sound:      'default',
+        // النمط الزمني للاهتزاز (بميلي‑ثانية)
+        vibration_timings: [100, 200, 100]
       }
     },
     data  // بيانات إضافية إن وجدت
   };
 
   try {
-    const resp = await admin.messaging().send(message);
-    console.log(`✅ تم الإرسال إلى ${token}: ${resp}`);
+    const response = await admin.messaging().send(message);
+    console.log('✅ Push sent:', response);
+    return response;
   } catch (err) {
-    console.error(`❌ فشل الإرسال إلى ${token}:`, err);
+    console.error('❌ Failed to send push to', token, err);
+    throw err;
   }
 }
-
 // 5) تهيئة Express
 const app = express();
 app.use(cors());
