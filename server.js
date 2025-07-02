@@ -41,10 +41,9 @@ async function sendPushTo(token, title, body, data = {}) {
       ttl: 172800000,
       priority: 'high',
       notification: {
-        channel_id: 'default',
-        sound:      'default',
-        // النمط الزمني للاهتزاز (بميلي‑ثانية)
-        vibration_timings: [100, 200, 100]
+        channel_id: 'default',  // اسم القناة كما أنشأته سابقاً
+        sound:      'default'
+        // الاهتزاز وأي إعدادات تخص القناة نفسها يجب أن تُهيَّأ client‑side
       }
     },
     data  // بيانات إضافية إن وجدت
