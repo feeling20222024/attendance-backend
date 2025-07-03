@@ -96,3 +96,5 @@ window.addNotificationToLog = ({ title, body, time }) => {
   if (existing.length > 50) existing.pop();
   localStorage.setItem('notificationsLog', JSON.stringify(existing));
 };
+window.addNotificationToLog = window.addNotification;
+
