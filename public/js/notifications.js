@@ -53,10 +53,16 @@ window.initNotifications = function () {
   render();
 
   // تبديل ظهور اللوحة عند الضغط على الجرس
-  bell.addEventListener('click', () => {
-    panel.classList.toggle('hidden');
-  });
-};
+bell.addEventListener('click', () => {
+  const isHidden = panel.classList.contains('hidden');
+  if (isHidden) {
+    panel.classList.remove('hidden');
+    panel.style.display = 'block';
+  } else {
+    panel.classList.add('hidden');
+    panel.style.display = 'none';
+  }
+});
 
 // —————————————————————————————————————————
 // 2) دالة لحفظ الإشعار في localStorage — تُستخدم في push.js
