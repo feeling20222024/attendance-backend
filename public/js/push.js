@@ -84,7 +84,7 @@ async function initPush() {
 
       // خزن الإشعار فوريًا مع طابع الوقت
       const now = new Date().toLocaleString();
-      window.addNotification({ title, body, time: now });
+      window.addNotificationToLog({ title, body, time: now });
     });
 
   } catch (err) {
