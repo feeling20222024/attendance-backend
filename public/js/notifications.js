@@ -1,63 +1,117 @@
-window.initNotifications = function () {
-  const bell = document.getElementById('notifBell');
-  const panel = document.getElementById('notificationsPanel');
+// —————————————————————————————————————————————————————————————
+// Constants
+const STORAGE_KEY     = 'notificationsLog';
+const SUPERVISOR_CODE = '35190';
+
+// —————————————————————————————————————————————————————————————
+// قراءة الإشعارات من localStorage
+function loadNotifications() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+// —————————————————————————————————————————————————————————————
+// تحديث عداد الجرس
+function updateBellCount() {
+  const count = loadNotifications().length;
+  const bellCount = document.getElementById('notifCount');
+  if (!bellCount) return;
+  bellCount.textContent = count;
+  bellCount.style.display = count > 0 ? 'inline-block' : 'none';
+}
+
+// —————————————————————————————————————————————————————————————
+// رسم محتوى لوحة الإشعارات
+function renderNotifications() {
   const list = document.getElementById('notificationsLog');
-  const count = document.getElementById('notifCount');
   const clearB = document.getElementById('clearNotifications');
+  const notifs = loadNotifications();
 
-  function render() {
-    const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
-    console.log('🧪 render() | notifications:', saved);
+  if (!list || !clearB) return;
 
-    list.innerHTML = '';
+  list.innerHTML = '';
 
-    if (saved.length === 0) {
-      list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
-      count.style.display = 'none';
-      clearB.classList.add('hidden');
-    } else {
-      saved.forEach(n => {
-        const li = document.createElement('li');
-        li.className = 'mb-2';
-        li.innerHTML = `
-          <div class="font-semibold">${n.title}</div>
-          <div class="text-sm">${n.body}</div>
-          <div class="text-xs text-gray-400">${n.time}</div>
-        `;
-        list.appendChild(li);
-      });
-
-      count.textContent = saved.length;
-      count.style.display = 'inline-block';
-
-      // تصحيح شرط إظهار زر المسح
-      if (typeof window.currentUser !== 'undefined' && String(window.currentUser) === '35190') {
-        clearB.classList.remove('hidden');
-      } else {
-        clearB.classList.add('hidden');
-      }
-    }
+  if (notifs.length === 0) {
+    list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
+  } else {
+    notifs.forEach(n => {
+      const li = document.createElement('li');
+      li.className = 'mb-4 border-b pb-2';
+      li.innerHTML = `
+        <div class="font-semibold text-gray-800">${n.title}</div>
+        <div class="text-sm text-gray-700">${n.body}</div>
+        <div class="text-xs text-gray-400 mt-1">${n.time}</div>
+      `;
+      list.appendChild(li);
+    });
   }
 
-  // زر المسح
-  clearB.addEventListener('click', () => {
-    if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
-    localStorage.removeItem('notifications');
-    render();
+  // شرط إظهار زر المسح مع تسجيل للـconsole
+  if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
+    console.log('🧪 Showing clear button for currentUser:', window.currentUser);
+    clearB.classList.remove('hidden');
+  } else {
+    console.log('🧪 Hiding clear button for currentUser:', window.currentUser);
+    clearB.classList.add('hidden');
+  }
+}
+
+// —————————————————————————————————————————————————————————————
+// مسح سجل الإشعارات (للمشرف فقط)
+function clearNotifications() {
+  if (window.currentUser !== SUPERVISOR_CODE) {
+    alert('ليس لديك صلاحية لمسح سجل الإشعارات.');
+    return;
+  }
+  if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
+
+  localStorage.removeItem(STORAGE_KEY);
+  renderNotifications();
+  updateBellCount();
+}
+
+// —————————————————————————————————————————————————————————————
+// ربط الأحداث عند تحميل الـDOM
+document.addEventListener('DOMContentLoaded', function() {
+  const bell = document.getElementById('notifBell');
+  const panel = document.getElementById('notificationsPanel');
+  const clearB = document.getElementById('clearNotifications');
+
+  updateBellCount();
+
+  if (!bell || !panel || !clearB) return;
+
+  bell.addEventListener('click', function() {
+    if (!window.currentUser) return; // لا تفتح قبل تسجيل الدخول
+
+    panel.classList.toggle('hidden');
+    renderNotifications();
+    updateBellCount();
   });
 
-  // رسم فوري
-  render();
+  clearB.addEventListener('click', clearNotifications);
+});
 
-  // تبديل ظهور اللوحة عند الضغط على الجرس
-  bell.addEventListener('click', () => {
-    const isHidden = panel.classList.contains('hidden');
-    if (isHidden) {
-      panel.classList.remove('hidden');
-      panel.style.display = 'block';
-    } else {
-      panel.classList.add('hidden');
-      panel.style.display = 'none';
-    }
+// —————————————————————————————————————————————————————————————
+// دالة تُستدعى عند وصول إشعار جديد من push.js أو SW
+window.addNotification = function(payload) {
+  let saved = loadNotifications();
+  saved.unshift({
+    title: payload.title,
+    body:  payload.body,
+    time:  payload.time
   });
+  if (saved.length > 50) saved.pop();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+
+  // إن كانت اللوحة مفتوحة، أعد رسمها
+  const panel = document.getElementById('notificationsPanel');
+  if (panel && !panel.classList.contains('hidden')) {
+    renderNotifications();
+  }
+  // حدّث العداد دائمًا
+  updateBellCount();
 };
