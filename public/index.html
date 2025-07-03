@@ -298,14 +298,22 @@
   </script>
 
   <!-- 2) سكربت عرض سجل الإشعارات (يحمل دالة initNotifications ويتم تهيئتها داخلياً) -->
-  <script src="./js/notifications.js" defer></script>
+ <!-- ملف notifications.js -->
+<script src="js/notifications.js" defer></script>
+
+<!-- استدعاء الدالة بعد تحميل DOM -->
+<script>
   document.addEventListener('DOMContentLoaded', () => {
-  if (typeof window.initNotifications === 'function') {
-    window.initNotifications();
-  }
-  <!-- 3) سكربتات Push و App -->
-  <script type="module" src="./js/push.js" defer></script>
-  <script nomodule src="./js/app.legacy.js" defer></script>
-  <script type="module" src="./js/app.js" defer></script>
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
+  });
+</script>
+
+<!-- ملفات Push و App -->
+<script type="module" src="js/push.js" defer></script>
+<script nomodule src="js/app.legacy.js" defer></script>
+<script type="module" src="js/app.js" defer></script>
+
 </body>
 </html>
