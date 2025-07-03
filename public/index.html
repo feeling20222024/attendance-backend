@@ -295,18 +295,19 @@
         .catch(e => console.warn('❌ SW registration failed', e));
     }
   </script>
-
-  <!-- 2) سكربت عرض سجل الإشعارات (يحمل دالة initNotifications ويتم تهيئتها داخلياً) -->
- <!-- ملف notifications.js -->
-<!-- في نهاية body مباشرة -->
+<!-- 1) تحميل notifications.js بدون defer -->
 <script src="js/notifications.js"></script>
+
+<!-- 2) تنفيذ initNotifications بعد التأكد من جاهزية DOM والعناصر -->
 <script>
-  // الآن DOM كامل والسكربت تم تحميله
-  if (typeof window.initNotifications === 'function') {
-    window.initNotifications();
-  }
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
+  });
 </script>
-<!-- ملفات Push و App -->
+
+<!-- 3) سكربتات Push و App -->
 <script type="module" src="js/push.js" defer></script>
 <script nomodule src="js/app.legacy.js" defer></script>
 <script type="module" src="js/app.js" defer></script>
