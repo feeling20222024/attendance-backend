@@ -49,20 +49,24 @@ window.initNotifications = function () {
     render();
   });
 
-  // رسم فوري
+  // تبديل ظهور اللوحة عند الضغط على الجرس
+  bell.addEventListener('click', () => {
+    const isHidden = panel.classList.contains('hidden');
+    if (isHidden) {
+      panel.classList.remove('hidden');
+      panel.style.display = 'block';
+    } else {
+      panel.classList.add('hidden');
+      panel.style.display = 'none';
+    }
+  });
+
+  // عرض فوري للإشعارات عند التهيئة
   render();
 
-  // تبديل ظهور اللوحة عند الضغط على الجرس
-bell.addEventListener('click', () => {
-  const isHidden = panel.classList.contains('hidden');
-  if (isHidden) {
-    panel.classList.remove('hidden');
-    panel.style.display = 'block';
-  } else {
-    panel.classList.add('hidden');
-    panel.style.display = 'none';
-  }
-});
+  // اجعل render متاحة لتحديث الإشعارات بدون إعادة تهيئة
+  window.renderNotifications = render;
+};
 
 // —————————————————————————————————————————
 // 2) دالة لحفظ الإشعار في localStorage — تُستخدم في push.js
@@ -74,8 +78,8 @@ window.addNotification = function ({ title, body, time }) {
   localStorage.setItem('notifications', JSON.stringify(saved));
   console.log('📩 إشعار مضاف إلى localStorage:', { title, body, time });
 
-  // تحديث الواجهة إذا كانت initNotifications متوفرة
-  if (typeof window.initNotifications === 'function') {
-    window.initNotifications();
+  // تحديث الواجهة فقط عبر renderNotifications
+  if (typeof window.renderNotifications === 'function') {
+    window.renderNotifications();
   }
 };
