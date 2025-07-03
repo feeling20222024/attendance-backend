@@ -49,20 +49,22 @@ function renderNotifications() {
     });
   }
 
-  // شرط إظهار زر المسح مع تسجيل للـconsole
-  if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
+  // شرط إظهار زر المسح
+  if (String(window.currentUser) === SUPERVISOR_CODE && notifs.length > 0) {
     console.log('🧪 Showing clear button for currentUser:', window.currentUser);
     clearB.classList.remove('hidden');
+    clearB.style.display = 'inline-block';
   } else {
     console.log('🧪 Hiding clear button for currentUser:', window.currentUser);
     clearB.classList.add('hidden');
+    clearB.style.display = 'none';
   }
 }
 
 // —————————————————————————————————————————————————————————————
 // مسح سجل الإشعارات (للمشرف فقط)
 function clearNotifications() {
-  if (window.currentUser !== SUPERVISOR_CODE) {
+  if (String(window.currentUser) !== SUPERVISOR_CODE) {
     alert('ليس لديك صلاحية لمسح سجل الإشعارات.');
     return;
   }
@@ -112,6 +114,7 @@ window.addNotification = function(payload) {
   if (panel && !panel.classList.contains('hidden')) {
     renderNotifications();
   }
+
   // حدّث العداد دائمًا
   updateBellCount();
 };
