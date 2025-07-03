@@ -298,17 +298,14 @@
 
   <!-- 2) سكربت عرض سجل الإشعارات (يحمل دالة initNotifications ويتم تهيئتها داخلياً) -->
  <!-- ملف notifications.js -->
-<script src="js/notifications.js" defer></script>
-
-<!-- استدعاء الدالة بعد تحميل DOM -->
+<!-- في نهاية body مباشرة -->
+<script src="js/notifications.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (typeof window.initNotifications === 'function') {
-      window.initNotifications();
-    }
-  });
+  // الآن DOM كامل والسكربت تم تحميله
+  if (typeof window.initNotifications === 'function') {
+    window.initNotifications();
+  }
 </script>
-
 <!-- ملفات Push و App -->
 <script type="module" src="js/push.js" defer></script>
 <script nomodule src="js/app.legacy.js" defer></script>
