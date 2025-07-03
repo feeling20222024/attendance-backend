@@ -51,12 +51,6 @@ window.initNotifications = function() {
     panel.classList.toggle('hidden');
   });
 };
-// هذا يستدعي initNotifications بعد تحميل DOM
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof window.initNotifications === 'function') {
-    window.initNotifications();
-  }
-});
 
 // دالة لحفظ الإشعار في localStorage — تُستخدم في push.js
 window.addNotification = function({ title, body, time }) {
