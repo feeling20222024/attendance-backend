@@ -49,8 +49,8 @@ function renderNotifications() {
     });
   }
 
-  // شرط إظهار زر المسح
-  if (String(window.currentUser) === SUPERVISOR_CODE && notifs.length > 0) {
+  // إظهار زر المسح للمشرف فقط
+  if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
     console.log('🧪 Showing clear button for currentUser:', window.currentUser);
     clearB.classList.remove('hidden');
     clearB.style.display = 'inline-block';
@@ -64,7 +64,7 @@ function renderNotifications() {
 // —————————————————————————————————————————————————————————————
 // مسح سجل الإشعارات (للمشرف فقط)
 function clearNotifications() {
-  if (String(window.currentUser) !== SUPERVISOR_CODE) {
+  if (window.currentUser !== SUPERVISOR_CODE) {
     alert('ليس لديك صلاحية لمسح سجل الإشعارات.');
     return;
   }
@@ -78,8 +78,8 @@ function clearNotifications() {
 // —————————————————————————————————————————————————————————————
 // ربط الأحداث عند تحميل الـDOM
 document.addEventListener('DOMContentLoaded', function() {
-  const bell = document.getElementById('notifBell');
-  const panel = document.getElementById('notificationsPanel');
+  const bell   = document.getElementById('notifBell');
+  const panel  = document.getElementById('notificationsPanel');
   const clearB = document.getElementById('clearNotifications');
 
   updateBellCount();
@@ -89,7 +89,17 @@ document.addEventListener('DOMContentLoaded', function() {
   bell.addEventListener('click', function() {
     if (!window.currentUser) return; // لا تفتح قبل تسجيل الدخول
 
-    panel.classList.toggle('hidden');
+    // ضمان ظهور اللوحة حتى لو كانت مخفية بـ style أو class
+    const isHidden = panel.classList.contains('hidden') || getComputedStyle(panel).display === 'none';
+
+    if (isHidden) {
+      panel.classList.remove('hidden');
+      panel.style.display = 'block';
+    } else {
+      panel.classList.add('hidden');
+      panel.style.display = 'none';
+    }
+
     renderNotifications();
     updateBellCount();
   });
@@ -111,7 +121,7 @@ window.addNotification = function(payload) {
 
   // إن كانت اللوحة مفتوحة، أعد رسمها
   const panel = document.getElementById('notificationsPanel');
-  if (panel && !panel.classList.contains('hidden')) {
+  if (panel && getComputedStyle(panel).display !== 'none') {
     renderNotifications();
   }
 
