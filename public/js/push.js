@@ -1,92 +1,93 @@
-// —————————————————————————————————————————
-// 1) نقطة النهاية للـ API
-// —————————————————————————————————————————
+// push.js (نسخة للويب)
+
+// ———————————————————————————
+// 1. إعدادات
+// ———————————————————————————
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 
-// —————————————————————————————————————————
-// 2) إعدادات Firebase (مطابقة firebase-messaging-sw.js)
-// —————————————————————————————————————————
 const firebaseConfig = {
-  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
-  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
-  projectId:        "device-streaming-47cbe934",
-  storageBucket:    "device-streaming-47cbe934.appspot.com",
-  messagingSenderId:"235398312189",
-  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
+  apiKey: "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain: "device-streaming-47cbe934.firebaseapp.com",
+  projectId: "device-streaming-47cbe934",
+  storageBucket: "device-streaming-47cbe934.appspot.com",
+  messagingSenderId: "235398312189",
+  appId: "1:235398312189:web:8febe5e63f7b134b808e94"
 };
+
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// —————————————————————————————————————————
-// 3) دالة تُخزّن الإشعار في localStorage وتُحدّث الواجهة
-// —————————————————————————————————————————
+// ———————————————————————————
+// 2. دالة addNotification الكاملة
+// ———————————————————————————
 window.addNotification = ({ title, body, time }) => {
   const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
   saved.unshift({ title, body, time });
+  if (saved.length > 50) saved.pop();
   localStorage.setItem('notifications', JSON.stringify(saved));
-  // إذا كانت لوحة الإشعارات مُهيّأة، حدّثها
-  if (typeof window.initNotifications === 'function') {
-    window.initNotifications();
+
+  // إعادة رسم اللوحة عند الحاجة
+  if (typeof window.renderNotifications === 'function') {
+    window.renderNotifications();
   }
+  if (typeof window.updateBellCount === 'function') {
+    window.updateBellCount();
+  }
+
+  console.log('📩 إشعار مضاف:', { title, body, time });
 };
 
-// —————————————————————————————————————————
-// 4) دالة تهيئة إشعارات الويب عبر FCM + SW
-// —————————————————————————————————————————
-async function initPush() {
+// ———————————————————————————
+// 3. تهيئة إشعارات الويب
+// ———————————————————————————
+window.initNotifications = async function () {
   try {
-    // 4.1) تسجيل Service Worker الخاصّ بـ FCM
-    const swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('✅ Service Worker for Firebase registered:', swRegistration.scope);
+    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('✅ SW for Firebase registered:', swReg.scope);
+  } catch (err) {
+    console.error('❌ فشل تسجيل SW:', err);
+  }
 
-    // 4.2) تهيئة Firebase وMessaging
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-    const messaging = firebase.messaging();
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
 
-    // 4.3) طلب إذن الإشعارات
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.warn('❌ المستخدم لم يمنح إذن الإشعارات');
+  const messaging = firebase.messaging();
+
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      console.warn('🔕 إذن الإشعارات غير ممنوح');
       return;
     }
 
-    // 4.4) جلب FCM token
-    const currentToken = await messaging.getToken({
+    const registration = await navigator.serviceWorker.getRegistration();
+    const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration: swRegistration
+      serviceWorkerRegistration: registration
     });
-    if (!currentToken) {
-      console.warn('❌ لم يتمكّن من الحصول على FCM token');
-      return;
-    }
-    console.log('✅ FCM Registration Token obtained:', currentToken);
 
-    // 4.5) إرسال التوكن للخادم (إذا كان currentUser معرف)
-    if (window.currentUser) {
+    if (token && window.currentUser) {
       await fetch(`${API_BASE}/register-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: window.currentUser, token: currentToken })
+        body: JSON.stringify({ user: window.currentUser, token })
       });
-      console.log('✅ تم تسجيل توكن FCM بنجاح على الخادم');
-    } else {
-      console.warn('❌ currentUser غير معرف، لم يُرسل التوكن للخادم');
+      console.log('✅ تم إرسال FCM Token إلى الخادم');
     }
-
-    // 4.6) استقبال الرسائل في الواجهة (foreground)
- messaging.onMessage(payload => {
-  const { title, body } = payload.notification || {};
-  if (!title) return;
-
-  new Notification(title, { body });
-
-  const now = new Date().toLocaleString();
-  window.addNotification({ title, body, time: now }); // ✅ هذا السطر ضروري
-});
   } catch (err) {
-    console.error('❌ خطأ أثناء تهيئة الإشعارات (initPush):', err);
+    console.error('❌ أثناء طلب FCM Token:', err);
   }
-}
-// إتاحة الدالة عالميًا
-window.initPush = initPush;
+
+  // استقبال الرسائل أثناء عمل التطبيق
+  messaging.onMessage(payload => {
+    const { title, body } = payload.notification || {};
+    if (title && body) {
+      // إشعار مرئي
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+      // حفظ في localStorage
+      window.addNotification({ title, body, time: new Date().toLocaleString() });
+    }
+  });
+};
