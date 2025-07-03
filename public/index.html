@@ -299,6 +299,11 @@
 
   <!-- 2) سكربت عرض سجل الإشعارات (يحمل دالة initNotifications ويتم تهيئتها داخلياً) -->
   <script src="./js/notifications.js" defer></script>
+  document.addEventListener('DOMContentLoaded', () => {
+  if (typeof window.initNotifications === 'function') {
+    window.initNotifications();
+  }
+});
 
   <!-- 3) سكربتات Push و App -->
   <script type="module" src="./js/push.js" defer></script>
