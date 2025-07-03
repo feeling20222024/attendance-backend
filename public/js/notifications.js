@@ -8,12 +8,8 @@ const STORAGE_KEY = 'notifications';
 // —————————————————————————————————————————
 // 1) تحميل الإشعارات من localStorage
 // —————————————————————————————————————————
-function loadNotifications() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
+ function loadNotifications() {
+ return JSON.parse(localStorage.getItem('notificationsLog') || '[]');
 }
 
 // —————————————————————————————————————————
@@ -78,7 +74,8 @@ window.initNotifications = function() {
   // عند الضغط على الجرس: إعادة الرسم وفتح/إغلاق اللوحة
   bell.addEventListener('click', () => {
     renderNotifications();
-    panel.classList.toggle('hidden');
+    updateBellCount();
+     panel.classList.toggle('hidden');
   });
 
   // ربط زر المسح
