@@ -75,16 +75,14 @@ async function initPush() {
     }
 
     // 4.6) استقبال الرسائل في الواجهة (foreground)
-   messaging.onMessage(payload => {
+ messaging.onMessage(payload => {
   const { title, body } = payload.notification || {};
   if (!title) return;
 
-  // عرض الإشعار للمستخدم
   new Notification(title, { body });
 
-  // خزن الإشعار فوريًا في localStorage
   const now = new Date().toLocaleString();
-  window.addNotification({ title, body, time: now });
+  window.addNotification({ title, body, time: now }); // ✅ هذا السطر ضروري
 });
   } catch (err) {
     console.error('❌ خطأ أثناء تهيئة الإشعارات (initPush):', err);
