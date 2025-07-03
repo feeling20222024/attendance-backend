@@ -1,14 +1,18 @@
 // notifications.js
 
-// —————————————————————————————————————————
-// 1) دالة لإظهار سجل الإشعارات قبل أو بعد التسجيل
-// —————————————————————————————————————————
-window.initNotifications = function() {
+window.initNotifications = function retryableInit() {
   const bell   = document.getElementById('notifBell');
   const panel  = document.getElementById('notificationsPanel');
   const list   = document.getElementById('notificationsLog');
   const count  = document.getElementById('notifCount');
   const clearB = document.getElementById('clearNotifications');
+
+  // ✅ تأكد من أن كل العناصر موجودة، وإن لم تكن، أعد المحاولة بعد 300 مللي ثانية
+  if (!bell || !panel || !list || !count || !clearB) {
+    console.warn('🔁 عناصر الإشعارات غير جاهزة بعد. إعادة المحاولة...');
+    setTimeout(window.initNotifications, 300);
+    return;
+  }
 
   function render() {
     const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
@@ -30,32 +34,28 @@ window.initNotifications = function() {
       });
       count.textContent = saved.length;
       count.style.display = 'inline-block';
-      // زر المسح فقط للمشرف
       if (window.currentUser === '35190') clearB.classList.remove('hidden');
       else clearB.classList.add('hidden');
     }
   }
 
-  // تهيئة زر المسح
   clearB.addEventListener('click', () => {
     if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
     localStorage.removeItem('notifications');
     render();
   });
 
-  // ارسم الواجهة فوراً
   render();
 
-  // أظهر/أخفِ اللوحة عند الضغط على الجرس (حتى قبل login)
   bell.addEventListener('click', () => {
     panel.classList.toggle('hidden');
   });
 };
 
-// دالة لحفظ الإشعار في localStorage — تُستخدم في push.js
+// ✅ دالة تُستخدم من push.js لحفظ الإشعار
 window.addNotification = function({ title, body, time }) {
   const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
   saved.unshift({ title, body, time });
-  if (saved.length > 50) saved.pop(); // عدد أقصى
+  if (saved.length > 50) saved.pop();
   localStorage.setItem('notifications', JSON.stringify(saved));
 };
