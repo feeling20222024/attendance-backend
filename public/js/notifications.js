@@ -1,11 +1,15 @@
 // notifications.js
 
-// 1) جلب السجل المخزّن
+// —————————————————————————————————————————
+// 1) جلب الإشعارات من localStorage
+// —————————————————————————————————————————
 function loadNotifications() {
   return JSON.parse(localStorage.getItem('notificationsLog') || '[]');
 }
 
-// 2) عرض العدد على الجرس
+// —————————————————————————————————————————
+// 2) عرض العدد على الأيقونة
+// —————————————————————————————————————————
 function updateBellCount() {
   const count = loadNotifications().length;
   const bellCount = document.getElementById('notifCount');
@@ -13,11 +17,13 @@ function updateBellCount() {
   bellCount.style.display = count > 0 ? 'inline-block' : 'none';
 }
 
-// 3) رسم لوحة الإشعارات
+// —————————————————————————————————————————
+// 3) بناء قائمة الإشعارات في اللوحة
+// —————————————————————————————————————————
 function renderNotificationsPanel() {
   const notifs = loadNotifications();
-  const list   = document.getElementById('notificationsLog');
-  const clearB = document.getElementById('clearNotifications');
+  const list    = document.getElementById('notificationsLog');
+  const clearB  = document.getElementById('clearNotifications');
   list.innerHTML = '';
 
   if (notifs.length === 0) {
@@ -43,7 +49,9 @@ function renderNotificationsPanel() {
   }
 }
 
-// 4) مسح السجل
+// —————————————————————————————————————————
+// 4) تفريغ الإشعارات
+// —————————————————————————————————————————
 function clearNotifications() {
   if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
   localStorage.removeItem('notificationsLog');
@@ -51,7 +59,9 @@ function clearNotifications() {
   updateBellCount();
 }
 
-// 5) تهيئة الحدث على الجرس وزر المسح
+// —————————————————————————————————————————
+// 5) تهيئة أحداث الجرس والزر
+// —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   const bell   = document.getElementById('notifBell');
   const panel  = document.getElementById('notificationsPanel');
@@ -65,11 +75,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   clearB.addEventListener('click', clearNotifications);
 
-  // عرض العدّ عند التحميل
+  // عرض العدد عند التحميل
   updateBellCount();
 });
 
-// 6) دالة تُستدعى من push.js عند وصول إشعار جديد
+// —————————————————————————————————————————
+// 6) تعريف initNotifications في النطاق العام
+// —————————————————————————————————————————
+window.initNotifications = function() {
+  renderNotificationsPanel();
+  updateBellCount();
+};
+
+// —————————————————————————————————————————
+// 7) دالة تُستدعى من push.js عند وصول إشعار جديد
+// —————————————————————————————————————————
 window.addNotificationToLog = ({ title, body, time }) => {
   const existing = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
   existing.unshift({ title, body, time });
