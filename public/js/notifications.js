@@ -1,6 +1,3 @@
-// —————————————————————————————————————————
-// 1) دالة لإظهار سجل الإشعارات قبل أو بعد التسجيل
-// —————————————————————————————————————————
 window.initNotifications = function () {
   const bell = document.getElementById('notifBell');
   const panel = document.getElementById('notificationsPanel');
@@ -33,8 +30,8 @@ window.initNotifications = function () {
       count.textContent = saved.length;
       count.style.display = 'inline-block';
 
-      // زر المسح فقط إذا currentUser معرف ومطابق
-      if (typeof window.currentUser !== 'undefined' && window.currentUser === '35190') {
+      // تصحيح شرط إظهار زر المسح
+      if (typeof window.currentUser !== 'undefined' && String(window.currentUser) === '35190') {
         clearB.classList.remove('hidden');
       } else {
         clearB.classList.add('hidden');
@@ -49,6 +46,9 @@ window.initNotifications = function () {
     render();
   });
 
+  // رسم فوري
+  render();
+
   // تبديل ظهور اللوحة عند الضغط على الجرس
   bell.addEventListener('click', () => {
     const isHidden = panel.classList.contains('hidden');
@@ -60,26 +60,4 @@ window.initNotifications = function () {
       panel.style.display = 'none';
     }
   });
-
-  // عرض فوري للإشعارات عند التهيئة
-  render();
-
-  // اجعل render متاحة لتحديث الإشعارات بدون إعادة تهيئة
-  window.renderNotifications = render;
-};
-
-// —————————————————————————————————————————
-// 2) دالة لحفظ الإشعار في localStorage — تُستخدم في push.js
-// —————————————————————————————————————————
-window.addNotification = function ({ title, body, time }) {
-  const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
-  saved.unshift({ title, body, time });
-  if (saved.length > 50) saved.pop(); // حد أقصى
-  localStorage.setItem('notifications', JSON.stringify(saved));
-  console.log('📩 إشعار مضاف إلى localStorage:', { title, body, time });
-
-  // تحديث الواجهة فقط عبر renderNotifications
-  if (typeof window.renderNotifications === 'function') {
-    window.renderNotifications();
-  }
 };
