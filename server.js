@@ -1,3 +1,5 @@
+// server.js
+
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
 
@@ -30,7 +32,7 @@ try {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
-// 4) دالة لإرسال إشعار FCM
+
 // 4) دالة لإرسال إشعار FCM
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
@@ -43,7 +45,7 @@ async function sendPushTo(token, title, body, data = {}) {
       notification: {
         channel_id: 'default',  // اسم القناة كما أنشأته سابقاً
         sound:      'default'
-        // الاهتزاز وأي إعدادات تخص القناة نفسها يجب أن تُهيَّأ client‑side
+        // لا تضيفي هنا vibrate_timings أو حقول غير مدعومة
       }
     },
     data  // بيانات إضافية إن وجدت
@@ -58,6 +60,7 @@ async function sendPushTo(token, title, body, data = {}) {
     throw err;
   }
 }
+
 // 5) تهيئة Express
 const app = express();
 app.use(cors());
@@ -219,12 +222,13 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
   }
 });
 
-// 14) تسجيل توكن FCM
-const tokens = new Map();
+// 14) تسجيل توكن FCM (نجعلها Set لتجنّب التكرار)
+const tokens = new Set();
+
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
   if (!user || !token) return res.status(400).json({ error: 'user and token required' });
-  tokens.set(token, user);
+  tokens.add(token);  // Set يضمن فريدانية التوكن
   res.json({ success: true });
 });
 
@@ -232,7 +236,7 @@ app.post('/api/register-token', (req, res) => {
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
   const { title, body } = req.body;
-  const list = Array.from(tokens.keys());
+  const list = Array.from(tokens);
   await Promise.allSettled(list.map(t => sendPushTo(t, title, body)));
   res.json({ success: true });
 });
