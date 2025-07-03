@@ -1,9 +1,13 @@
 // public/js/notifications.js
 
+// —————————————————————————————————————————
 // مفتاح التخزين المشترك
-const STORAGE_KEY = 'notificationsLog';
+// —————————————————————————————————————————
+const STORAGE_KEY = 'notifications';
 
-// دالة تحميل الإشعارات
+// —————————————————————————————————————————
+// 1) تحميل الإشعارات من localStorage
+// —————————————————————————————————————————
 function loadNotifications() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -12,27 +16,38 @@ function loadNotifications() {
   }
 }
 
-// دالة رسم اللوحة وتحديث العداد
+// —————————————————————————————————————————
+// 2) حفظ قائمة الإشعارات في localStorage
+// —————————————————————————————————————————
+function saveNotifications(list) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+// —————————————————————————————————————————
+// 3) رسم اللوحة وتحديث العداد
+// —————————————————————————————————————————
 function renderNotifications() {
   const notifs = loadNotifications();
   const ul     = document.getElementById('notificationsLog');
   const count  = document.getElementById('notifCount');
   const clearB = document.getElementById('clearNotifications');
 
-  // تحديث العداد
+  // حدّث العداد
   count.textContent = notifs.length;
   count.style.display = notifs.length > 0 ? 'inline-block' : 'none';
 
-  // تفريغ القائمة ثم تعبئتها
-  ul.innerHTML = notifs.length === 0
-    ? '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>'
-    : notifs.map(n => `
-        <li class="mb-2 border-b pb-2">
-          <div class="font-semibold text-gray-800">${n.title}</div>
-          <div class="text-sm text-gray-700">${n.body}</div>
-          <div class="text-xs text-gray-400 mt-1">${n.time}</div>
-        </li>
-      `).join('');
+  // املأ القائمة
+  if (notifs.length === 0) {
+    ul.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
+  } else {
+    ul.innerHTML = notifs.map(n => `
+      <li class="mb-2 border-b pb-2">
+        <div class="font-semibold text-gray-800">${n.title}</div>
+        <div class="text-sm text-gray-700">${n.body}</div>
+        <div class="text-xs text-gray-400 mt-1">${n.time}</div>
+      </li>
+    `).join('');
+  }
 
   // إظهار زر المسح للمشرف فقط
   if (window.currentUser === '35190' && notifs.length > 0) {
@@ -42,7 +57,9 @@ function renderNotifications() {
   }
 }
 
-// مسح الإشعارات
+// —————————————————————————————————————————
+// 4) مسح الإشعارات
+// —————————————————————————————————————————
 function clearNotifications() {
   if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
   localStorage.removeItem(STORAGE_KEY);
@@ -50,15 +67,17 @@ function clearNotifications() {
   alert('✅ تم مسح الإشعارات بنجاح');
 }
 
-// تهيئة واجهة الإشعارات
+// —————————————————————————————————————————
+// 5) تهيئة واجهة الإشعارات
+// —————————————————————————————————————————
 window.initNotifications = function() {
-  const bell  = document.getElementById('notifBell');
-  const panel = document.getElementById('notificationsPanel');
+  const bell   = document.getElementById('notifBell');
+  const panel  = document.getElementById('notificationsPanel');
   const clearB = document.getElementById('clearNotifications');
 
-  // عند الضغط على الجرس: فتح/غلق اللوحة
+  // عند الضغط على الجرس: إعادة الرسم وفتح/إغلاق اللوحة
   bell.addEventListener('click', () => {
-    renderNotifications();      // نعيد الرسم دائماً
+    renderNotifications();
     panel.classList.toggle('hidden');
   });
 
@@ -74,12 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
   window.initNotifications();
 });
 
-// دالة تضاف إليها من push.js عند وصول إشعار جديد
+// —————————————————————————————————————————
+// 6) دالة تُستدعى من push.js أو initPushNative
+// لإضافة إشعار جديد إلى السجل
+// —————————————————————————————————————————
 window.addNotificationToLog = function({ title, body, time }) {
   const notifs = loadNotifications();
   notifs.unshift({ title, body, time });
   if (notifs.length > 50) notifs.pop();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs));
-  // فور الإضافة حدّث الواجهة
+  saveNotifications(notifs);
   renderNotifications();
 };
