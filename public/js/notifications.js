@@ -1,55 +1,60 @@
-// دالة تهيئة واجهة لوحة الإشعارات
+// notifications.js
+
+// —————————————————————————————————————————
+// 1) دالة لإظهار سجل الإشعارات قبل أو بعد التسجيل
 // —————————————————————————————————————————
 window.initNotifications = function() {
   const bell   = document.getElementById('notifBell');
   const panel  = document.getElementById('notificationsPanel');
-  const ul     = document.getElementById('notificationsLog');
+  const list   = document.getElementById('notificationsLog');
   const count  = document.getElementById('notifCount');
   const clearB = document.getElementById('clearNotifications');
 
-  // إعادة عرض الإشعارات المخزّنة
   function render() {
     const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
-    ul.innerHTML = '';
-    saved.forEach(n => {
-      const li = document.createElement('li');
-      li.style.padding = '0.5rem 0';
-      li.innerHTML = 
-        <strong>${n.title}</strong><br>
-        ${n.body}<br>
-        <small>📅 ${n.time}</small>
-        <hr style="margin:0.5rem 0">
-      ;
-      ul.appendChild(li);
-    });
-    count.textContent = saved.length;
-    count.style.display = saved.length > 0 ? 'inline-block' : 'none';
+    list.innerHTML = '';
+    if (saved.length === 0) {
+      list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
+      count.style.display = 'none';
+      clearB.classList.add('hidden');
+    } else {
+      saved.forEach(n => {
+        const li = document.createElement('li');
+        li.className = 'mb-2';
+        li.innerHTML = `
+          <div class="font-semibold">${n.title}</div>
+          <div class="text-sm">${n.body}</div>
+          <div class="text-xs text-gray-400">${n.time}</div>
+        `;
+        list.appendChild(li);
+      });
+      count.textContent = saved.length;
+      count.style.display = 'inline-block';
+      // زر المسح فقط للمشرف
+      if (window.currentUser === '35190') clearB.classList.remove('hidden');
+      else clearB.classList.add('hidden');
+    }
   }
 
-  // عند الضغط على الجرس: فتح/غلق اللوحة
-  bell.addEventListener('click', () => {
-    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+  // تهيئة زر المسح
+  clearB.addEventListener('click', () => {
+    if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
+    localStorage.removeItem('notifications');
+    render();
   });
 
-  // إظهار زر المسح فقط للمشرف بعد login
-  if (window.currentUser === '35190') {
-    clearB.style.display = 'block';
-    clearB.addEventListener('click', () => {
-      if (confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) {
-        localStorage.removeItem('notifications');
-        render();
-        alert('✅ تم مسح الإشعارات بنجاح');
-      }
-    });
-  } else {
-    clearB.style.display = 'none';
-  }
-
-  // عرض السجل فور التهيئة
+  // ارسم الواجهة فوراً
   render();
+
+  // أظهر/أخفِ اللوحة عند الضغط على الجرس (حتى قبل login)
+  bell.addEventListener('click', () => {
+    panel.classList.toggle('hidden');
+  });
 };
 
-// استدعاء initNotifications عند تحميل الصفحة
+// هذا يستدعي initNotifications بعد تحميل DOM
 document.addEventListener('DOMContentLoaded', () => {
-  window.initNotifications();
+  if (typeof window.initNotifications === 'function') {
+    window.initNotifications();
+  }
 });
