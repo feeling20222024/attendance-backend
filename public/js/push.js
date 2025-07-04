@@ -12,12 +12,12 @@ const firebaseConfig = {
 
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// 2. دالة addNotification
+// 2. دالة addNotification - ✅ بعد التصحيح
 window.addNotification = ({ title, body, time }) => {
-  const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
+  const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
   saved.unshift({ title, body, time });
   if (saved.length > 50) saved.pop();
-  localStorage.setItem('notifications', JSON.stringify(saved));
+  localStorage.setItem('notificationsLog', JSON.stringify(saved));
 
   if (typeof window.renderNotifications === 'function') {
     window.renderNotifications();
@@ -28,6 +28,7 @@ window.addNotification = ({ title, body, time }) => {
 
   console.log('📩 إشعار مضاف:', { title, body, time });
 };
+
 
 // 3. تهيئة إشعارات الويب
 window.initNotifications = async function () {
