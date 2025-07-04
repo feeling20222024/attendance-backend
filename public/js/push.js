@@ -79,15 +79,26 @@ window.initNotifications = async function () {
   }
 
   // استقبال الرسائل أثناء عمل التطبيق
-  messaging.onMessage(payload => {
-    const { title, body } = payload.notification || {};
-    if (title && body) {
-      // إشعار مرئي
-      if (Notification.permission === 'granted') {
-        new Notification(title, { body });
-      }
-      // حفظ في localStorage
-      window.addNotification({ title, body, time: new Date().toLocaleString() });
+ // ... باقي محتويات push.js
+
+// استقبال الرسائل أثناء عمل التطبيق (foreground)
+messaging.onMessage(payload => {
+  const { title, body } = payload.notification || {};
+  if (title && body) {
+    // إشعار مرئي إذا أذن المستخدم
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body });
     }
-  });
+    // حفظ الإشعار في localStorage عبر دالة addNotification
+    window.addNotification({ title, body, time: new Date().toLocaleString() });
+  }
+});
+
+// تعريف دالة initPush لتتوافق مع الكود الرئيسي
+window.initPush = async function () {
+  // استدعاء دالة initNotifications إن وجدت
+  if (typeof window.initNotifications === 'function') {
+    window.initNotifications();
+  }
+  // يمكن إضافة أي تهيئة أخرى هنا لاحقاً
 };
