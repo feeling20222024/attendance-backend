@@ -95,10 +95,10 @@ messaging.onMessage(payload => {
 });
 
 // تعريف دالة initPush لتتوافق مع الكود الرئيسي
+// مثال بسيط: تعريف initPush فقط لتجنب الخطأ
 window.initPush = async function () {
-  // استدعاء دالة initNotifications إن وجدت
+  console.log('initPush called');
   if (typeof window.initNotifications === 'function') {
     window.initNotifications();
   }
-  // يمكن إضافة أي تهيئة أخرى هنا لاحقاً
 };
