@@ -285,16 +285,15 @@
    </div>
   </section>
   </main>
- 
-  <!-- Scripts -->
-  <!-- 1) تسجيل Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js')
-        .then(r => console.log('✅ SW registered:', r.scope))
-        .catch(e => console.warn('❌ SW registration failed', e));
-    }
-  </script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('/firebase-messaging-sw.js')
+      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
+      .catch(err => console.error('❌ SW registration failed', err));
+  }
+</script>
+
 <!-- 1) تحميل notifications.js بدون defer -->
 <script src="js/notifications.js"></script>
 
