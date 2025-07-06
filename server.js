@@ -240,7 +240,12 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   await Promise.allSettled(list.map(t => sendPushTo(t, title, body)));
   res.json({ success: true });
 });
-
+app.get('/api/latest-version', (req, res) => {
+  res.json({
+    latest:    '1.2.3',  // عدّل هذا عند إصدار نسخة جديدة
+    updateUrl: 'https://play.google.com/store/apps/details?id=com.example.app'
+  });
+});
 // 16) SPA fallback (يجب أن يكون آخر شيء)
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
