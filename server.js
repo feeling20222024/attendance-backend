@@ -242,7 +242,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
 });
 app.get('/api/latest-version', (req, res) => {
   res.json({
-    latest:    '1.2.0',  // عدّل هذا عند إصدار نسخة جديدة
+    latest:    '1.0.0',  // عدّل هذا عند إصدار نسخة جديدة
     updateUrl: 'https://play.google.com/store/apps/details?id=com.example.app'
   });
 });
