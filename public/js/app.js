@@ -1,7 +1,7 @@
 // —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
-const APP_VERSION = '1.0.0';
+
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
@@ -390,37 +390,3 @@ function logout() {
   );
   document.getElementById('loginSection').classList.remove('hidden');
 }
-// مقارنة رقمين مثل "1.0.0" و "1.2.3"
-  // —————————————————————————————————————————
-  function compareVersions(a, b) {
-    const pa = a.split('.').map(Number),
-          pb = b.split('.').map(Number);
-    for (let i = 0; i < pa.length; i++) {
-      if ((pa[i]||0) < (pb[i]||0)) return -1;
-      if ((pa[i]||0) > (pb[i]||0)) return  1;
-    }
-    return 0;
-  }
-
-  // —————————————————————————————————————————
-  // فحص الإصدار عند تحميل الصفحة
-  // —————————————————————————————————————————
-  async function checkForUpdate() {
-    try {
-      const res = await fetch('/api/latest-version');
-      if (!res.ok) return;
-      const { latest, updateUrl } = await res.json();
-      if (compareVersions(APP_VERSION, latest) < 0) {
-        if (confirm('هناك إصدار جديد. هل تريد التحديث الآن؟')) {
-          window.location.href = updateUrl;
-        }
-      }
-    } catch (e) {
-      console.warn('فحص التحديث فشل:', e);
-    }
-  }
-
-  // —————————————————————————————————————————
-  // نفّذ الفحص مرة واحدة عند تحميل الصفحة
-  // —————————————————————————————————————————
-  document.addEventListener('DOMContentLoaded', checkForUpdate);
