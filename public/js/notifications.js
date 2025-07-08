@@ -87,8 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!bell || !panel || !clearB) return;
 
   bell.addEventListener('click', function() {
--   if (!window.currentUser) return; // لا تفتح قبل تسجيل الدخول
-+
     // ضمان ظهور اللوحة حتى لو كانت مخفية بـ style أو class
     const isHidden = panel.classList.contains('hidden') || getComputedStyle(panel).display === 'none';
 
