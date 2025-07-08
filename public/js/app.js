@@ -299,32 +299,31 @@ async function showTqeem() {
         'Authorization': `Bearer ${jwtToken}`
       }
     });
-
-    const contentType = res.headers.get('content-type') || '';
-    // إذا أتى الرد HTML بدلاً من JSON
-    if (!res.ok || !contentType.includes('application/json')) {
-      console.warn('🚧 showTqeem: expected JSON, got', contentType);
-      alert('البيانات غير متوفرة حالياً وسيتم إضافتها قريباً.');
-      return;
+    if (!res.ok) {
+      throw new Error(`فشل جلب بيانات التقييم السنوي (status: ${res.status})`);
     }
-
-    const { headers, data } = await res.json();
+    const {
+      headers,
+      data
+    } = await res.json();
     headersTq = headers;
     tqeemData = data;
-
-    // إظهار القسم وتفريغ الجدول
-    document.getElementById('tqeemSection').classList.remove('hidden');
+    const section = document.getElementById('tqeemSection');
+    section.classList.remove('hidden');
     const tbody = document.getElementById('tqeemBody');
     tbody.innerHTML = '';
-
+    const noMsg = document.getElementById('noTqeemMsg');
     if (data.length === 0) {
-      document.getElementById('noTqeemMsg').classList.remove('hidden');
+      noMsg.classList.remove('hidden');
+      section.scrollIntoView({
+        behavior: 'smooth'
+      });
       return;
     }
-    document.getElementById('noTqeemMsg').classList.add('hidden');
-
+    noMsg.classList.add('hidden');
     data.forEach(r => {
       const tr = document.createElement('tr');
+      tr.className = 'divide-y divide-gray-100';
       tr.innerHTML = `
         <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')] || ''}</td>
         <td class="border px-4 py-2">${r[headers.indexOf('الاسم')] || ''}</td>
@@ -339,11 +338,10 @@ async function showTqeem() {
       `;
       tbody.appendChild(tr);
     });
-
-    // تمرير الشاشة للقسم
-    document.getElementById('tqeemSection')
-            .scrollIntoView({ behavior: 'smooth' });
-
+    section.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
   } catch (e) {
     console.error('❌ showTqeem error:', e);
     alert('حدث خطأ غير متوقع أثناء جلب بيانات التقييم السنوي');
