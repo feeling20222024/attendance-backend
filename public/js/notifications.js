@@ -1,1 +1,111 @@
-const _0x122566=_0x1b71;(function(_0x3db916,_0x4cbbb3){const _0xfd9392=_0x1b71,_0x257ae2=_0x3db916();while(!![]){try{const _0x53fe93=parseInt(_0xfd9392(0x9e))/0x1*(parseInt(_0xfd9392(0x90))/0x2)+-parseInt(_0xfd9392(0x8a))/0x3*(-parseInt(_0xfd9392(0xb0))/0x4)+parseInt(_0xfd9392(0x96))/0x5+-parseInt(_0xfd9392(0x8f))/0x6*(parseInt(_0xfd9392(0x9f))/0x7)+-parseInt(_0xfd9392(0x89))/0x8+-parseInt(_0xfd9392(0xb6))/0x9+parseInt(_0xfd9392(0xa7))/0xa*(parseInt(_0xfd9392(0x8c))/0xb);if(_0x53fe93===_0x4cbbb3)break;else _0x257ae2['push'](_0x257ae2['shift']());}catch(_0x49a83a){_0x257ae2['push'](_0x257ae2['shift']());}}}(_0x3099,0xe1cbd));const STORAGE_KEY=_0x122566(0xb2),SUPERVISOR_CODE=_0x122566(0x92);function loadNotifications(){const _0x54b4ec=_0x122566;try{return JSON[_0x54b4ec(0xaa)](localStorage[_0x54b4ec(0xba)](STORAGE_KEY))||[];}catch{return[];}}function _0x1b71(_0x4af124,_0x26d747){const _0x309920=_0x3099();return _0x1b71=function(_0x1b711f,_0x35358b){_0x1b711f=_0x1b711f-0x89;let _0x31dbab=_0x309920[_0x1b711f];return _0x31dbab;},_0x1b71(_0x4af124,_0x26d747);}function updateBellCount(){const _0x11ab41=_0x122566,_0x545c24=loadNotifications()[_0x11ab41(0xa3)],_0xdf090c=document[_0x11ab41(0x8e)](_0x11ab41(0xa4));if(!_0xdf090c)return;_0xdf090c['textContent']=_0x545c24,_0xdf090c[_0x11ab41(0xab)][_0x11ab41(0xaf)]=_0x545c24>0x0?_0x11ab41(0xa5):_0x11ab41(0xbe);}function renderNotifications(){const _0x422d5e=_0x122566,_0x8d8640=document[_0x422d5e(0x8e)](_0x422d5e(0xb2)),_0x2e7a4f=document[_0x422d5e(0x8e)](_0x422d5e(0x94)),_0x26177e=loadNotifications();if(!_0x8d8640||!_0x2e7a4f)return;_0x8d8640[_0x422d5e(0x9a)]='',_0x26177e[_0x422d5e(0xa3)]===0x0?_0x8d8640[_0x422d5e(0x9a)]=_0x422d5e(0xac):_0x26177e[_0x422d5e(0xae)](_0x4d5097=>{const _0x61b39e=_0x422d5e,_0x17e49f=document['createElement']('li');_0x17e49f[_0x61b39e(0x98)]=_0x61b39e(0x95),_0x17e49f[_0x61b39e(0x9a)]=_0x61b39e(0xbb)+_0x4d5097['title']+_0x61b39e(0x8b)+_0x4d5097['body']+_0x61b39e(0xbd)+_0x4d5097[_0x61b39e(0xbc)]+_0x61b39e(0xbf),_0x8d8640['appendChild'](_0x17e49f);}),window['currentUser']===SUPERVISOR_CODE&&_0x26177e[_0x422d5e(0xa3)]>0x0?(console['log'](_0x422d5e(0xb4),window['currentUser']),_0x2e7a4f[_0x422d5e(0xb9)][_0x422d5e(0xa2)](_0x422d5e(0xb5)),_0x2e7a4f['style'][_0x422d5e(0xaf)]=_0x422d5e(0xa5)):(console[_0x422d5e(0xa8)](_0x422d5e(0x93),window[_0x422d5e(0xad)]),_0x2e7a4f[_0x422d5e(0xb9)][_0x422d5e(0x99)](_0x422d5e(0xb5)),_0x2e7a4f['style'][_0x422d5e(0xaf)]='none');}function _0x3099(){const _0x1f691e=['currentUser','forEach','display','4ZyzOic','title','notificationsLog','هل\x20أنت\x20متأكد\x20أنك\x20تريد\x20مسح\x20جميع\x20الإشعارات؟','🧪\x20Showing\x20clear\x20button\x20for\x20currentUser:','hidden','15921864sOKfPg','click','pop','classList','getItem','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22font-semibold\x20text-gray-800\x22>','time','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22text-xs\x20text-gray-400\x20mt-1\x22>','none','</div>\x0a\x20\x20\x20\x20\x20\x20','addEventListener','170720xExxjv','719559QKhnDg','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22text-sm\x20text-gray-700\x22>','1474NERFQs','removeItem','getElementById','243042ObEfOB','6BKKlkJ','ليس\x20لديك\x20صلاحية\x20لمسح\x20سجل\x20الإشعارات.','35190','🧪\x20Hiding\x20clear\x20button\x20for\x20currentUser:','clearNotifications','mb-4\x20border-b\x20pb-2','6481440Iirova','addNotification','className','add','innerHTML','DOMContentLoaded','contains','setItem','441569lWWleU','77BlYSOj','notificationsPanel','body','remove','length','notifCount','inline-block','stringify','22390NtEAlo','log','block','parse','style','<li\x20class=\x22text-gray-500\x20text-sm\x22>لا\x20توجد\x20إشعارات</li>'];_0x3099=function(){return _0x1f691e;};return _0x3099();}function clearNotifications(){const _0x53ac4f=_0x122566;if(window[_0x53ac4f(0xad)]!==SUPERVISOR_CODE){alert(_0x53ac4f(0x91));return;}if(!confirm(_0x53ac4f(0xb3)))return;localStorage[_0x53ac4f(0x8d)](STORAGE_KEY),renderNotifications(),updateBellCount();}document[_0x122566(0xc0)](_0x122566(0x9b),function(){const _0x3a7546=_0x122566,_0x391c85=document['getElementById']('notifBell'),_0x352852=document['getElementById'](_0x3a7546(0xa0)),_0x4e9194=document[_0x3a7546(0x8e)](_0x3a7546(0x94));updateBellCount();if(!_0x391c85||!_0x352852||!_0x4e9194)return;_0x391c85[_0x3a7546(0xc0)](_0x3a7546(0xb7),function(){const _0x440bb4=_0x3a7546,_0x3e2929=_0x352852[_0x440bb4(0xb9)][_0x440bb4(0x9c)](_0x440bb4(0xb5))||getComputedStyle(_0x352852)[_0x440bb4(0xaf)]===_0x440bb4(0xbe);_0x3e2929?(_0x352852[_0x440bb4(0xb9)]['remove'](_0x440bb4(0xb5)),_0x352852['style'][_0x440bb4(0xaf)]=_0x440bb4(0xa9)):(_0x352852['classList'][_0x440bb4(0x99)]('hidden'),_0x352852[_0x440bb4(0xab)][_0x440bb4(0xaf)]=_0x440bb4(0xbe)),renderNotifications(),updateBellCount();}),_0x4e9194[_0x3a7546(0xc0)]('click',clearNotifications);}),window[_0x122566(0x97)]=function(_0x5418b2){const _0x92f59f=_0x122566;let _0x1ce6dc=loadNotifications();_0x1ce6dc['unshift']({'title':_0x5418b2[_0x92f59f(0xb1)],'body':_0x5418b2[_0x92f59f(0xa1)],'time':_0x5418b2[_0x92f59f(0xbc)]});if(_0x1ce6dc[_0x92f59f(0xa3)]>0x32)_0x1ce6dc[_0x92f59f(0xb8)]();localStorage[_0x92f59f(0x9d)](STORAGE_KEY,JSON[_0x92f59f(0xa6)](_0x1ce6dc));const _0x3212c6=document[_0x92f59f(0x8e)]('notificationsPanel');_0x3212c6&&getComputedStyle(_0x3212c6)[_0x92f59f(0xaf)]!==_0x92f59f(0xbe)&&renderNotifications(),updateBellCount();};
+// —————————————————————————————————————————————————————————————
+// Constants
+const STORAGE_KEY     = 'notificationsLog';
+const SUPERVISOR_CODE = '35190';
+
+// —————————————————————————————————————————————————————————————
+// قراءة الإشعارات من localStorage
+function loadNotifications() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+// —————————————————————————————————————————————————————————————
+// تحديث عداد الجرس
+function updateBellCount() {
+  const count = loadNotifications().length;
+  const bellCount = document.getElementById('notifCount');
+  if (!bellCount) return;
+  bellCount.textContent = count;
+  bellCount.style.display = count > 0 ? 'inline-block' : 'none';
+}
+
+// —————————————————————————————————————————————————————————————
+// رسم محتوى لوحة الإشعارات
+function renderNotifications() {
+  const list = document.getElementById('notificationsLog');
+  const clearB = document.getElementById('clearNotifications');
+  const notifs = loadNotifications();
+
+  if (!list || !clearB) return;
+
+  list.innerHTML = '';
+
+  if (notifs.length === 0) {
+    list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
+  } else {
+    notifs.forEach(n => {
+      const li = document.createElement('li');
+      li.className = 'mb-4 border-b pb-2';
+      li.innerHTML = `
+        <div class="font-semibold text-gray-800">${n.title}</div>
+        <div class="text-sm text-gray-700">${n.body}</div>
+        <div class="text-xs text-gray-400 mt-1">${n.time}</div>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  // إظهار زر المسح للمشرف فقط
+  if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
+    console.log('🧪 Showing clear button for currentUser:', window.currentUser);
+    clearB.classList.remove('hidden');
+    clearB.style.display = 'inline-block';
+  } else {
+    console.log('🧪 Hiding clear button for currentUser:', window.currentUser);
+    clearB.classList.add('hidden');
+    clearB.style.display = 'none';
+  }
+}
+
+// —————————————————————————————————————————————————————————————
+// مسح سجل الإشعارات (للمشرف فقط)
+// —————————————————————————————————————————————————————————————
+// مسح سجل الإشعارات (للمشرف فقط)
+function clearNotifications() {
+  if (window.currentUser !== SUPERVISOR_CODE) {
+    alert('ليس لديك صلاحية لمسح سجل الإشعارات.');
+    return;
+  }
+  if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
+
+  localStorage.removeItem(STORAGE_KEY);
+  renderNotifications();
+  updateBellCount();
+}
+
+// ★ إضافة Firestore: تخزين الإشعار في القاعدة ★
+window.addNotification = async function(payload) {
+  // 1) خزّن محليًا
+  let saved = loadNotifications();
+  saved.unshift({ title: payload.title, body: payload.body, time: payload.time });
+  if (saved.length > 50) saved.pop();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+
+  // 2) خزّن في Firestore (مجموعات notifications/userId)
+  try {
+    const userId = firebase.auth().currentUser.uid;
+    await db
+      .collection('notifications')
+      .doc(userId)
+      .collection('log')
+      .add({
+        title: payload.title,
+        body: payload.body,
+        time: payload.time,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+  } catch (e) {
+    console.warn('Firestore save failed:', e);
+  }
+
+  // 3) إعادة رسم إذا اللوحة مفتوحة
+  const panel = document.getElementById('notificationsPanel');
+  if (panel && getComputedStyle(panel).display !== 'none') {
+    renderNotifications();
+  }
+  updateBellCount();
+};
