@@ -1,37 +1,16 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <link rel="manifest" href="/manifest.json" />
-
-  <!-- Firebase compat -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
-  <script>
-    // 1) تهيئة تطبيق Firebase (إذا لم تكن قد فعلت ذلك)
-    firebase.initializeApp({
-      apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
-      authDomain:       "device-streaming-47cbe934.firebaseapp.com",
-      projectId:        "device-streaming-47cbe934",
-      storageBucket:    "device-streaming-47cbe934.appspot.com",
-      messagingSenderId:"235398312189",
-      appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
-    });
-
-    // 2) احصل على المراجع كمتغيرات عالمية
-    window.db = firebase.firestore();
-    window.messaging = firebase.messaging();
-
-    // ★ بعد هذا يمكنك استخدام `db.collection('notifications')` لقراءة/كتابة الإشعارات ★
-  </script>
-
-  
-
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>تطبيق متابعة الدوام</title>
 
-  <!-- CSP مخفّفة -->
+  <!-- رابط الـ Web App Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- سياسة الأمان (CSP) -->
   <meta http-equiv="Content-Security-Policy"
         content="
           default-src 'self' data:;
@@ -48,12 +27,14 @@
                        https://fcmregistrations.googleapis.com;
         ">
 
-  <!-- Tailwind + ستايلات عامة -->
+  <!-- ستايلات Tailwind (اختر بين CDN أو محلي، لا تكررهما معًا) -->
+  <!-- إذا تريد CDN: -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css" />
+  <!-- وإذا بنيت tailwind.css محليًا: -->
+  <!-- <link href="css/tailwind.css" rel="stylesheet" /> -->
 
+  <!-- ستايلات خاصة بالـ notifications -->
   <style>
-    /* dropdown notifications */
     #notificationsPanel {
       position: absolute; top: 3.5rem; right: 1rem;
       width: 300px; max-height: 400px; overflow-y: auto;
@@ -312,21 +293,16 @@
       .catch(err => console.error('❌ SW registration failed', err));
   }
 </script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+<!-- 1) تحميل notifications.js كـ module -->
+<script type="module" src="js/notifications.js"></script>
 
-<!-- 1) تحميل notifications.js بدون defer -->
-<script src="js/notifications.js"></script>
+<!-- 2) سكربت Push -->
+<script type="module" src="js/push.js"></script>
 
-<!-- 2) تنفيذ initNotifications بعد التأكد من جاهزية DOM والعناصر -->
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (typeof window.initNotifications === 'function') {
-      window.initNotifications();
-    }
-  });
-</script>
-
-<!-- 3) سكربتات Push و App -->
-<script type="module" src="js/push.js" defer></script>
+<!-- 3) سكربتات التطبيق -->
 <script nomodule src="js/app.legacy.js" defer></script>
 <script type="module" src="js/app.js" defer></script>
 
