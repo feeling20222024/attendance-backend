@@ -289,23 +289,27 @@
   </section>
   </main>
 
-  <!-- 0) تسجيل Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
-        .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-        .catch(err => console.error('❌ SW reg failed', err));
-    }
-  </script>
+ <!-- تسجيل SW -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(r => console.log('SW scope:', r.scope))
+      .catch(console.error);
+  }
+</script>
 
-<!-- ضمن <body>، بعد بقية السكربتات -->
-<!-- أولاً notifications.js لتعريف واجهة اللوحة -->
-<script src="/js/notifications.js"></script>
-<!-- ثم push.js ليعرف initPush -->
-<script type="module" src="/js/push.js"></script>
-<!-- أخيراً app.js حيث بعد login تنادي initPush -->
+<!-- 1) notifications.js كـ module -->
+<script type="module" src="/js/notifications.js"></script>
+
+<!-- 2) push.js كـ module ويعلّق initPush على window -->
+<script type="module">
+  import { initPush } from '/js/push.js';
+  window.initPush = initPush;
+</script>
+
+<!-- 3) app.js (بعد نجاح login يستدعي initPush) -->
 <script type="module" src="/js/app.js" defer></script>
-
+<script nomodule src="/js/app.legacy.js" defer></script>
 </body>
 </html>
+
