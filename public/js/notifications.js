@@ -1,13 +1,8 @@
 // public/js/notifications.js
-// —————————————————————————————————————————
-// هذا الملف يعمل كـ module
-// —————————————————————————————————————————
 
-// 1) الثوابت
-const STORAGE_KEY    = 'notificationsLog';
-const SUPERVISOR_UID = '35190';
+const STORAGE_KEY = 'notificationsLog';
+const SUPERVISOR_CODE = '35190';  // أو الكود اللي تختاره للمشرف
 
-// 2) تحميل الإشعارات من localStorage
 export function loadNotifications() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -16,87 +11,77 @@ export function loadNotifications() {
   }
 }
 
-// 3) حفظ الإشعارات في localStorage
-function saveNotifications(arr) {
+export function saveNotifications(arr) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
 }
 
-// 4) تحديث عداد الجرس
 export function updateBellCount() {
-  const count     = loadNotifications().length;
-  const bellCount = document.getElementById('notifCount');
-  if (!bellCount) return;
-  bellCount.textContent = count;
-  bellCount.style.display = count > 0 ? 'inline-block' : 'none';
+  const count = loadNotifications().length;
+  const badge = document.getElementById('notifCount');
+  if (!badge) return;
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'inline-block' : 'none';
 }
 
-// 5) رسم لوحة الإشعارات
 export function renderNotifications() {
-  const list   = document.getElementById('notificationsLog');
-  const clearB = document.getElementById('clearNotifications');
+  const list = document.getElementById('notificationsLog');
+  const clearBtn = document.getElementById('clearNotifications');
   const notifs = loadNotifications();
-  if (!list || !clearB) return;
+  if (!list || !clearBtn) return;
 
-  list.innerHTML = '';
-  if (notifs.length === 0) {
-    list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
-  } else {
-    notifs.forEach(n => {
-      const li = document.createElement('li');
-      li.className = 'mb-2 border-b pb-2';
-      li.innerHTML = `
-        <div class="font-semibold text-gray-800">${n.title}</div>
-        <div class="text-sm text-gray-700">${n.body}</div>
-        <div class="text-xs text-gray-400 mt-1">${n.time}</div>
-      `;
-      list.appendChild(li);
-    });
-  }
+  list.innerHTML = notifs.length
+    ? notifs.map(n => `
+        <li class="mb-2 border-b pb-2">
+          <div class="font-semibold">${n.title}</div>
+          <div class="text-sm">${n.body}</div>
+          <div class="text-xs text-gray-500">${n.time}</div>
+        </li>
+      `).join('')
+    : '<li class="text-gray-500">لا توجد إشعارات</li>';
+
   // إظهار زر المسح للمشرف فقط
-  if (window.currentUser === SUPERVISOR_UID && notifs.length > 0) {
-    clearB.classList.remove('hidden');
+  if (window.currentUser === SUPERVISOR_CODE && notifs.length) {
+    clearBtn.style.display = 'block';
   } else {
-    clearB.classList.add('hidden');
+    clearBtn.style.display = 'none';
   }
 }
 
-// 6) دالة لمسح السجل
 export function clearNotifications() {
-  if (window.currentUser !== SUPERVISOR_UID) {
-    return alert('ليس لديك صلاحية لمسح سجل الإشعارات.');
+  if (window.currentUser !== SUPERVISOR_CODE) {
+    return alert('لا تملك صلاحية المسح.');
   }
-  if (!confirm('هل أنت متأكد؟')) return;
+  if (!confirm('مسح جميع الإشعارات؟')) return;
   localStorage.removeItem(STORAGE_KEY);
   renderNotifications();
   updateBellCount();
 }
 
-// 7) إضافة إشعار جديد
+// تُستخدم من خارج هذا الملف لإضافة إشعار جديد:
 window.addNotification = function({ title, body, time }) {
   const arr = loadNotifications();
   arr.unshift({ title, body, time });
   if (arr.length > 50) arr.pop();
   saveNotifications(arr);
   updateBellCount();
+  // إذا اللوحة مفتوحة
   const panel = document.getElementById('notificationsPanel');
-  if (panel && !panel.classList.contains('hidden')) {
+  if (panel && panel.style.display !== 'none') {
     renderNotifications();
   }
 };
 
-// 8) ربط الأحداث عند تحميل DOM
+// ربط الأحداث عند التحميل
 document.addEventListener('DOMContentLoaded', () => {
-  const bell   = document.getElementById('notifBell');
-  const panel  = document.getElementById('notificationsPanel');
-  const clearB = document.getElementById('clearNotifications');
-
-  updateBellCount();
-  renderNotifications();
-
-  bell?.addEventListener('click', () => {
-    panel.classList.toggle('hidden');
+  document.getElementById('notifBell')?.addEventListener('click', () => {
+    const panel = document.getElementById('notificationsPanel');
+    if (!panel) return;
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
     renderNotifications();
     updateBellCount();
   });
-  clearB?.addEventListener('click', clearNotifications);
+  document.getElementById('clearNotifications')?.addEventListener('click', clearNotifications);
+  // تحديث واجهة الإشعارات عند بدء التشغيل
+  updateBellCount();
+  renderNotifications();
 });
