@@ -286,33 +286,31 @@
   </section>
   </main>
 <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker
-      .register('/firebase-messaging-sw.js')
-      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-      .catch(err => console.error('❌ SW registration failed', err));
-  }
-</script>
-<script type="module">
-  import { initPush } from './js/push.js';
-  // بعد تسجيل الدخول (لأنك تحتاج window.currentUser):
-  initPush();
-  <!-- 1) أولًا notifications.js ليعرف دوال العرض والتخزين -->
+  <!-- 1) سجّل Service Worker الخاص بـ FCM -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/firebase-messaging-sw.js')
+        .then(reg => console.log('✅ FCM SW registered:', reg.scope))
+        .catch(err => console.error('❌ SW registration failed', err));
+    }
+  </script>
+
+  <!-- 2) أولًا: notifications.js ليعرف الدوال محليًا -->
   <script type="module" src="/js/notifications.js"></script>
 
-  <!-- 2) ثم push.js ليضيف initPush -->
+  <!-- 3) ثم push.js ليصدر initPush -->
   <script type="module" src="/js/push.js"></script>
 
-  <!-- 3) أخيرًا استدعاء initPush (بعد تسجيل الدخول وتحديد window.currentUser) -->
+  <!-- 4) بعد تسجيل الدخول وتعيين window.currentUser، نُشغّل initPush -->
   <script type="module">
-    // تأكد أنّ window.currentUser قد عُيّن قبل هذا السطر
     import { initPush } from '/js/push.js';
+    // افترض window.currentUser مُعرّف قبل هذا
     initPush();
   </script>
 
-  <!-- 4) وأخيرًا سكربت التطبيق الرئيسي -->
+  <!-- 5) وأخيرًا سكربتات التطبيق -->
   <script nomodule src="/js/app.legacy.js" defer></script>
   <script type="module" src="/js/app.js" defer></script>
 </body>
 </html>
-
