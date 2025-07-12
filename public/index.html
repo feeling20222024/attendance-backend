@@ -297,9 +297,22 @@
   import { initPush } from './js/push.js';
   // بعد تسجيل الدخول (لأنك تحتاج window.currentUser):
   initPush();
-</script>
-<script type="module" src="js/notifications.js"></script>
-<script nomodule src="js/app.legacy.js" defer></script>
-<script type="module" src="js/app.js" defer></script>
+  <!-- 1) أولًا notifications.js ليعرف دوال العرض والتخزين -->
+  <script type="module" src="/js/notifications.js"></script>
+
+  <!-- 2) ثم push.js ليضيف initPush -->
+  <script type="module" src="/js/push.js"></script>
+
+  <!-- 3) أخيرًا استدعاء initPush (بعد تسجيل الدخول وتحديد window.currentUser) -->
+  <script type="module">
+    // تأكد أنّ window.currentUser قد عُيّن قبل هذا السطر
+    import { initPush } from '/js/push.js';
+    initPush();
+  </script>
+
+  <!-- 4) وأخيرًا سكربت التطبيق الرئيسي -->
+  <script nomodule src="/js/app.legacy.js" defer></script>
+  <script type="module" src="/js/app.js" defer></script>
 </body>
 </html>
+
