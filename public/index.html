@@ -296,17 +296,18 @@
   }
 </script>
 
-<!-- 1) تحميل notifications.js أولًا (يعرّف renderNotifications وغيره) -->
+<!-- 1) notifications.js قبل أي استدعاء لـ addNotification -->
 <script type="module" src="/js/notifications.js"></script>
 
-<!-- 2) push.js: يعرّف initPush -->
+<!-- 2) push.js لتعريف initPush -->
 <script type="module">
   import { initPush } from '/js/push.js';
-  window.initPush = initPush; // نخزنه في window ليستدعى لاحقًا من app.js
+  window.initPush = initPush;
 </script>
 
-<!-- 3) app.js: يسجّل الدخول ثم يستدعي initPush() -->
+<!-- 3) app.js حيث تحدد window.currentUser وتستدعي initPush() -->
 <script type="module" src="/js/app.js" defer></script>
 <script nomodule src="/js/app.legacy.js" defer></script>
+
 </body>
 </html>
