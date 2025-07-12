@@ -298,18 +298,12 @@
   }
 </script>
 
-<!-- 1) notifications.js كـ module -->
+<!-- بعد عناصر الـ notifications markup -->
 <script type="module" src="/js/notifications.js"></script>
-
-<!-- 2) push.js كـ module ويعلّق initPush على window -->
-<script type="module">
-  import { initPush } from '/js/push.js';
-  window.initPush = initPush;
-</script>
-
-<!-- 3) app.js (بعد نجاح login يستدعي initPush) -->
+<script type="module" src="/js/push.js"></script>
 <script type="module" src="/js/app.js" defer></script>
 <script nomodule src="/js/app.legacy.js" defer></script>
+
 </body>
 </html>
 
