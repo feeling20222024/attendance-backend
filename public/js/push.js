@@ -1,4 +1,5 @@
-// 1. إعدادات
+// ———————————————————————————————
+// إعدادات
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 
 const firebaseConfig = {
@@ -12,7 +13,8 @@ const firebaseConfig = {
 
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// 2. دالة addNotification - ✅ بعد التصحيح
+// ———————————————————————————————
+// دالة لتخزين الإشعارات موحدًا
 window.addNotification = ({ title, body, time }) => {
   const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
   saved.unshift({ title, body, time });
@@ -29,14 +31,15 @@ window.addNotification = ({ title, body, time }) => {
   console.log('📩 إشعار مضاف:', { title, body, time });
 };
 
-
-// 3. تهيئة إشعارات الويب
+// ———————————————————————————————
+// إشعارات الويب باستخدام Firebase compat
 window.initNotifications = async function () {
   try {
-    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('✅ SW for Firebase registered:', swReg.scope);
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('✅ SW for Firebase registered:', reg.scope);
   } catch (err) {
     console.error('❌ فشل تسجيل SW:', err);
+    return;
   }
 
   if (!firebase.apps.length) {
@@ -81,10 +84,55 @@ window.initNotifications = async function () {
   });
 };
 
-// 4. تعريف initPush لتجنب الخطأ
+// ———————————————————————————————
+// إشعارات الجوال باستخدام Capacitor (اختياري)
+window.initNativePush = async function () {
+  if (!window.Capacitor?.isNativePlatform()) return;
+
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+
+    await PushNotifications.requestPermissions();
+    await PushNotifications.register();
+
+    PushNotifications.addListener('registration', async ({ value }) => {
+      if (value && window.currentUser) {
+        await fetch(`${API_BASE}/register-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: window.currentUser, token: value })
+        });
+        console.log('✅ تم تسجيل Native token:', value);
+      }
+    });
+
+    PushNotifications.addListener('pushNotificationReceived', notif => {
+      const { title, body } = notif;
+      if (title && body) {
+        if (Notification.permission === 'granted') {
+          new Notification(title, { body });
+        }
+        window.addNotification({ title, body, time: new Date().toLocaleString() });
+      }
+    });
+
+  } catch (err) {
+    console.warn('❌ فشل تهيئة إشعارات الجوال:', err);
+  }
+};
+
+// ———————————————————————————————
+// دالة موحدة للتهيئة (ويب + جوال)
 window.initPush = async function () {
-  console.log('initPush called');
-  if (typeof window.initNotifications === 'function') {
-    await window.initNotifications();
+  console.log('⚙️ initPush started');
+  try {
+    if (typeof window.initNotifications === 'function') {
+      await window.initNotifications();
+    }
+    if (typeof window.initNativePush === 'function') {
+      await window.initNativePush();
+    }
+  } catch (err) {
+    console.warn('⚠️ initPush error:', err);
   }
 };
