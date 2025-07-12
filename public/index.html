@@ -293,18 +293,13 @@
       .catch(err => console.error('❌ SW registration failed', err));
   }
 </script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
-<!-- 1) تحميل notifications.js كـ module -->
+<script type="module">
+  import { initPush } from './js/push.js';
+  // بعد تسجيل الدخول (لأنك تحتاج window.currentUser):
+  initPush();
+</script>
 <script type="module" src="js/notifications.js"></script>
-
-<!-- 2) سكربت Push -->
-<script type="module" src="js/push.js"></script>
-
-<!-- 3) سكربتات التطبيق -->
 <script nomodule src="js/app.legacy.js" defer></script>
 <script type="module" src="js/app.js" defer></script>
-
 </body>
 </html>
