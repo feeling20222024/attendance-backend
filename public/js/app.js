@@ -77,30 +77,36 @@ async function login() {
     if (!res.ok) {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
-// 2) استلام التوكن
-// … بعد استلام التوكن وتخزينه
-loginResponse = await res.json();
-jwtToken      = loginResponse.token;
-localStorage.setItem('jwtToken', jwtToken);
 
-// 3) currentUser وتهيئة Push (الويب فقط)
-currentUser        = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+    // 2) استلام التوكن
+    loginResponse = await res.json();
+    jwtToken = loginResponse.token;
+    localStorage.setItem('jwtToken', jwtToken);
+    // 3) currentUser وتهيئة الإشعارات
+currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
 window.currentUser = currentUser;
 console.log('✅ login successful, currentUser =', currentUser);
 
-// 4) استدعاء initPush مرة واحدة فقط (ما دام window.initPush مُعرّفة)
-if (typeof window.initPush === 'function') {
-  console.log('🚀 calling initPush()…');
-  try {
-    await window.initPush();
-  } catch (e) {
-    console.warn('⚠️ initPush failed, continuing without push:', e);
-  }
+// ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
+if (typeof window.initNotifications === 'function') {
+  window.initNotifications();
 }
 
-// 5) ثمّ جلب وعرض البيانات
-await fetchAndRender();
+// 4) تهيئة Push
+console.log('🚀 calling initPush()…');
+if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+  await initNativePush();
+} else {
+  await initPush();
+}
 
+    // 5) تهيئة لوحة الإشعارات
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
+
+    // 6) جلب وعرض البيانات
+    await fetchAndRender();
   } catch (e) {
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
