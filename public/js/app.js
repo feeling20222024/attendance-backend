@@ -50,6 +50,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }).catch(logout);
   }
 });
+// 🔔 استقبال إشعارات الخلفية من Service Worker وتخزينها
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    const msg = event.data;
+    if (msg && msg.type === 'NEW_NOTIFICATION') {
+      try {
+        if (typeof window.addNotification === 'function') {
+          window.addNotification({
+            title: msg.title,
+            body: msg.body,
+            time: msg.time
+          });
+        }
+      } catch (e) {
+        console.warn('⚠️ فشل في تخزين إشعار الخلفية:', e);
+      }
+    }
+  });
+}
+
 // —————————————————————————————————————————
 // ——————————————————————————————
 // 2) دالة تسجيل الدخول
