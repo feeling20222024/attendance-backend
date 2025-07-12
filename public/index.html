@@ -287,7 +287,6 @@
   </main>
 <script>
   <!-- 1) سجّل Service Worker الخاص بـ FCM -->
- <!-- 1. تسجيل Service Worker -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker
@@ -297,20 +296,20 @@
   }
 </script>
 
-<!-- 2. تحميل الملفات الضرورية -->
+<!-- سكربت notifications.js يجب أن يحمّل أولًا -->
 <script type="module" src="/js/notifications.js"></script>
-<script type="module" src="/js/push.js"></script>
 
-<!-- 3. بعد تسجيل الدخول وتعيين window.currentUser -->
+<!-- سكربت push.js يستخدم ES Modules -->
 <script type="module">
   import { initPush } from '/js/push.js';
-  if (window.currentUser) {
-    initPush();
-  }
+
+  // تأكد أن window.currentUser معيّن قبل استدعاء initPush
+  window.initPush = initPush;
 </script>
 
-<!-- 4. سكربتات التطبيق -->
-<script nomodule src="/js/app.legacy.js" defer></script>
+<!-- سكربت التطبيق -->
 <script type="module" src="/js/app.js" defer></script>
+<script nomodule src="/js/app.legacy.js" defer></script>
+
 </body>
 </html>
