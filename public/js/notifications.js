@@ -1,11 +1,42 @@
-// —————————————————————————————————————————————————————————————
-// Constants
-// —————————————————————————————————————————————————————————————
-const STORAGE_KEY     = 'notificationsLog';
-const SUPERVISOR_CODE = '35190';
+// public/js/notifications.js
 
 // —————————————————————————————————————————————————————————————
-// قراءة الإشعارات من localStorage
+// 0) استيراد Firebase Modular API
+// —————————————————————————————————————————————————————————————
+import { initializeApp }       from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import { getAuth }             from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+import {
+  getFirestore,
+  collection,
+  doc,
+  addDoc,
+  serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+// —————————————————————————————————————————————————————————————
+// 1) إعداد Firebase
+// (ضع هنا إعداداتك الخاصة)
+const firebaseConfig = {
+  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
+  projectId:        "device-streaming-47cbe934",
+  storageBucket:    "device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
+};
+
+const app   = initializeApp(firebaseConfig);
+const auth  = getAuth(app);
+const db    = getFirestore(app);
+
+// —————————————————————————————————————————————————————————————
+// 2) ثوابت العرض والمحلي
+// —————————————————————————————————————————————————————————————
+const STORAGE_KEY     = 'notificationsLog';
+const SUPERVISOR_UID  = '35190';   // أو أي معرّف تستخدمه للمشرف
+
+// —————————————————————————————————————————————————————————————
+// 3) دوال التخزين المحلّي (localStorage)
 // —————————————————————————————————————————————————————————————
 function loadNotifications() {
   try {
@@ -15,8 +46,12 @@ function loadNotifications() {
   }
 }
 
+function saveNotificationsLocal(arr) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+}
+
 // —————————————————————————————————————————————————————————————
-// تحديث عداد الجرس
+// 4) تحديث عداد الجرس
 // —————————————————————————————————————————————————————————————
 function updateBellCount() {
   const count = loadNotifications().length;
@@ -27,7 +62,7 @@ function updateBellCount() {
 }
 
 // —————————————————————————————————————————————————————————————
-// رسم محتوى لوحة الإشعارات
+// 5) رسم محتوى لوحة الإشعارات
 // —————————————————————————————————————————————————————————————
 function renderNotifications() {
   const list   = document.getElementById('notificationsLog');
@@ -52,20 +87,18 @@ function renderNotifications() {
   }
 
   // أظهر زر المسح فقط للمشرف
-  if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
+  if (auth.currentUser?.uid === SUPERVISOR_UID && notifs.length > 0) {
     clearB.classList.remove('hidden');
-    clearB.style.display = 'inline-block';
   } else {
     clearB.classList.add('hidden');
-    clearB.style.display = 'none';
   }
 }
 
 // —————————————————————————————————————————————————————————————
-// مسح سجل الإشعارات (للمشرف فقط)
+// 6) مسح سجل الإشعارات (للمشرف فقط)
 // —————————————————————————————————————————————————————————————
 function clearNotifications() {
-  if (window.currentUser !== SUPERVISOR_CODE) {
+  if (auth.currentUser?.uid !== SUPERVISOR_UID) {
     alert('ليس لديك صلاحية لمسح سجل الإشعارات.');
     return;
   }
@@ -76,36 +109,33 @@ function clearNotifications() {
 }
 
 // —————————————————————————————————————————————————————————————
-// إضافة إشعار جديد (محلي + Firestore)
-// يُستدعى من push.js أو من Service Worker
+// 7) إضافة إشعار جديد (محلي + Firestore)
+// يُستدعى عبر window.addNotification(payload)
 // —————————————————————————————————————————————————————————————
 window.addNotification = async function(payload) {
-  // 1) خزّن محليًا
-  let saved = loadNotifications();
+  // خزن محليًا
+  const saved = loadNotifications();
   saved.unshift({ title: payload.title, body: payload.body, time: payload.time });
   if (saved.length > 50) saved.pop();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  saveNotificationsLocal(saved);
 
-  // 2) خزّن في Firestore
+  // خزن في Firestore تحت مسار: /users/{uid}/notifications
   try {
-    const user = firebase.auth().currentUser;
+    const user = auth.currentUser;
     if (user) {
-      await db
-        .collection('notifications')
-        .doc(user.uid)
-        .collection('log')
-        .add({
-          title: payload.title,
-          body: payload.body,
-          time: payload.time,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+      const userNotifsCol = collection(doc(collection(db, 'users'), user.uid), 'notifications');
+      await addDoc(userNotifsCol, {
+        title:     payload.title,
+        body:      payload.body,
+        time:      payload.time,
+        createdAt: serverTimestamp()
+      });
     }
   } catch (e) {
     console.warn('Firestore save failed:', e);
   }
 
-  // 3) إذا كانت اللوحة مفتوحة، أعد الرسم
+  // إعادة التحديث إذا كانت اللوحة مفتوحة
   const panel = document.getElementById('notificationsPanel');
   if (panel && getComputedStyle(panel).display !== 'none') {
     renderNotifications();
@@ -114,7 +144,7 @@ window.addNotification = async function(payload) {
 };
 
 // —————————————————————————————————————————————————————————————
-// ربط الأحداث عند تحميل الـ DOM
+// 8) ربط الأحداث عند تحميل الـ DOM
 // —————————————————————————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   const bell   = document.getElementById('notifBell');
@@ -122,21 +152,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearB = document.getElementById('clearNotifications');
 
   updateBellCount();
+  renderNotifications();
 
-  if (!bell || !panel || !clearB) return;
-
-  bell.addEventListener('click', () => {
+  bell?.addEventListener('click', () => {
     const isHidden = panel.classList.contains('hidden') || getComputedStyle(panel).display === 'none';
-    if (isHidden) {
-      panel.classList.remove('hidden');
-      panel.style.display = 'block';
-    } else {
-      panel.classList.add('hidden');
-      panel.style.display = 'none';
-    }
+    panel.style.display = isHidden ? 'block' : 'none';
+    panel.classList.toggle('hidden');
     renderNotifications();
     updateBellCount();
   });
 
-  clearB.addEventListener('click', clearNotifications);
+  clearB?.addEventListener('click', clearNotifications);
 });
