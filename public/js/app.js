@@ -95,7 +95,11 @@ if (typeof window.initPush === 'function') {
 
 // 4) جلب وعرض البيانات
 await fetchAndRender();
-
+  } catch (e) {
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
+}
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
