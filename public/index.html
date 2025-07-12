@@ -299,19 +299,13 @@
     }
   </script>
 
+<!-- ضمن <body>، بعد بقية السكربتات -->
+<!-- أولاً notifications.js لتعريف واجهة اللوحة -->
+<script src="/js/notifications.js"></script>
+<!-- ثم push.js ليعرف initPush -->
+<script type="module" src="/js/push.js"></script>
+<!-- أخيراً app.js حيث بعد login تنادي initPush -->
+<script type="module" src="/js/app.js" defer></script>
 
-  <!-- 2) notifications.js -->
-  <script type="module" src="/js/notifications.js"></script>
-
-  <!-- 3) push.js -->
-  <script type="module">
-    import { initPush } from '/js/push.js';
-    // نخزن initPush على window ليستدعى لاحقًا
-    window.initPush = initPush;
-  </script>
-
-  <!-- 4) app.js (بعد DOMContentLoaded وتهيئة currentUser) -->
-  <script type="module" src="/js/app.js" defer></script>
-  <script nomodule src="/js/app.legacy.js" defer></script>
 </body>
 </html>
