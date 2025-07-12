@@ -77,21 +77,29 @@ async function login() {
     if (!res.ok) {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
-
-   // 2) استلام التوكن
+// 2) استلام التوكن
 loginResponse = await res.json();
-jwtToken = loginResponse.token;
+jwtToken      = loginResponse.token;
 localStorage.setItem('jwtToken', jwtToken);
 
-// 3) currentUser وتهيئة Push (الويب & Native)
-currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+// 3) currentUser وتهيئة Push (الويب فقط بنسخة compat)
+currentUser       = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
 window.currentUser = currentUser;
 console.log('✅ login successful, currentUser =', currentUser);
 
+// 4) تهيئة Push (الويب فقط)
 console.log('🚀 calling initPush()…');
 if (typeof window.initPush === 'function') {
-  await window.initPush();
+  try {
+    await window.initPush();
+  } catch (e) {
+    console.warn('⚠️ initPush failed, continuing without push:', e);
+  }
 }
+
+// 5) جلب وعرض البيانات
+await fetchAndRender();
+
 
 // 4) جلب وعرض البيانات
 await fetchAndRender();
