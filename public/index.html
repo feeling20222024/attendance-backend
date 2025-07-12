@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>تطبيق متابعة الدوام</title>
 
-  <!-- رابط الـ Web App Manifest -->
-  <link rel="manifest" href="/manifest.json" />
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<!-- Firebase Messaging (compat) -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
-
-  <!-- سياسة الأمان (CSP) -->
+  <!-- CSP مخفّفة -->
   <meta http-equiv="Content-Security-Policy"
         content="
           default-src 'self' data:;
@@ -30,14 +29,12 @@
                        https://fcmregistrations.googleapis.com;
         ">
 
-  <!-- ستايلات Tailwind (اختر بين CDN أو محلي، لا تكررهما معًا) -->
-  <!-- إذا تريد CDN: -->
+  <!-- Tailwind + ستايلات عامة -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- وإذا بنيت tailwind.css محليًا: -->
-  <!-- <link href="css/tailwind.css" rel="stylesheet" /> -->
+  <link rel="stylesheet" href="/css/style.css" />
 
-  <!-- ستايلات خاصة بالـ notifications -->
   <style>
+    /* dropdown notifications */
     #notificationsPanel {
       position: absolute; top: 3.5rem; right: 1rem;
       width: 300px; max-height: 400px; overflow-y: auto;
@@ -288,22 +285,31 @@
    </div>
   </section>
   </main>
-
- <!-- تسجيل SW -->
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      .then(r => console.log('SW scope:', r.scope))
-      .catch(console.error);
+    navigator.serviceWorker
+      .register('/firebase-messaging-sw.js')
+      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
+      .catch(err => console.error('❌ SW registration failed', err));
   }
 </script>
 
-<!-- بعد عناصر الـ notifications markup -->
-<script type="module" src="/js/notifications.js"></script>
-<script type="module" src="/js/push.js"></script>
-<script type="module" src="/js/app.js" defer></script>
-<script nomodule src="/js/app.legacy.js" defer></script>
+<!-- 1) تحميل notifications.js بدون defer -->
+<script src="js/notifications.js"></script>
+
+<!-- 2) تنفيذ initNotifications بعد التأكد من جاهزية DOM والعناصر -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
+  });
+</script>
+
+<!-- 3) سكربتات Push و App -->
+<script type="module" src="js/push.js" defer></script>
+<script nomodule src="js/app.legacy.js" defer></script>
+<script type="module" src="js/app.js" defer></script>
 
 </body>
 </html>
-
