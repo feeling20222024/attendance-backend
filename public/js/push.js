@@ -1,20 +1,16 @@
+// —————————————————————————————————————————
 // public/js/push.js
+// —————————————————————————————————————————
 
-// —————————————————————————————————————————
 // 1) استيراد Modular API من Firebase
-// —————————————————————————————————————————
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import { getApps, initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import {
   getMessaging,
   getToken,
   onMessage
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js';
 
-// ملاحظة: استيراد Capacitor PushNotifications في موديول منفصل (Native) فقط، لا تضعه هنا للويب.
-
-// —————————————————————————————————————————
 // 2) إعدادات التطبيق والسيرفر
-// —————————————————————————————————————————
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 const firebaseConfig = {
   apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
@@ -26,136 +22,109 @@ const firebaseConfig = {
 };
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// —————————————————————————————————————————
-// 3) تهيئة Firebase + Messaging
-// —————————————————————————————————————————
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+// 3) تهيئة Firebase (مرة واحدة فقط)
+if (!getApps().length) {
+  initializeApp(firebaseConfig);
+}
+const messaging = getMessaging();
 
-// —————————————————————————————————————————
-// 4) دالة لإضافة إشعار للسجل المحلي (يتولى notifications.js العرض)
-// —————————————————————————————————————————
-window.addNotification = ({ title, body, time }) => {
-  const KEY = 'notificationsLog';
-  const saved = JSON.parse(localStorage.getItem(KEY) || '[]');
-  saved.unshift({ title, body, time });
-  if (saved.length > 50) saved.pop();
-  localStorage.setItem(KEY, JSON.stringify(saved));
-  if (typeof window.renderNotifications === 'function') window.renderNotifications();
-  if (typeof window.updateBellCount     === 'function') window.updateBellCount();
-  console.log('📩 إشعار مضاف محلياً:', { title, body, time });
-};
-
-// —————————————————————————————————————————
-// 5) تهيئة إشعارات الويب (FCM)
-// —————————————————————————————————————————
+// 4) دالة موحدة لتسجيل Service Worker وطلب الإذن وتسجيل التوكن
 export async function initPushWeb() {
-  // 5.1 تسجيل Service Worker
+  // 4.1 تسجيل SW
   try {
-    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('✅ SW for FCM registered:', swReg.scope);
-  } catch (e) {
-    console.error('❌ فشل تسجيل SW:', e);
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('✅ FCM SW registered:', reg.scope);
+  } catch (err) {
+    console.error('❌ SW registration failed:', err);
     return;
   }
 
-  // 5.2 طلب الإذن وإحضار التوكن
-  try {
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      console.warn('🔕 إذن الإشعارات غير ممنوح');
-      return;
-    }
+  // 4.2 طلب إذن الإشعارات
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    console.warn('🔕 Notification permission not granted.');
+    return;
+  }
 
+  // 4.3 احصل على التوكن
+  try {
     const registration = await navigator.serviceWorker.getRegistration();
     const token = await getToken(messaging, {
       vapidKey: VAPID_PUBLIC_KEY,
       serviceWorkerRegistration: registration
     });
-
     console.log('✅ FCM Token:', token);
-    // 5.3 إرسال التوكن إلى السيرفر
+
     if (token && window.currentUser) {
       await fetch(`${API_BASE}/register-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: window.currentUser, token })
       });
-      console.log('✅ أُرسل Token للسيرفر');
+      console.log('✅ Token sent to server');
     }
-  } catch (e) {
-    console.error('❌ خطأ أثناء طلب FCM Token:', e);
+  } catch (err) {
+    console.error('❌ Error getting FCM token:', err);
   }
 
-  // 5.4 الاستماع للرسائل الواردة طالما الصفحة مفتوحة
+  // 4.4 استمع للرسائل الواردة
   onMessage(messaging, payload => {
     const { title, body } = payload.notification || {};
-    console.log('📩 رسالة واردة (Web):', title, body);
-    if (Notification.permission === 'granted' && title && body) {
+    console.log('📩 Message received (web):', title, body);
+    if (title && body && Notification.permission === 'granted') {
       new Notification(title, { body });
       window.addNotification({ title, body, time: new Date().toLocaleString() });
     }
   });
 }
 
-// —————————————————————————————————————————
-// 6) تهيئة إشعارات الجوال (Capacitor Native)
-// —————————————————————————————————————————
-// نحمّل PushNotifications فقط عندما يكون الكود مجمّعاً عبر Capacitor:
+// 5) تهيئة إشعارات الجوال (Capacitor Native)
 export async function initPushNative() {
-  let plugin;
+  let PushNotifications;
   try {
-    // dynamically import so browser لا يحدث خطأ
-    const mod = await import('@capacitor/push-notifications');
-    plugin = mod.PushNotifications;
+    // استيراد ديناميكي حتى لا يخطئ المتصفح
+    ({ PushNotifications } = await import('@capacitor/push-notifications'));
   } catch {
-    return; // إذا كانت البيئة ويب فقط
-  }
-
-  // 6.1 أنشئ القناة
-  try {
-    await plugin.createChannel({
-      id: 'default',
-      name: 'الإشعارات الرئيسية',
-      description: 'القناة الأساسية',
-      importance: 5,
-      vibrationPattern: [100,200,100],
-      sound: 'default'
-    });
-    console.log('🔔 قناة default أنشئت');
-  } catch {}
-
-  // 6.2 طلب الإذن
-  const perm = await plugin.requestPermissions();
-  if (perm.receive !== 'granted') {
-    console.warn('🔕 إذن Push غير ممنوح');
     return;
   }
 
-  // 6.3 تسجيل الجهاز
-  await plugin.register();
+  // 5.1 إنشاء القناة
+  await PushNotifications.createChannel({
+    id: 'default',
+    name: 'الإشعارات الرئيسية',
+    description: 'القناة الأساسية',
+    importance: 5,
+    vibrationPattern: [100, 200, 100],
+    sound: 'default'
+  }).catch(() => {});
 
-  // 6.4 استمع لحدث التسجيل
-  plugin.addListener('registration', ({ value }) => {
+  // 5.2 طلب الإذن
+  const perm = await PushNotifications.requestPermissions();
+  if (perm.receive !== 'granted') {
+    console.warn('🔕 Push permission not granted.');
+    return;
+  }
+
+  // 5.3 تسجيل الجهاز
+  await PushNotifications.register();
+
+  // 5.4 مستمع التسجيل
+  PushNotifications.addListener('registration', ({ value }) => {
     console.log('✅ Native Token:', value);
     if (window.currentUser) {
       fetch(`${API_BASE}/register-token`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: window.currentUser, token: value })
       }).catch(console.error);
     }
   });
 
-  // 6.5 استمع للإشعارات الواردة في الـ foreground
-  plugin.addListener('pushNotificationReceived', notif => {
-    console.log('📩 وارد (Native):', notif);
+  // 5.5 مستمع الرسائل الواردة
+  PushNotifications.addListener('pushNotificationReceived', notif => {
+    console.log('📩 Notification received (native):', notif);
     if (Notification.permission === 'granted') {
-      new Notification(notif.title, {
-        body: notif.body,
-        tag: 'default',
-        vibrate: [100,200,100]
-      });
+      new Notification(notif.title, { body: notif.body });
     }
     window.addNotification({
       title: notif.title,
@@ -165,9 +134,7 @@ export async function initPushNative() {
   });
 }
 
-// —————————————————————————————————————————
-// 7) دالة موحدة لاستدعاء الاثنين بناءً على المنصة
-// —————————————————————————————————————————
+// 6) دالة موحدة لاستدعاء الاثنين
 export async function initPush() {
   console.log('⚙️ initPush');
   await initPushWeb();
