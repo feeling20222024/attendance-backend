@@ -1,4 +1,5 @@
 // public/js/push.js
+
 // —————————————————————————————————————————
 // 1) استيراد Modular API من Firebase
 // —————————————————————————————————————————
@@ -8,7 +9,8 @@ import {
   getToken,
   onMessage
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js';
-import { PushNotifications } from '@capacitor/push-notifications';
+
+// ملاحظة: استيراد Capacitor PushNotifications في موديول منفصل (Native) فقط، لا تضعه هنا للويب.
 
 // —————————————————————————————————————————
 // 2) إعدادات التطبيق والسيرفر
@@ -31,7 +33,7 @@ const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 // —————————————————————————————————————————
-// 4) دالة لإضافة إشعار للسجل المحلي (notifications.js يتولى العرض)
+// 4) دالة لإضافة إشعار للسجل المحلي (يتولى notifications.js العرض)
 // —————————————————————————————————————————
 window.addNotification = ({ title, body, time }) => {
   const KEY = 'notificationsLog';
@@ -97,14 +99,22 @@ export async function initPushWeb() {
 }
 
 // —————————————————————————————————————————
-// 6) تهيئة إشعارات الجوال (Capacitor)
+// 6) تهيئة إشعارات الجوال (Capacitor Native)
 // —————————————————————————————————————————
+// نحمّل PushNotifications فقط عندما يكون الكود مجمّعاً عبر Capacitor:
 export async function initPushNative() {
-  if (!PushNotifications) return;
+  let plugin;
+  try {
+    // dynamically import so browser لا يحدث خطأ
+    const mod = await import('@capacitor/push-notifications');
+    plugin = mod.PushNotifications;
+  } catch {
+    return; // إذا كانت البيئة ويب فقط
+  }
 
   // 6.1 أنشئ القناة
   try {
-    await PushNotifications.createChannel({
+    await plugin.createChannel({
       id: 'default',
       name: 'الإشعارات الرئيسية',
       description: 'القناة الأساسية',
@@ -116,17 +126,17 @@ export async function initPushNative() {
   } catch {}
 
   // 6.2 طلب الإذن
-  const perm = await PushNotifications.requestPermissions();
+  const perm = await plugin.requestPermissions();
   if (perm.receive !== 'granted') {
     console.warn('🔕 إذن Push غير ممنوح');
     return;
   }
 
   // 6.3 تسجيل الجهاز
-  await PushNotifications.register();
+  await plugin.register();
 
   // 6.4 استمع لحدث التسجيل
-  PushNotifications.addListener('registration', ({ value }) => {
+  plugin.addListener('registration', ({ value }) => {
     console.log('✅ Native Token:', value);
     if (window.currentUser) {
       fetch(`${API_BASE}/register-token`, {
@@ -138,7 +148,7 @@ export async function initPushNative() {
   });
 
   // 6.5 استمع للإشعارات الواردة في الـ foreground
-  PushNotifications.addListener('pushNotificationReceived', notif => {
+  plugin.addListener('pushNotificationReceived', notif => {
     console.log('📩 وارد (Native):', notif);
     if (Notification.permission === 'granted') {
       new Notification(notif.title, {
