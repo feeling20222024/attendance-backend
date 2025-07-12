@@ -1,1 +1,165 @@
-const _0x1f9914=_0x235e;function _0x235e(_0x23580d,_0x7197c){const _0x9b9899=_0x9b98();return _0x235e=function(_0x235e61,_0xe57a98){_0x235e61=_0x235e61-0x139;let _0x4beb61=_0x9b9899[_0x235e61];return _0x4beb61;},_0x235e(_0x23580d,_0x7197c);}function _0x9b98(){const _0x54bd14=['parse','function','register','currentUser','https://dwam-app-by-omar.onrender.com/api','requestPermission','addNotification','initPush\x20called','✅\x20تم\x20إرسال\x20FCM\x20Token\x20إلى\x20الخادم','100760PWQKii','831435UEYRYb','getRegistration','📩\x20إشعار\x20مضاف:','device-streaming-47cbe934','unshift','❌\x20فشل\x20تسجيل\x20SW:','permission','235398312189','onMessage','toLocaleString','502380QZtzlV','log','device-streaming-47cbe934.appspot.com','serviceWorker','notification','1:235398312189:web:8febe5e63f7b134b808e94','renderNotifications','✅\x20SW\x20for\x20Firebase\x20registered:','773380ADtUwb','181928BRFoDS','6kdLdWv','notificationsLog','233403GPzrRV','granted','AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y','BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ','apps','warn','updateBellCount','error','length','603lLZjzV','POST','1484392wzDTrt','initPush','stringify','initNotifications'];_0x9b98=function(){return _0x54bd14;};return _0x9b98();}(function(_0x51cbbb,_0x5bb1cf){const _0x1c3322=_0x235e,_0x39cfd3=_0x51cbbb();while(!![]){try{const _0x513b7c=-parseInt(_0x1c3322(0x13f))/0x1+-parseInt(_0x1c3322(0x165))/0x2+-parseInt(_0x1c3322(0x142))/0x3+parseInt(_0x1c3322(0x13e))/0x4+-parseInt(_0x1c3322(0x15b))/0x5*(parseInt(_0x1c3322(0x140))/0x6)+-parseInt(_0x1c3322(0x14d))/0x7+parseInt(_0x1c3322(0x15a))/0x8*(parseInt(_0x1c3322(0x14b))/0x9);if(_0x513b7c===_0x5bb1cf)break;else _0x39cfd3['push'](_0x39cfd3['shift']());}catch(_0x283794){_0x39cfd3['push'](_0x39cfd3['shift']());}}}(_0x9b98,0x241ec));const API_BASE=_0x1f9914(0x155),firebaseConfig={'apiKey':_0x1f9914(0x144),'authDomain':'device-streaming-47cbe934.firebaseapp.com','projectId':_0x1f9914(0x15e),'storageBucket':_0x1f9914(0x167),'messagingSenderId':_0x1f9914(0x162),'appId':_0x1f9914(0x13b)},VAPID_PUBLIC_KEY=_0x1f9914(0x145);window[_0x1f9914(0x157)]=({title:_0x31fcac,body:_0x333327,time:_0x5a295c})=>{const _0x5e91e8=_0x1f9914,_0x49f69c=JSON[_0x5e91e8(0x151)](localStorage['getItem'](_0x5e91e8(0x141))||'[]');_0x49f69c[_0x5e91e8(0x15f)]({'title':_0x31fcac,'body':_0x333327,'time':_0x5a295c});if(_0x49f69c[_0x5e91e8(0x14a)]>0x32)_0x49f69c['pop']();localStorage['setItem'](_0x5e91e8(0x141),JSON[_0x5e91e8(0x14f)](_0x49f69c)),typeof window[_0x5e91e8(0x13c)]===_0x5e91e8(0x152)&&window['renderNotifications'](),typeof window['updateBellCount']===_0x5e91e8(0x152)&&window[_0x5e91e8(0x148)](),console['log'](_0x5e91e8(0x15d),{'title':_0x31fcac,'body':_0x333327,'time':_0x5a295c});},window[_0x1f9914(0x150)]=async function(){const _0x1e184d=_0x1f9914;try{const _0x2a5936=await navigator[_0x1e184d(0x139)][_0x1e184d(0x153)]('/firebase-messaging-sw.js');console['log'](_0x1e184d(0x13d),_0x2a5936['scope']);}catch(_0x20658d){console[_0x1e184d(0x149)](_0x1e184d(0x160),_0x20658d);}!firebase[_0x1e184d(0x146)][_0x1e184d(0x14a)]&&firebase['initializeApp'](firebaseConfig);const _0x4eab13=firebase['messaging']();try{const _0x36612f=await Notification[_0x1e184d(0x156)]();if(_0x36612f!==_0x1e184d(0x143)){console[_0x1e184d(0x147)]('🔕\x20إذن\x20الإشعارات\x20غير\x20ممنوح');return;}const _0x41f74b=await navigator['serviceWorker'][_0x1e184d(0x15c)](),_0x9fcacb=await _0x4eab13['getToken']({'vapidKey':VAPID_PUBLIC_KEY,'serviceWorkerRegistration':_0x41f74b});_0x9fcacb&&window[_0x1e184d(0x154)]&&(await fetch(API_BASE+'/register-token',{'method':_0x1e184d(0x14c),'headers':{'Content-Type':'application/json'},'body':JSON['stringify']({'user':window[_0x1e184d(0x154)],'token':_0x9fcacb})}),console[_0x1e184d(0x166)](_0x1e184d(0x159)));}catch(_0x16b763){console[_0x1e184d(0x149)]('❌\x20أثناء\x20طلب\x20FCM\x20Token:',_0x16b763);}_0x4eab13[_0x1e184d(0x163)](_0x5b475e=>{const _0x4a92de=_0x1e184d,{title:_0x5f18fd,body:_0x4ae60e}=_0x5b475e[_0x4a92de(0x13a)]||{};_0x5f18fd&&_0x4ae60e&&(Notification[_0x4a92de(0x161)]==='granted'&&new Notification(_0x5f18fd,{'body':_0x4ae60e}),window[_0x4a92de(0x157)]({'title':_0x5f18fd,'body':_0x4ae60e,'time':new Date()[_0x4a92de(0x164)]()}));});},window[_0x1f9914(0x14e)]=async function(){const _0x588f6e=_0x1f9914;console[_0x588f6e(0x166)](_0x588f6e(0x158)),typeof window['initNotifications']===_0x588f6e(0x152)&&await window[_0x588f6e(0x150)]();};
+// public/js/push.js
+// —————————————————————————————————————————
+// 1) استيراد Modular API من Firebase
+// —————————————————————————————————————————
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import {
+  getMessaging,
+  getToken,
+  onMessage
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js';
+import { PushNotifications } from '@capacitor/push-notifications';
+
+// —————————————————————————————————————————
+// 2) إعدادات التطبيق والسيرفر
+// —————————————————————————————————————————
+const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
+const firebaseConfig = {
+  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
+  projectId:        "device-streaming-47cbe934",
+  storageBucket:    "device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
+};
+const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
+
+// —————————————————————————————————————————
+// 3) تهيئة Firebase + Messaging
+// —————————————————————————————————————————
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
+
+// —————————————————————————————————————————
+// 4) دالة لإضافة إشعار للسجل المحلي (notifications.js يتولى العرض)
+// —————————————————————————————————————————
+window.addNotification = ({ title, body, time }) => {
+  const KEY = 'notificationsLog';
+  const saved = JSON.parse(localStorage.getItem(KEY) || '[]');
+  saved.unshift({ title, body, time });
+  if (saved.length > 50) saved.pop();
+  localStorage.setItem(KEY, JSON.stringify(saved));
+  if (typeof window.renderNotifications === 'function') window.renderNotifications();
+  if (typeof window.updateBellCount     === 'function') window.updateBellCount();
+  console.log('📩 إشعار مضاف محلياً:', { title, body, time });
+};
+
+// —————————————————————————————————————————
+// 5) تهيئة إشعارات الويب (FCM)
+// —————————————————————————————————————————
+export async function initPushWeb() {
+  // 5.1 تسجيل Service Worker
+  try {
+    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('✅ SW for FCM registered:', swReg.scope);
+  } catch (e) {
+    console.error('❌ فشل تسجيل SW:', e);
+    return;
+  }
+
+  // 5.2 طلب الإذن وإحضار التوكن
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      console.warn('🔕 إذن الإشعارات غير ممنوح');
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.getRegistration();
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: registration
+    });
+
+    console.log('✅ FCM Token:', token);
+    // 5.3 إرسال التوكن إلى السيرفر
+    if (token && window.currentUser) {
+      await fetch(`${API_BASE}/register-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: window.currentUser, token })
+      });
+      console.log('✅ أُرسل Token للسيرفر');
+    }
+  } catch (e) {
+    console.error('❌ خطأ أثناء طلب FCM Token:', e);
+  }
+
+  // 5.4 الاستماع للرسائل الواردة طالما الصفحة مفتوحة
+  onMessage(messaging, payload => {
+    const { title, body } = payload.notification || {};
+    console.log('📩 رسالة واردة (Web):', title, body);
+    if (Notification.permission === 'granted' && title && body) {
+      new Notification(title, { body });
+      window.addNotification({ title, body, time: new Date().toLocaleString() });
+    }
+  });
+}
+
+// —————————————————————————————————————————
+// 6) تهيئة إشعارات الجوال (Capacitor)
+// —————————————————————————————————————————
+export async function initPushNative() {
+  if (!PushNotifications) return;
+
+  // 6.1 أنشئ القناة
+  try {
+    await PushNotifications.createChannel({
+      id: 'default',
+      name: 'الإشعارات الرئيسية',
+      description: 'القناة الأساسية',
+      importance: 5,
+      vibrationPattern: [100,200,100],
+      sound: 'default'
+    });
+    console.log('🔔 قناة default أنشئت');
+  } catch {}
+
+  // 6.2 طلب الإذن
+  const perm = await PushNotifications.requestPermissions();
+  if (perm.receive !== 'granted') {
+    console.warn('🔕 إذن Push غير ممنوح');
+    return;
+  }
+
+  // 6.3 تسجيل الجهاز
+  await PushNotifications.register();
+
+  // 6.4 استمع لحدث التسجيل
+  PushNotifications.addListener('registration', ({ value }) => {
+    console.log('✅ Native Token:', value);
+    if (window.currentUser) {
+      fetch(`${API_BASE}/register-token`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ user: window.currentUser, token: value })
+      }).catch(console.error);
+    }
+  });
+
+  // 6.5 استمع للإشعارات الواردة في الـ foreground
+  PushNotifications.addListener('pushNotificationReceived', notif => {
+    console.log('📩 وارد (Native):', notif);
+    if (Notification.permission === 'granted') {
+      new Notification(notif.title, {
+        body: notif.body,
+        tag: 'default',
+        vibrate: [100,200,100]
+      });
+    }
+    window.addNotification({
+      title: notif.title,
+      body: notif.body,
+      time: new Date().toLocaleString()
+    });
+  });
+}
+
+// —————————————————————————————————————————
+// 7) دالة موحدة لاستدعاء الاثنين بناءً على المنصة
+// —————————————————————————————————————————
+export async function initPush() {
+  console.log('⚙️ initPush');
+  await initPushWeb();
+  await initPushNative();
+}
