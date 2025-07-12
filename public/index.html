@@ -286,28 +286,28 @@
   </section>
   </main>
 
-<!-- تسجيل Service Worker -->
+<!-- تسجيل Service Worker أولاً -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker
       .register('/firebase-messaging-sw.js')
       .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-      .catch(err => console.error('❌ SW registration failed', err));
+      .catch(err => console.error('❌ SW reg failed', err));
   }
 </script>
 
-<!-- 1) notifications.js قبل أي استدعاء لـ addNotification -->
+<!-- 1) notifications.js أولاً: يعرّف renderNotifications و addNotification -->
 <script type="module" src="/js/notifications.js"></script>
 
-<!-- 2) push.js لتعريف initPush -->
+<!-- 2) push.js: يعرّف initPushWeb، initPushNative و initPush -->
 <script type="module">
   import { initPush } from '/js/push.js';
+  // نخزِّنها على window حتى نستدعيها لاحقاً من app.js
   window.initPush = initPush;
 </script>
 
-<!-- 3) app.js حيث تحدد window.currentUser وتستدعي initPush() -->
+<!-- 3) app.js: بعد ما ينجح login ويعيّن window.currentUser يستدعي initPush -->
 <script type="module" src="/js/app.js" defer></script>
 <script nomodule src="/js/app.legacy.js" defer></script>
-
 </body>
 </html>
