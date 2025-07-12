@@ -1,1 +1,35 @@
-function _0x11cf(_0x445719,_0x139051){const _0xddb043=_0xddb0();return _0x11cf=function(_0x11cf47,_0x16d77c){_0x11cf47=_0x11cf47-0x68;let _0x275f08=_0xddb043[_0x11cf47];return _0x275f08;},_0x11cf(_0x445719,_0x139051);}const _0x474cdd=_0x11cf;(function(_0x4d4cae,_0xbb5b2f){const _0x91d759=_0x11cf,_0x450015=_0x4d4cae();while(!![]){try{const _0xa7af47=-parseInt(_0x91d759(0x69))/0x1*(parseInt(_0x91d759(0x75))/0x2)+-parseInt(_0x91d759(0x79))/0x3+-parseInt(_0x91d759(0x6f))/0x4+parseInt(_0x91d759(0x7e))/0x5*(parseInt(_0x91d759(0x7a))/0x6)+-parseInt(_0x91d759(0x73))/0x7*(-parseInt(_0x91d759(0x6a))/0x8)+parseInt(_0x91d759(0x6c))/0x9+-parseInt(_0x91d759(0x72))/0xa*(-parseInt(_0x91d759(0x7c))/0xb);if(_0xa7af47===_0xbb5b2f)break;else _0x450015['push'](_0x450015['shift']());}catch(_0x1a540d){_0x450015['push'](_0x450015['shift']());}}}(_0xddb0,0x563dc),importScripts(_0x474cdd(0x6d)),importScripts(_0x474cdd(0x6e)),firebase['initializeApp']({'apiKey':_0x474cdd(0x7f),'authDomain':'device-streaming-47cbe934.firebaseapp.com','projectId':_0x474cdd(0x78),'storageBucket':_0x474cdd(0x70),'messagingSenderId':'235398312189','appId':'1:235398312189:web:8febe5e63f7b134b808e94'}));function _0xddb0(){const _0xc2d503=['device-streaming-47cbe934.appspot.com','clients','890wvwBXP','17234IcDyWN','skipWaiting','1466mMvKjj','showNotification','claim','device-streaming-47cbe934','1451175nWUcbu','3840WyJDYW','notification','89287kCmWhf','data','5470baaqbj','AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y','Notification','/assets/icon.png','install','849NzrsZj','1256GcbZTl','addEventListener','1672479dlIEhZ','https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js','https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js','2142608PHpQin'];_0xddb0=function(){return _0xc2d503;};return _0xddb0();}const messaging=firebase['messaging']();self[_0x474cdd(0x6b)](_0x474cdd(0x68),_0x31110e=>{const _0x49d474=_0x474cdd;self[_0x49d474(0x74)]();}),self[_0x474cdd(0x6b)]('activate',_0x3ef7d4=>{const _0x138255=_0x474cdd;_0x3ef7d4['waitUntil'](self[_0x138255(0x71)][_0x138255(0x77)]());}),messaging['onBackgroundMessage'](_0x344dd2=>{const _0x5f4f86=_0x474cdd,{title:title=_0x5f4f86(0x80),body:body=''}=_0x344dd2[_0x5f4f86(0x7b)]||{};if(!title)return;self['registration'][_0x5f4f86(0x76)](title,{'body':body,'icon':_0x5f4f86(0x81),'vibrate':[0x64,0xc8,0x64],'data':_0x344dd2[_0x5f4f86(0x7d)]});});
+// public/firebase-messaging-sw.js
+
+// 1) Firebase compat libraries
+importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js');
+
+// 2) Firebase init
+firebase.initializeApp({
+  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
+  projectId:        "device-streaming-47cbe934",
+  storageBucket:    "device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
+});
+
+// 3) messaging instance
+const messaging = firebase.messaging();
+
+// 4) تبني الصفحة مباشرة عند التحديث
+self.addEventListener('install',  e => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+
+// 5) استقبال الإشعار في الخلفية
+messaging.onBackgroundMessage(payload => {
+  const { title = '🔔 إشعار', body = '' } = payload.notification || {};
+  if (!title) return;
+
+  self.registration.showNotification(title, {
+    body,
+    icon: '/assets/icon.png',
+    vibrate: [100, 200, 100],
+    data: payload.data || {}
+  });
+});
