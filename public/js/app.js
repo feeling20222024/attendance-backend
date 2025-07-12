@@ -78,7 +78,7 @@ async function login() {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
 // 2) استلام التوكن
-l// … بعد استلام التوكن وتخزينه
+// … بعد استلام التوكن وتخزينه
 loginResponse = await res.json();
 jwtToken      = loginResponse.token;
 localStorage.setItem('jwtToken', jwtToken);
