@@ -9,6 +9,9 @@
 
   <!-- رابط الـ Web App Manifest -->
   <link rel="manifest" href="/manifest.json" />
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<!-- Firebase Messaging (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
 
   <!-- سياسة الأمان (CSP) -->
   <meta http-equiv="Content-Security-Policy"
@@ -296,9 +299,6 @@
     }
   </script>
 
-  <!-- 1) Firebase Modular API -->
-  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js"></script>
 
   <!-- 2) notifications.js -->
   <script type="module" src="/js/notifications.js"></script>
