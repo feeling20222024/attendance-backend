@@ -47,25 +47,37 @@ export async function initPushWeb() {
   }
 
   // 4.3 احصل على التوكن
-  try {
-    const registration = await navigator.serviceWorker.getRegistration();
-    const token = await getToken(messaging, {
-      vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration: registration
-    });
-    console.log('✅ FCM Token:', token);
-
-    if (token && window.currentUser) {
-      await fetch(`${API_BASE}/register-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: window.currentUser, token })
-      });
-      console.log('✅ Token sent to server');
-    }
-  } catch (err) {
-    console.error('❌ Error getting FCM token:', err);
+// 5.2 طلب الإذن وإحضار التوكن (محاط بــ try/catch أوسع)
+let token = null;
+try {
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    console.warn('🔕 إذن الإشعارات غير ممنوح');
+    return;
   }
+
+  const registration = await navigator.serviceWorker.getRegistration();
+  // إذا تعرّضنا للخطأ "non ISO‑8859‑1 code point" أو أي خطأ آخر—
+  // سنقوم بإهمال الـ token ونبقي على عمل الإشعارات محليًا فقط:
+  token = await getToken(messaging, {
+    vapidKey: VAPID_PUBLIC_KEY,
+    serviceWorkerRegistration: registration
+  });
+  console.log('✅ FCM Token:', token);
+
+  if (token && window.currentUser) {
+    await fetch(`${API_BASE}/register-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user: window.currentUser, token })
+    });
+    console.log('✅ أُرسل Token للسيرفر');
+  }
+} catch (e) {
+  console.warn('⚠️ تعذّر الحصول على FCM token أو إرساله— نتابع بدون ويب بوّش:', e);
+  // هنا نتوقف عند هذا الحد، ونمضي قدماً بالـ local notifications فقط
+}
+
 
   // 4.4 استمع للرسائل الواردة
   onMessage(messaging, payload => {
