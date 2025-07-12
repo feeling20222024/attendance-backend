@@ -78,18 +78,19 @@ async function login() {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
 // 2) استلام التوكن
+l// … بعد استلام التوكن وتخزينه
 loginResponse = await res.json();
 jwtToken      = loginResponse.token;
 localStorage.setItem('jwtToken', jwtToken);
 
-// 3) currentUser وتهيئة Push (الويب فقط بنسخة compat)
-currentUser       = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+// 3) currentUser وتهيئة Push (الويب فقط)
+currentUser        = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
 window.currentUser = currentUser;
 console.log('✅ login successful, currentUser =', currentUser);
 
-// 4) تهيئة Push (الويب فقط)
-console.log('🚀 calling initPush()…');
+// 4) استدعاء initPush مرة واحدة فقط (ما دام window.initPush مُعرّفة)
 if (typeof window.initPush === 'function') {
+  console.log('🚀 calling initPush()…');
   try {
     await window.initPush();
   } catch (e) {
@@ -97,12 +98,9 @@ if (typeof window.initPush === 'function') {
   }
 }
 
-// 5) جلب وعرض البيانات
+// 5) ثمّ جلب وعرض البيانات
 await fetchAndRender();
 
-
-// 4) جلب وعرض البيانات
-await fetchAndRender();
   } catch (e) {
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
