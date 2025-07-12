@@ -1,5 +1,6 @@
-// ———————————————————————————————
-// إعدادات
+// ——————————————————————————————
+// إعداد Firebase و VAPID
+// ——————————————————————————————
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 
 const firebaseConfig = {
@@ -13,26 +14,31 @@ const firebaseConfig = {
 
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// ———————————————————————————————
-// دالة لتخزين الإشعارات موحدًا
-window.addNotification = ({ title, body, time }) => {
-  const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
-  saved.unshift({ title, body, time });
-  if (saved.length > 50) saved.pop();
-  localStorage.setItem('notificationsLog', JSON.stringify(saved));
+// ——————————————————————————————
+// addNotification الآمنة
+// ——————————————————————————————
+function safeAddNotification({ title, body, time }) {
+  try {
+    const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
+    saved.unshift({ title, body, time });
+    if (saved.length > 50) saved.pop();
+    localStorage.setItem('notificationsLog', JSON.stringify(saved));
 
-  if (typeof window.renderNotifications === 'function') {
-    window.renderNotifications();
+    if (typeof window.renderNotifications === 'function') {
+      window.renderNotifications();
+    }
+    if (typeof window.updateBellCount === 'function') {
+      window.updateBellCount();
+    }
+    console.log('📩 إشعار محفوظ:', { title, body, time });
+  } catch (e) {
+    console.warn('⚠️ خطأ في تخزين الإشعار:', e);
   }
-  if (typeof window.updateBellCount === 'function') {
-    window.updateBellCount();
-  }
+}
 
-  console.log('📩 إشعار مضاف:', { title, body, time });
-};
-
-// ———————————————————————————————
-// إشعارات الويب باستخدام Firebase compat
+// ——————————————————————————————
+// initNotifications — للويب فقط
+// ——————————————————————————————
 window.initNotifications = async function () {
   try {
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
@@ -42,10 +48,10 @@ window.initNotifications = async function () {
     return;
   }
 
+  // تهيئة Firebase compat
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
-
   const messaging = firebase.messaging();
 
   try {
@@ -67,72 +73,84 @@ window.initNotifications = async function () {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: window.currentUser, token })
       });
-      console.log('✅ تم إرسال FCM Token إلى الخادم');
+      console.log('✅ أُرسل Token للسيرفر');
     }
   } catch (err) {
     console.error('❌ أثناء طلب FCM Token:', err);
   }
 
+  // استقبال الإشعارات الواردة على الويب
   messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
-    if (title && body) {
-      if (Notification.permission === 'granted') {
-        new Notification(title, { body });
-      }
-      window.addNotification({ title, body, time: new Date().toLocaleString() });
+    const now = new Date().toLocaleString();
+
+    if (title && body && Notification.permission === 'granted') {
+      new Notification(title, { body });
     }
+    safeAddNotification({ title, body, time: now });
   });
 };
 
-// ———————————————————————————————
-// إشعارات الجوال باستخدام Capacitor (اختياري)
-window.initNativePush = async function () {
-  if (!window.Capacitor?.isNativePlatform()) return;
-
+// ——————————————————————————————
+// initPushNative — للجوال (Capacitor)
+// ——————————————————————————————
+window.initPushNative = async function () {
+  let PushNotifications;
   try {
-    const { PushNotifications } = await import('@capacitor/push-notifications');
-
-    await PushNotifications.requestPermissions();
-    await PushNotifications.register();
-
-    PushNotifications.addListener('registration', async ({ value }) => {
-      if (value && window.currentUser) {
-        await fetch(`${API_BASE}/register-token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: window.currentUser, token: value })
-        });
-        console.log('✅ تم تسجيل Native token:', value);
-      }
-    });
-
-    PushNotifications.addListener('pushNotificationReceived', notif => {
-      const { title, body } = notif;
-      if (title && body) {
-        if (Notification.permission === 'granted') {
-          new Notification(title, { body });
-        }
-        window.addNotification({ title, body, time: new Date().toLocaleString() });
-      }
-    });
-
-  } catch (err) {
-    console.warn('❌ فشل تهيئة إشعارات الجوال:', err);
+    ({ PushNotifications } = await import('@capacitor/push-notifications'));
+  } catch {
+    return;
   }
+
+  // إنشاء القناة
+  await PushNotifications.createChannel({
+    id: 'default',
+    name: 'الإشعارات',
+    description: 'الإشعارات العامة',
+    importance: 5,
+    vibrationPattern: [100, 200, 100],
+    sound: 'default'
+  }).catch(() => {});
+
+  const perm = await PushNotifications.requestPermissions();
+  if (perm.receive !== 'granted') {
+    console.warn('🔕 إذن إشعارات الجوال غير ممنوح');
+    return;
+  }
+
+  await PushNotifications.register();
+
+  PushNotifications.addListener('registration', async ({ value }) => {
+    console.log('✅ Native Token:', value);
+    if (window.currentUser) {
+      await fetch(`${API_BASE}/register-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: window.currentUser, token: value })
+      }).catch(console.error);
+    }
+  });
+
+  PushNotifications.addListener('pushNotificationReceived', notif => {
+    const { title, body } = notif;
+    const now = new Date().toLocaleString();
+
+    if (title && body && Notification.permission === 'granted') {
+      new Notification(title, { body });
+    }
+    safeAddNotification({ title, body, time: now });
+  });
 };
 
-// ———————————————————————————————
-// دالة موحدة للتهيئة (ويب + جوال)
+// ——————————————————————————————
+// دالة موحدة
+// ——————————————————————————————
 window.initPush = async function () {
-  console.log('⚙️ initPush started');
-  try {
-    if (typeof window.initNotifications === 'function') {
-      await window.initNotifications();
-    }
-    if (typeof window.initNativePush === 'function') {
-      await window.initNativePush();
-    }
-  } catch (err) {
-    console.warn('⚠️ initPush error:', err);
+  console.log('⚙️ initPush()');
+  if (typeof window.initNotifications === 'function') {
+    await window.initNotifications();
+  }
+  if (typeof window.initPushNative === 'function') {
+    await window.initPushNative();
   }
 };
