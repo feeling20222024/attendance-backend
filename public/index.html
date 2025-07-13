@@ -4,12 +4,9 @@
   <meta charset="UTF-8" />
   <link rel="manifest" href="/manifest.json" />
 
-<!-- Firebase compat (app + messaging + firestore) -->
-<script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-<script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
-<script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
-<script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js"></script>
-
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
 
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -288,24 +285,31 @@
    </div>
   </section>
   </main>
-
-<!-- تسجيل الـ SW أولاً -->
-
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker
       .register('/firebase-messaging-sw.js')
-      .then(reg => console.log('✅ SW registered:', reg.scope))
-      .catch(console.error);
+      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
+      .catch(err => console.error('❌ SW registration failed', err));
   }
 </script>
 
-<!-- 1) Notifications rendering & storage -->
-<script type="module" src="/js/notifications.js"></script>
-<!-- 2) Push (FCM) setup -->
-<script type="module" src="/js/push.js"></script>
-<!-- 3) Your app logic (login, fetch) -->
-<script type="module" src="/js/app.js" defer></script>
+<!-- 1) تحميل notifications.js بدون defer -->
+<script src="js/notifications.js"></script>
+
+<!-- 2) تنفيذ initNotifications بعد التأكد من جاهزية DOM والعناصر -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
+  });
+</script>
+
+<!-- 3) سكربتات Push و App -->
+<script type="module" src="js/push.js" defer></script>
+<script nomodule src="js/app.legacy.js" defer></script>
+<script type="module" src="js/app.js" defer></script>
 
 </body>
 </html>
