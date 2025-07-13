@@ -142,8 +142,22 @@ if (typeof window.initNotifications === 'function') {
   window.initNotifications();
 }
 
-// 6) جلب وعرض البيانات
-await fetchAndRender();
+    // 6) جلب وعرض البيانات
+    await fetchAndRender();
+
+  } catch (e) {
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
+}  // ← هذا القوس يغلق دالة login()
+
+// —————————————————————————————————————————
+// 3) جلب وعرض البيانات (attendance + hwafez + me)
+// —————————————————————————————————————————
+async function fetchAndRender() {
+  …
+}
+
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
