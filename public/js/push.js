@@ -56,58 +56,62 @@ async function safeAddNotification({ title, body, time }) {
 }
 
 // ——————————————————————————————
-// 3) initNotifications — للويب فقط
+// initNotifications — للويب فقط
 // ——————————————————————————————
 window.initNotifications = async function () {
-  // 3.1) تسجيل Service Worker
   try {
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('✅ SW for Firebase registered:', reg.scope);
   } catch (err) {
     console.error('❌ فشل تسجيل SW:', err);
-    return;
+    // لو فشل التسجيل، نستمر بدون FCM
   }
 
-  // 3.2) تهيئة Firebase compat
+  // تهيئة Firebase compat
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
   const messaging = firebase.messaging();
 
-  // 3.3) طلب إذن الإشعارات والحصول على التوكن
-  try {
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      console.warn('🔕 إذن الإشعارات غير ممنوح');
-      return;
-    }
+  // طلب الإذن
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    console.warn('🔕 إذن الإشعارات غير ممنوح');
+    return;
+  }
 
+  // **غلاف شامل حول getToken**
+  let fcmToken = null;
+  try {
     const registration = await navigator.serviceWorker.getRegistration();
-    const token = await messaging.getToken({
+    fcmToken = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
       serviceWorkerRegistration: registration
     });
+    console.log('✅ FCM Token:', fcmToken);
 
-    if (token && window.currentUser) {
+    // إرسال التوكن للخادم
+    if (fcmToken && window.currentUser) {
       await fetch(`${API_BASE}/register-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: window.currentUser, token })
+        body: JSON.stringify({ user: window.currentUser, token: fcmToken })
       });
       console.log('✅ أُرسل Token للسيرفر');
     }
-  } catch (err) {
-    console.error('❌ أثناء طلب FCM Token:', err);
+  } catch (e) {
+    console.warn('⚠️ تعذّر الحصول على FCM Token — نستمر بدون push ويب:', e);
+    // مهم: لا نطرح الخطأ مجددًا حتى لا يقاطع تدفق التطبيق
   }
 
-  // 3.4) استماع للإشعارات الواردة في الـ foreground
+  // استقبال الرسائل الواردة
   messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
     const now = new Date().toLocaleString();
-
     if (title && body && Notification.permission === 'granted') {
       new Notification(title, { body });
     }
+    // تخزين محلي + إرسال للخادم
     safeAddNotification({ title, body, time: now });
   });
 };
