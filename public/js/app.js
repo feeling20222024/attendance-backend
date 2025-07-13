@@ -128,6 +128,12 @@ async function login() {
       } else {
         console.warn('⚠️ لم أتمكن من جلب الإشعارات من الخادم:', notifRes.status);
       }
+   if (notifRes.ok) {
+        const serverNotifs = await notifRes.json();
+        localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
+        if (typeof window.renderNotifications === 'function') window.renderNotifications();
+        if (typeof window.updateBellCount === 'function') window.updateBellCount();
+      }
     } catch (e) {
       console.warn('⚠️ خطأ أثناء جلب الإشعارات من الخادم:', e);
     }
