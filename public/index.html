@@ -4,26 +4,10 @@
   <meta charset="UTF-8" />
   <link rel="manifest" href="/manifest.json" />
 
-
-<!-- Firebase Compat (v9.22.x‑compat) -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js" defer></script>
-
-<script>
-  // تهيئة التطبيق (global firebase)
-  firebase.initializeApp({
-    apiKey:           "AIzaSyC…",
-    authDomain:       "device-streaming-47cbe934.firebaseapp.com",
-    projectId:        "device-streaming-47cbe934",
-    storageBucket:    "device-streaming-47cbe934.appspot.com",
-    messagingSenderId:"235398312189",
-    appId:            "1:235398312189:web:…"
-  });
-
-  // يمكنك الآن:
-  // const messaging = firebase.messaging();
-  window.firebaseInitialized = true;
-</script>
+<!-- Firebase compat (app + messaging + firestore) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
