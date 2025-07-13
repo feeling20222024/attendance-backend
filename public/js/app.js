@@ -1,17 +1,16 @@
-// public/js/app.js
-
 // —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
-const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT = `${API_BASE}/login`;
-const SUPERVISOR_CODE= '35190';
 
-let headersAtt     = [], attendanceData = [];
-let headersHw      = [], hwafezData     = [];
-let headersTq      = [], tqeemData      = [];
-let currentUser    = null;
-let jwtToken       = null;
+const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT  = `${API_BASE}/login`;
+const SUPERVISOR_CODE = '35190';
+
+let headersAtt      = [], attendanceData = [];
+let headersHw       = [], hwafezData     = [];
+let headersTq       = [], tqeemData      = [];
+let currentUser     = null;
+let jwtToken        = null;
 
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
@@ -29,7 +28,7 @@ function normalizeDigits(str) {
 }
 
 // —————————————————————————————————————————
-// DOMContentLoaded: ربط الأزرار واسترجاع JWT
+// DOMContentLoaded: ربط الأزرار
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick  = login;
@@ -39,41 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('hwafezBtn').onclick = showHwafez;
   document.getElementById('tqeemBtn').onclick  = showTqeem;
 
+  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات + تهيئة الإشعارات
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    fetchAndRender()
-      .then(() => {
-        if (typeof window.initNotifications === 'function') {
-          window.initNotifications();
-        }
-      })
-      .catch(logout);
+    // currentUser أيضاً من localStorage إن أردت تخزينه هناك
+    fetchAndRender().then(() => {
+      if (typeof window.initNotifications === 'function') {
+        window.initNotifications();
+      }
+    }).catch(logout);
   }
 });
-
-// 🔔 استقبال إشعارات الخلفية من SW
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('message', event => {
-    const msg = event.data;
-    if (msg && msg.type === 'NEW_NOTIFICATION') {
-      try {
-        if (typeof window.addNotification === 'function') {
-          window.addNotification({
-            title: msg.title,
-            body:  msg.body,
-            time:  msg.time
-          });
-        }
-      } catch (e) {
-        console.warn('⚠️ فشل في تخزين إشعار الخلفية:', e);
-      }
-    }
-  });
-}
-
 // —————————————————————————————————————————
-// 2) دالة تسجيل الدخول + استرجاع سجل الإشعارات الموحد
+// ——————————————————————————————
+// 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
   const code = normalizeDigits(
@@ -84,7 +63,9 @@ async function login() {
     return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
+  let loginResponse;
   try {
+    // 1) طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,47 +78,35 @@ async function login() {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
 
-    const { token, user } = await res.json();
-    jwtToken = token;
+    // 2) استلام التوكن
+    loginResponse = await res.json();
+    jwtToken = loginResponse.token;
     localStorage.setItem('jwtToken', jwtToken);
+    // 3) currentUser وتهيئة الإشعارات
+currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+window.currentUser = currentUser;
+console.log('✅ login successful, currentUser =', currentUser);
 
-    currentUser = user.code ?? user['كود الموظف'];
-    window.currentUser = currentUser;
-    console.log('✅ login successful, currentUser =', currentUser);
+// ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
+if (typeof window.initNotifications === 'function') {
+  window.initNotifications();
+}
 
-    // استرجاع الإشعارات الموحد من الخادم
-    try {
-      const notifRes = await fetch(`${API_BASE}/notifications/${currentUser}`, {
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jwtToken}`
-        }
-      });
-      if (notifRes.ok) {
-        const serverNotifs = await notifRes.json();
-        localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
-        if (typeof window.renderNotifications === 'function') window.renderNotifications();
-        if (typeof window.updateBellCount === 'function') window.updateBellCount();
-      } else {
-        console.warn('⚠️ فشل جلب الإشعارات من الخادم:', notifRes.status);
-      }
-    } catch (e) {
-      console.warn('⚠️ خطأ أثناء جلب الإشعارات من الخادم:', e);
+// 4) تهيئة Push
+console.log('🚀 calling initPush()…');
+if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+  await initNativePush();
+} else {
+  await initPush();
+}
+
+    // 5) تهيئة لوحة الإشعارات
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
     }
 
-    // تهيئة Push (SW + FCM + Native)
-    if (typeof window.initPush === 'function') {
-      console.log('🚀 calling initPush()…');
-      try {
-        await window.initPush();
-      } catch (e) {
-        console.warn('⚠️ initPush failed, continuing without push:', e);
-      }
-    }
-
-    // ثمّ جلب وعرض البيانات
+    // 6) جلب وعرض البيانات
     await fetchAndRender();
-
   } catch (e) {
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
@@ -411,26 +380,11 @@ async function sendSupervisorNotification() {
 // 7) تسجيل الخروج
 // —————————————————————————————————————————
 function logout() {
-  // 1) تنظيف المتغيرات المحلية
   currentUser = null;
-  jwtToken    = null;
+  jwtToken     = null;
   localStorage.removeItem('jwtToken');
-
-  // 2) مسح سجل الإشعارات المحلي
-  localStorage.removeItem('notificationsLog');
-
-  // 3) تحديث الواجهة: إخفاء الأقسام المطلوبة
   ['records','pushSection','hwafezSection'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
   );
   document.getElementById('loginSection').classList.remove('hidden');
-
-  // 4) إعادة ضبط عداد الجرس ولوحة الإشعارات
-  if (typeof window.updateBellCount === 'function') {
-    window.updateBellCount();
-  }
-  if (typeof window.renderNotifications === 'function') {
-    window.renderNotifications();
-  }
 }
-
