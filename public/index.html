@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <link rel="manifest" href="/manifest.json" />
 
-  <!-- Firebase compat -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+
+<!-- Firebase Compat (v9.22.x‑compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+
 
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -286,30 +288,31 @@
   </section>
   </main>
 <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker
-      .register('/firebase-messaging-sw.js')
-      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-      .catch(err => console.error('❌ SW registration failed', err));
-  }
-</script>
-
-<!-- 1) تحميل notifications.js بدون defer -->
-<script src="js/notifications.js"></script>
-
-<!-- 2) تنفيذ initNotifications بعد التأكد من جاهزية DOM والعناصر -->
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (typeof window.initNotifications === 'function') {
-      window.initNotifications();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/firebase-messaging-sw.js')
+        .then(reg => console.log('✅ FCM SW registered:', reg.scope))
+        .catch(err => console.error('❌ SW registration failed', err));
     }
-  });
-</script>
+  </script>
 
-<!-- 3) سكربتات Push و App -->
-<script src="js/push.js"></script>
-<script nomodule src="js/app.legacy.js" defer></script>
-<script type="module" src="js/app.js" defer></script>
+  <!-- 1) notifications.js -->
+  <script src="/js/notifications.js"></script>
 
+  <!-- 2) initNotifications فور الـ DOM -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof window.initNotifications === 'function') {
+        window.initNotifications();
+      }
+    });
+  </script>
+
+  <!-- 3) push.js -->
+  <script src="/js/push.js"></script>
+
+  <!-- 4) app.js (بعد تسجيل الدخول يستدعي initPush) -->
+  <script src="/js/app.js" defer></script>
+  <script nomodule src="/js/app.legacy.js" defer></script>
 </body>
 </html>
