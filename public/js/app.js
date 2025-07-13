@@ -144,6 +144,29 @@ async function login() {
 
     // 7) جلب وعرض بيانات الدوام
     await fetchAndRender();
+    // … ضمن دالة login()، بعد await fetchAndRender();
+if (window.currentUser) {
+  try {
+    // 1) جلب الإشعارات الموحدة من الخادم
+    const resNotifs = await fetch(`${API_BASE}/notifications/${window.currentUser}`, {
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`  // إذا كنت تحمي الـ endpoint
+      }
+    });
+    if (resNotifs.ok) {
+      const list = await resNotifs.json();            // مصفوفة الإشعارات
+      localStorage.setItem('notificationsLog', JSON.stringify(list)); // تخزين محلي
+      // 2) إعادة رسم لوحة الإشعارات وعدّاد الجرس
+      if (typeof window.renderNotifications === 'function') window.renderNotifications();
+      if (typeof window.updateBellCount ===    'function') window.updateBellCount();
+    } else {
+      console.warn('Failed to fetch notifications:', resNotifs.status);
+    }
+  } catch (e) {
+    console.warn('Error loading unified notifications:', e);
+  }
+}
 
   } catch (e) {
     console.error('❌ login error:', e);
