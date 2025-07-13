@@ -287,20 +287,28 @@
   </section>
   </main>
 
-  <!-- تسجيل Service Worker (لا يحتاج module) -->
+<!-- تسجيل الـ SW أولاً -->
 <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-        .catch(err => console.error('❌ SW reg failed', err));
-    }
-  </script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('/firebase-messaging-sw.js')
+      .then(r => console.log('✅ SW registered:', r.scope))
+      .catch(e => console.error('❌ SW reg failed', e));
+  }
+</script>
 
-  <!-- 2) ملفات الـ module -->
-  <script type="module" src="/js/config.js"></script>
-  <script type="module" src="/js/notifications.js"></script>
-  <script type="module" src="/js/push.js"></script>
-  <script type="module" src="/js/app.js" defer></script>
-  <script nomodule src="/js/app.legacy.js" defer></script>
+<!-- 1) ثوابت التهيئة -->
+<script type="module" src="/js/config.js"></script>
+
+<!-- 2) دوال العرض والتخزين -->
+<script type="module" src="/js/notifications.js"></script>
+
+<!-- 3) دوال الـ Push -->
+<script type="module" src="/js/push.js"></script>
+
+<!-- 4) التطبيق الرئيسي -->
+<script type="module" src="/js/app.js" defer></script>
+<script nomodule src="/js/app.legacy.js" defer></script>
+
 </body>
 </html>
