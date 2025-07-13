@@ -104,7 +104,9 @@ async function login() {
     // 3) currentUser وتهيئة الإشعارات
     currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
     window.currentUser = currentUser;
-    console.log('✅ login successful, currentUser =', currentUser);
+    if (typeof window.initNotifications === 'function') {
+  await window.initNotifications();
+   }
 
     // ★★ جلب سجل الإشعارات الموحد من السيرفر ★★
     try {
