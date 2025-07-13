@@ -105,30 +105,37 @@ async function login() {
     jwtToken = loginResponse.token;
     localStorage.setItem('jwtToken', jwtToken);
 
-    // 3) currentUser وتهيئة الإشعارات
-    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
-    window.currentUser = currentUser;
-    if (typeof window.initNotifications === 'function') {
-      await window.initNotifications();
-    }
+   // 3) currentUser وتهيئة الإشعارات
+currentUser        = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+window.currentUser = currentUser;
 
-    // ★★ جلب سجل الإشعارات الموحد من السيرفر ★★
-    try {
-      const resp = await fetch(`${API_BASE}/notifications/${currentUser}`, {
-        headers: { 'Authorization': `Bearer ${jwtToken}` }
-      });
-      if (resp.ok) {
-        const notifLog = await resp.json();
-        localStorage.setItem('notificationsLog', JSON.stringify(notifLog));
-        if (typeof window.renderNotifications === 'function') {
-          window.renderNotifications();
-        }
-      } else {
-        console.warn('لم يُعثر على سجل إشعارات للمستخدم');
-      }
-    } catch (err) {
-      console.warn('فشل جلب سجل الإشعارات:', err);
+// أ) تهيئة SW + FCM على الويب
+if (typeof window.initNotifications === 'function') {
+  await window.initNotifications();
+}
+
+// ب) جلب سجل الإشعارات الموحد من الخادم
+try {
+  const resp = await fetch(`${API_BASE}/notifications/${currentUser}`, {
+    headers: { 'Authorization': `Bearer ${jwtToken}` }
+  });
+  if (resp.ok) {
+    const serverNotifs = await resp.json(); // يتوقع مصفوفة من { title, body, time }
+    // خزنها في localStorage بنفس المفتاح المستخدم في safeAddNotification
+    localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
+    // أعد العرض
+    if (typeof window.renderNotifications === 'function') {
+      window.renderNotifications();
     }
+    if (typeof window.updateBellCount === 'function') {
+      window.updateBellCount();
+    }
+  } else {
+    console.warn('⚠️ لم أتمكن من جلب الإشعارات من الخادم:', resp.status);
+  }
+} catch (e) {
+  console.warn('⚠️ خطأ أثناء جلب الإشعارات من الخادم:', e);
+}
 
     // 4) تهيئة Push (الويب & Native)
     console.log('🚀 calling initPush()…');
