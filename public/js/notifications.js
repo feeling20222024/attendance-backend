@@ -1,26 +1,36 @@
+// public/js/notifications.js
+// —————————————————————————————————————————————————————————————
+// 0) استيراد الإعدادات المشتركة
+// —————————————————————————————————————————————————————————————
+import { API_BASE, messaging } from './config.js';
+
 // —————————————————————————————————————————————————————————————
 // Constants
+// —————————————————————————————————————————————————————————————
 const STORAGE_KEY     = 'notificationsLog';
 const SUPERVISOR_CODE = '35190';
 
 // —————————————————————————————————————————————————————————————
-// 0) جلب الإشعارات الموحدة من الخادم وتخزينها محليًا
+// 1) جلب الإشعارات الموحدة من الخادم وتخزينها محليًا
+// —————————————————————————————————————————————————————————————
 window.initNotifications = async function() {
   if (!window.currentUser) return;
+
   try {
     const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
-    if (!res.ok) throw new Error('Failed to fetch notifications');
-    const notifs = await res.json();
-    if (Array.isArray(notifs)) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs));
+    if (res.ok) {
+      const serverNotifs = await res.json();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(serverNotifs));
     }
   } catch (e) {
-    console.warn('⚠️ تعذّر جلب الإشعارات الموحدة:', e);
+    console.warn('⚠️ لم نتمكن من جلب الإشعارات من الخادم:', e);
   }
-  // بعد الجلب نحدّث العرض
-  updateBellCount();
+
+  // ثم استمر في تهيئة الـ UI بعد التحميل:
   renderNotifications();
+  updateBellCount();
 };
+
 
 // —————————————————————————————————————————————————————————————
 // 1) قراءة الإشعارات من localStorage
