@@ -141,39 +141,29 @@ async function login() {
         console.warn('⚠️ initPush failed, continuing without push:', e);
       }
     }
+ await fetchAndRender();
 
-    // 7) جلب وعرض بيانات الدوام
-    await fetchAndRender();
-    // … ضمن دالة login()، بعد await fetchAndRender();
-if (window.currentUser) {
-  try {
-    // 1) جلب الإشعارات الموحدة من الخادم
-    const resNotifs = await fetch(`${API_BASE}/notifications/${window.currentUser}`, {
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`  // إذا كنت تحمي الـ endpoint
+  // 6) جلب الإشعارات الموحدة من الخادم وتخزينها محلياً
+  if (window.currentUser) {
+    try {
+      const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
+      if (res.ok) {
+        const stored = await res.json();
+        localStorage.setItem('notificationsLog', JSON.stringify(stored));
+        if (typeof window.renderNotifications === 'function') {
+          window.renderNotifications();
+        }
+        if (typeof window.updateBellCount === 'function') {
+          window.updateBellCount();
+        }
+      } else {
+        console.warn('❌ فشل جلب الإشعارات الموحدة:', res.status);
       }
-    });
-    if (resNotifs.ok) {
-      const list = await resNotifs.json();            // مصفوفة الإشعارات
-      localStorage.setItem('notificationsLog', JSON.stringify(list)); // تخزين محلي
-      // 2) إعادة رسم لوحة الإشعارات وعدّاد الجرس
-      if (typeof window.renderNotifications === 'function') window.renderNotifications();
-      if (typeof window.updateBellCount ===    'function') window.updateBellCount();
-    } else {
-      console.warn('Failed to fetch notifications:', resNotifs.status);
+    } catch (e) {
+      console.warn('⚠️ خطأ أثناء جلب الإشعارات الموحدة:', e);
     }
-  } catch (e) {
-    console.warn('Error loading unified notifications:', e);
   }
 }
-
-  } catch (e) {
-    console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
-  }
-}
-
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
