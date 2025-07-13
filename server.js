@@ -8,7 +8,7 @@ const path                  = require('path');
 const jwt                   = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin                 = require('firebase-admin');
-const { MongoClient }       = require('mongodb');        // ← استيراد MongoDB Driver
+const { MongoClient }       = require('mongodb');
 
 // 2) دالة لتحويل الأرقام العربية/الفارسية إلى لاتينية
 function normalizeDigits(str) {
@@ -26,12 +26,10 @@ let serviceAccount;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 } catch {
-  console.error('❌ خطأ: FIREBASE_SERVICE_ACCOUNT غير صالح.');
+  console.error('❌ FIREBASE_SERVICE_ACCOUNT غير صالح.');
   process.exit(1);
 }
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 
 // 4) دالة لإرسال إشعار FCM
 async function sendPushTo(token, title, body, data = {}) {
@@ -39,36 +37,30 @@ async function sendPushTo(token, title, body, data = {}) {
     token,
     notification: { title, body },
     android: {
-      ttl: 172800000,
       priority: 'high',
       notification: { channel_id: 'default', sound: 'default' }
     },
     data
   };
-  try {
-    return await admin.messaging().send(message);
-  } catch (err) {
-    console.error('❌ Failed to send push to', token, err);
-    throw err;
-  }
+  return admin.messaging().send(message);
 }
 
 // ———————————————————————————————————————————————————————————
-// ← هنا نضيف اتصال MongoDB ←
-const MONGO_URI = process.env.MONGO_URI;  
+// 5) تهيئة MongoDB
+const MONGO_URI = process.env.MONGO_URI;
 if (!MONGO_URI) {
-  console.error('❌ MONGO_URI غير محدد في env');
+  console.error('❌ MONGO_URI غير محدد.');
   process.exit(1);
 }
 let db;
 (async () => {
   const client = new MongoClient(MONGO_URI);
   await client.connect();
-  db = client.db();  // تستخدم قاعدة البيانات الافتراضية من URI
+  db = client.db();
   console.log('✅ Connected to MongoDB');
 })();
-// ———————————————————————————————————————————————————————————
 
+// 6) إعداد Express
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -81,26 +73,30 @@ const {
   GOOGLE_SERVICE_KEY
 } = process.env;
 
-// ... (بقيّة إعدادات Google Sheets والميدلوير authenticate وendpoints 1–15) ...
+// (… هنا تكوّن باقي endpoints الخاصة بالحضور والحوافز …)
 
-// 15) تسجيل توكن FCM
+// 15) تخزين توكنات FCM مؤقتًا
 const tokens = new Set();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
-  if (!user || !token) return res.status(400).json({ error: 'user and token required' });
+  if (!user || !token) {
+    return res.status(400).json({ error: 'user and token required' });
+  }
   tokens.add(token);
   res.json({ success: true });
 });
 
-// 16) إشعار لجميع الأجهزة (للمشرف فقط)
+// 16) إشعار جميع الأجهزة (للمشرف فقط)
 app.post('/api/notify-all', authenticate, async (req, res) => {
-  if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
+  if (req.user.code !== SUPERVISOR_CODE) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   const { title, body } = req.body;
-  await Promise.allSettled(Array.from(tokens).map(t => sendPushTo(t, title, body)));
+  await Promise.allSettled(
+    Array.from(tokens).map(t => sendPushTo(t, title, body))
+  );
   res.json({ success: true });
 });
-
-// ← نقطتا النهاية الجديدتان ↓
 
 // 17) حفظ إشعار جديد في MongoDB
 app.post('/api/save-notification', async (req, res) => {
@@ -117,28 +113,32 @@ app.post('/api/save-notification', async (req, res) => {
   }
 });
 
-// 18) جلب آخر 50 إشعارًا لمستخدم معيّن
+// 18) جلب آخر 50 إشعارًا لمستخدم معين
 app.get('/api/notifications/:user', async (req, res) => {
   const user = req.params.user;
   try {
-    const notifications = await db
+    const notifs = await db
       .collection('notifications')
       .find({ user })
       .sort({ time: -1 })
       .limit(50)
       .toArray();
-    res.json(notifications);
+    res.json(notifs);
   } catch (e) {
     console.error('❌ get-notifications error:', e);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// 19) SPA fallback (أخيرًا)
+// 19) SPA fallback
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
 
 // 20) بدء الخادم
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 الخادم يعمل على ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server listening on ${PORT}`));
+
+// ———————————————————————————————————————————————————————————
+// وظّف هنا ميدلوير `authenticate` لتحقّق JWT وصلاحيات المستخدم
+// …  
