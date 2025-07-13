@@ -1,35 +1,54 @@
+// public/js/push.js
+
 // ——————————————————————————————
-// إعداد Firebase و VAPID
+// 1) إعداد Firebase و VAPID
 // ——————————————————————————————
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
-  authDomain: "device-streaming-47cbe934.firebaseapp.com",
-  projectId: "device-streaming-47cbe934",
-  storageBucket: "device-streaming-47cbe934.appspot.com",
-  messagingSenderId: "235398312189",
-  appId: "1:235398312189:web:8febe5e63f7b134b808e94"
+  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
+  projectId:        "device-streaming-47cbe934",
+  storageBucket:    "device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
 };
 
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
 // ——————————————————————————————
-// addNotification الآمنة
+// 2) دالة آمنة لإضافة إشعار (localStorage + خادم)
 // ——————————————————————————————
-function safeAddNotification({ title, body, time }) {
+async function safeAddNotification({ title, body, time }) {
   try {
+    // 2.1) التخزين محلياً
     const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
     saved.unshift({ title, body, time });
     if (saved.length > 50) saved.pop();
     localStorage.setItem('notificationsLog', JSON.stringify(saved));
 
+    // 2.2) التخزين على الخادم
+    if (window.currentUser) {
+      await fetch(`${API_BASE}/save-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          user:  window.currentUser, 
+          title, 
+          body, 
+          time 
+        })
+      });
+    }
+
+    // 2.3) تحديث الواجهة
     if (typeof window.renderNotifications === 'function') {
       window.renderNotifications();
     }
     if (typeof window.updateBellCount === 'function') {
       window.updateBellCount();
     }
+
     console.log('📩 إشعار محفوظ:', { title, body, time });
   } catch (e) {
     console.warn('⚠️ خطأ في تخزين الإشعار:', e);
@@ -37,9 +56,10 @@ function safeAddNotification({ title, body, time }) {
 }
 
 // ——————————————————————————————
-// initNotifications — للويب فقط
+// 3) initNotifications — للويب فقط
 // ——————————————————————————————
 window.initNotifications = async function () {
+  // 3.1) تسجيل Service Worker
   try {
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('✅ SW for Firebase registered:', reg.scope);
@@ -48,12 +68,13 @@ window.initNotifications = async function () {
     return;
   }
 
-  // تهيئة Firebase compat
+  // 3.2) تهيئة Firebase compat
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
   const messaging = firebase.messaging();
 
+  // 3.3) طلب إذن الإشعارات والحصول على التوكن
   try {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') {
@@ -79,7 +100,7 @@ window.initNotifications = async function () {
     console.error('❌ أثناء طلب FCM Token:', err);
   }
 
-  // استقبال الإشعارات الواردة على الويب
+  // 3.4) استماع للإشعارات الواردة في الـ foreground
   messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
     const now = new Date().toLocaleString();
@@ -92,17 +113,18 @@ window.initNotifications = async function () {
 };
 
 // ——————————————————————————————
-// initPushNative — للجوال (Capacitor)
+// 4) initPushNative — للجوال (Capacitor Native)
 // ——————————————————————————————
 window.initPushNative = async function () {
   let PushNotifications;
   try {
+    // استيراد ديناميكي حتى لا يخطئ المتصفح
     ({ PushNotifications } = await import('@capacitor/push-notifications'));
   } catch {
-    return;
+    return; // بيئة ويب فقط
   }
 
-  // إنشاء القناة
+  // 4.1) إنشاء قناة الإشعارات (Android 8+)
   await PushNotifications.createChannel({
     id: 'default',
     name: 'الإشعارات',
@@ -112,14 +134,17 @@ window.initPushNative = async function () {
     sound: 'default'
   }).catch(() => {});
 
+  // 4.2) طلب إذن Push
   const perm = await PushNotifications.requestPermissions();
   if (perm.receive !== 'granted') {
     console.warn('🔕 إذن إشعارات الجوال غير ممنوح');
     return;
   }
 
+  // 4.3) تسجيل الجهاز
   await PushNotifications.register();
 
+  // 4.4) مستمع تسجيل التوكن
   PushNotifications.addListener('registration', async ({ value }) => {
     console.log('✅ Native Token:', value);
     if (window.currentUser) {
@@ -131,6 +156,7 @@ window.initPushNative = async function () {
     }
   });
 
+  // 4.5) مستمع استقبال الإشعار في الـ foreground
   PushNotifications.addListener('pushNotificationReceived', notif => {
     const { title, body } = notif;
     const now = new Date().toLocaleString();
@@ -143,7 +169,7 @@ window.initPushNative = async function () {
 };
 
 // ——————————————————————————————
-// دالة موحدة
+// 5) دالة موحدة لتهيئة Push
 // ——————————————————————————————
 window.initPush = async function () {
   console.log('⚙️ initPush()');
