@@ -1,16 +1,17 @@
+// public/js/app.js
+
 // —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
+const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT = `${API_BASE}/login`;
+const SUPERVISOR_CODE= '35190';
 
-const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT  = `${API_BASE}/login`;
-const SUPERVISOR_CODE = '35190';
-
-let headersAtt      = [], attendanceData = [];
-let headersHw       = [], hwafezData     = [];
-let headersTq       = [], tqeemData      = [];
-let currentUser     = null;
-let jwtToken        = null;
+let headersAtt     = [], attendanceData = [];
+let headersHw      = [], hwafezData     = [];
+let headersTq      = [], tqeemData      = [];
+let currentUser    = null;
+let jwtToken       = null;
 
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
@@ -28,8 +29,7 @@ function normalizeDigits(str) {
 }
 
 // —————————————————————————————————————————
-// —————————————————————————————————————————
-// DOMContentLoaded: ربط الأزرار واسترجاع JWT وإنشاء Listener للإشعارات الخلفية
+// DOMContentLoaded: ربط الأزرار واسترجاع JWT
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick  = login;
@@ -39,11 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('hwafezBtn').onclick = showHwafez;
   document.getElementById('tqeemBtn').onclick  = showTqeem;
 
-  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات + تهيئة الإشعارات
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    // currentUser أيضاً من localStorage إن أردت تخزينه هناك
     fetchAndRender()
       .then(() => {
         if (typeof window.initNotifications === 'function') {
@@ -54,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 🔔 استقبال إشعارات الخلفية من Service Worker وتخزينها موحداً
+// 🔔 استقبال إشعارات الخلفية من SW
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', event => {
     const msg = event.data;
@@ -78,7 +76,6 @@ if ('serviceWorker' in navigator) {
 // 2) دالة تسجيل الدخول + استرجاع سجل الإشعارات الموحد
 // —————————————————————————————————————————
 async function login() {
-  // 1) قراءة الكود وكلمة المرور
   const code = normalizeDigits(
     document.getElementById('codeInput').value.trim()
   );
@@ -88,7 +85,6 @@ async function login() {
   }
 
   try {
-    // 2) طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -101,44 +97,35 @@ async function login() {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
 
-    // 3) استلام التوكن وتخزينه
     const { token, user } = await res.json();
     jwtToken = token;
     localStorage.setItem('jwtToken', jwtToken);
 
-    // 4) تعيين currentUser
     currentUser = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
     console.log('✅ login successful, currentUser =', currentUser);
 
-    // 5) جلب سجل الإشعارات الموحد من الخادم
+    // استرجاع الإشعارات الموحد من الخادم
     try {
       const notifRes = await fetch(`${API_BASE}/notifications/${currentUser}`, {
-        headers: { 'Authorization': `Bearer ${jwtToken}` }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        }
       });
       if (notifRes.ok) {
-        const serverNotifs = await notifRes.json(); // [{title,body,time},...]
-        localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
-        if (typeof window.renderNotifications === 'function') {
-          window.renderNotifications();
-        }
-        if (typeof window.updateBellCount === 'function') {
-          window.updateBellCount();
-        }
-      } else {
-        console.warn('⚠️ لم أتمكن من جلب الإشعارات من الخادم:', notifRes.status);
-      }
-   if (notifRes.ok) {
         const serverNotifs = await notifRes.json();
         localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
         if (typeof window.renderNotifications === 'function') window.renderNotifications();
         if (typeof window.updateBellCount === 'function') window.updateBellCount();
+      } else {
+        console.warn('⚠️ فشل جلب الإشعارات من الخادم:', notifRes.status);
       }
     } catch (e) {
       console.warn('⚠️ خطأ أثناء جلب الإشعارات من الخادم:', e);
     }
 
-    // 6) تهيئة إشعارات الويب (SW + FCM) ثم Native
+    // تهيئة Push (SW + FCM + Native)
     if (typeof window.initPush === 'function') {
       console.log('🚀 calling initPush()…');
       try {
@@ -147,37 +134,15 @@ async function login() {
         console.warn('⚠️ initPush failed, continuing without push:', e);
       }
     }
-    // … بعد await fetchAndRender();
+
+    // ثمّ جلب وعرض البيانات
     await fetchAndRender();
 
-    // 6) جلب الإشعارات الموحدة من الخادم وتخزينها محلياً
-    if (window.currentUser) {
-      try {
-        const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwtToken}`
-          }
-        });
-        if (res.ok) {
-          const stored = await res.json();
-          // خزّنها في localStorage
-          localStorage.setItem('notificationsLog', JSON.stringify(stored));
-          // أعد رسم اللوحة والعداد
-          if (typeof window.renderNotifications === 'function') {
-            window.renderNotifications();
-          }
-          if (typeof window.updateBellCount === 'function') {
-            window.updateBellCount();
-          }
-        } else {
-          console.warn('❌ فشل جلب الإشعارات الموحدة:', res.status);
-        }
-      } catch (e) {
-        console.warn('⚠️ خطأ أثناء جلب الإشعارات الموحدة:', e);
-      }
-
-
+  } catch (e) {
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
+}
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
