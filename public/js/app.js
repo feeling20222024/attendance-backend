@@ -105,7 +105,7 @@ async function login() {
     jwtToken = loginResponse.token;
     localStorage.setItem('jwtToken', jwtToken);
 
-   // 3) currentUser وتهيئة الإشعارات
+ // 3) currentUser وتهيئة الإشعارات
 currentUser        = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
 window.currentUser = currentUser;
 
