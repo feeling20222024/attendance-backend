@@ -436,12 +436,26 @@ async function sendSupervisorNotification() {
 // 7) تسجيل الخروج
 // —————————————————————————————————————————
 function logout() {
+  // 1) تنظيف المتغيرات المحلية
   currentUser = null;
-  jwtToken   = null;
+  jwtToken    = null;
   localStorage.removeItem('jwtToken');
+
+  // 2) مسح سجل الإشعارات المحلي
+  localStorage.removeItem('notificationsLog');
+
+  // 3) تحديث الواجهة: إخفاء الأقسام المطلوبة
   ['records','pushSection','hwafezSection'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
   );
   document.getElementById('loginSection').classList.remove('hidden');
+
+  // 4) إعادة ضبط عداد الجرس ولوحة الإشعارات
+  if (typeof window.updateBellCount === 'function') {
+    window.updateBellCount();
+  }
+  if (typeof window.renderNotifications === 'function') {
+    window.renderNotifications();
+  }
 }
-}
+
