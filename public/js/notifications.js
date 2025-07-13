@@ -3,7 +3,22 @@
 // 0) استيراد الإعدادات المشتركة
 // —————————————————————————————————————————————————————————————
 import { API_BASE, messaging } from './config.js';
-
+// —————————————————————————————————————————————————————————————
+// A) مستمع رسائل من الـ Service Worker
+// —————————————————————————————————————————————————————————————
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    const msg = event.data;
+    // نتأكد أن الرسالة من نوع إشعار جديد
+    if (msg && msg.type === 'NEW_NOTIFICATION') {
+      window.addNotification({
+        title: msg.title,
+        body:  msg.body,
+        time:  msg.time
+      });
+    }
+  });
+}
 // —————————————————————————————————————————————————————————————
 // Constants
 // —————————————————————————————————————————————————————————————
