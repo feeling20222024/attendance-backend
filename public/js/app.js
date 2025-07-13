@@ -28,7 +28,8 @@ function normalizeDigits(str) {
 }
 
 // —————————————————————————————————————————
-// DOMContentLoaded: ربط الأزرار
+// —————————————————————————————————————————
+// DOMContentLoaded: ربط الأزرار واسترجاع JWT وإنشاء Listener للإشعارات الخلفية
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick  = login;
@@ -43,14 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saved) {
     jwtToken = saved;
     // currentUser أيضاً من localStorage إن أردت تخزينه هناك
-    fetchAndRender().then(() => {
-      if (typeof window.initNotifications === 'function') {
-        window.initNotifications();
-      }
-    }).catch(logout);
+    fetchAndRender()
+      .then(() => {
+        if (typeof window.initNotifications === 'function') {
+          window.initNotifications();
+        }
+      })
+      .catch(logout);
   }
 });
-// 🔔 استقبال إشعارات الخلفية من Service Worker وتخزينها
+
+// 🔔 استقبال إشعارات الخلفية من Service Worker وتخزينها موحداً
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', event => {
     const msg = event.data;
@@ -59,8 +63,8 @@ if ('serviceWorker' in navigator) {
         if (typeof window.addNotification === 'function') {
           window.addNotification({
             title: msg.title,
-            body: msg.body,
-            time: msg.time
+            body:  msg.body,
+            time:  msg.time
           });
         }
       } catch (e) {
@@ -68,6 +72,81 @@ if ('serviceWorker' in navigator) {
       }
     }
   });
+}
+
+// —————————————————————————————————————————
+// 2) دالة تسجيل الدخول + استرجاع سجل الإشعارات الموحد
+// —————————————————————————————————————————
+async function login() {
+  const code = normalizeDigits(
+    document.getElementById('codeInput').value.trim()
+  );
+  const pass = document.getElementById('passwordInput').value.trim();
+  if (!code || !pass) {
+    return alert('يرجى إدخال الكود وكلمة المرور.');
+  }
+
+  try {
+    // 1) طلب المصادقة
+    const res = await fetch(LOGIN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, pass })
+    });
+    if (res.status === 401) {
+      return alert('بيانات الدخول خاطئة');
+    }
+    if (!res.ok) {
+      throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
+    }
+
+    // 2) استلام التوكن
+    const loginResponse = await res.json();
+    jwtToken = loginResponse.token;
+    localStorage.setItem('jwtToken', jwtToken);
+
+    // 3) currentUser وتهيئة الإشعارات
+    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+    window.currentUser = currentUser;
+    if (typeof window.initNotifications === 'function') {
+      await window.initNotifications();
+    }
+
+    // ★★ جلب سجل الإشعارات الموحد من السيرفر ★★
+    try {
+      const resp = await fetch(`${API_BASE}/notifications/${currentUser}`, {
+        headers: { 'Authorization': `Bearer ${jwtToken}` }
+      });
+      if (resp.ok) {
+        const notifLog = await resp.json();
+        localStorage.setItem('notificationsLog', JSON.stringify(notifLog));
+        if (typeof window.renderNotifications === 'function') {
+          window.renderNotifications();
+        }
+      } else {
+        console.warn('لم يُعثر على سجل إشعارات للمستخدم');
+      }
+    } catch (err) {
+      console.warn('فشل جلب سجل الإشعارات:', err);
+    }
+
+    // 4) تهيئة Push (الويب & Native)
+    console.log('🚀 calling initPush()…');
+    if (typeof window.initPush === 'function') {
+      try {
+        await window.initPush();
+      } catch (e) {
+        console.warn('⚠️ initPush failed, continuing without push:', e);
+      }
+    }
+
+    // 5) ثمّ جلب وعرض بيانات الدوام
+    await fetchAndRender();
+
+  } catch (e) {
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
 }
 
 // —————————————————————————————————————————
