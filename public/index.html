@@ -304,12 +304,13 @@
   </main>
 
 <!-- تسجيل الـ SW أولاً -->
+
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker
       .register('/firebase-messaging-sw.js')
-      .then(r => console.log('✅ SW registered:', r.scope))
-      .catch(e => console.error('❌ SW reg failed', e));
+      .then(reg => console.log('✅ SW registered:', reg.scope))
+      .catch(console.error);
   }
 </script>
 
