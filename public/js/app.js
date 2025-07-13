@@ -189,9 +189,13 @@ async function login() {
 
     // 3) currentUser وتهيئة الإشعارات
     currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
-    window.currentUser = currentUser;
- await updateBellCount();
-await renderNotifications();
+   // بعد login success:
+window.currentUser = loginResponse.user.code; 
+// جلب تاريخياً
+await loadNotifications();
+// ثم تهيئة الـ Push
+await initPush();
+
 
 
     // ★★ جلب سجل الإشعارات الموحد من السيرفر ★★
