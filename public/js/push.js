@@ -173,14 +173,42 @@ window.initPushNative = async function () {
 };
 
 // ——————————————————————————————
+// ... (الكود الموجود حالياً في public/js/push.js)
+
 // 5) دالة موحدة لتهيئة Push
-// ——————————————————————————————
 window.initPush = async function () {
   console.log('⚙️ initPush()');
+  // أ) ابدأ بالويب
   if (typeof window.initNotifications === 'function') {
     await window.initNotifications();
   }
+  // ب) ثم المحمول (Capacitor)
   if (typeof window.initPushNative === 'function') {
     await window.initPushNative();
+  }
+
+  // ج) أخيراً، جلب الإشعارات المخزّنة على الخادم وتخزينها محلياً
+  try {
+    if (window.currentUser) {
+      const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
+      if (res.ok) {
+        const serverNotifs = await res.json(); 
+        // نتوقّع مصفوفة [{ title, body, time }, ...]
+        // نخزنها في localStorage لــ notifications.js
+        localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
+        // نحدّث الواجهة
+        if (typeof window.renderNotifications === 'function') {
+          window.renderNotifications();
+        }
+        if (typeof window.updateBellCount === 'function') {
+          window.updateBellCount();
+        }
+        console.log('✅ جلب الإشعارات من الخادم وحفظها محلياً');
+      } else {
+        console.warn('⚠️ فشل جلب إشعارات الخادم:', res.status);
+      }
+    }
+  } catch (e) {
+    console.warn('⚠️ خطأ أثناء جلب إشعارات الخادم:', e);
   }
 };
