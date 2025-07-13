@@ -291,28 +291,21 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
         .register('/firebase-messaging-sw.js')
-        .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-        .catch(err => console.error('❌ SW registration failed', err));
+        .then(r => console.log('✅ SW registered:', r.scope))
+        .catch(console.error);
     }
   </script>
 
-  <!-- 1) notifications.js -->
-  <script src="/js/notifications.js"></script>
+  <!-- أولاً نحمل الإعدادات المشتركة -->
+  <script type="module" src="/js/config.js"></script>
 
-  <!-- 2) initNotifications فور الـ DOM -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof window.initNotifications === 'function') {
-        window.initNotifications();
-      }
-    });
-  </script>
+  <!-- ثم notifications (render + storage) -->
+  <script type="module" src="/js/notifications.js"></script>
 
-  <!-- 3) push.js -->
-  <script src="/js/push.js"></script>
+  <!-- ثم push (initPush) -->
+  <script type="module" src="/js/push.js"></script>
 
-  <!-- 4) app.js (بعد تسجيل الدخول يستدعي initPush) -->
-  <script src="/js/app.js" defer></script>
-  <script nomodule src="/js/app.legacy.js" defer></script>
+  <!-- وأخيرًا app.js (login + initPush) -->
+  <script type="module" src="/js/app.js"></script>
 </body>
 </html>
