@@ -98,14 +98,31 @@ async function login() {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
 
-    // 2) استلام التوكن
-    loginResponse = await res.json();
-    jwtToken = loginResponse.token;
-    localStorage.setItem('jwtToken', jwtToken);
-    // 3) currentUser وتهيئة الإشعارات
+// 2) استلام التوكن
+loginResponse = await res.json();
+jwtToken = loginResponse.token;
+localStorage.setItem('jwtToken', jwtToken);
+
+// 3) currentUser وتهيئة الإشعارات
 currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
 window.currentUser = currentUser;
 console.log('✅ login successful, currentUser =', currentUser);
+
+// ★★ هنا نضيف جلب سجل الإشعارات للمستخدم وتخزينه ★★
+try {
+  const resp = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
+  if (resp.ok) {
+    const notifLog = await resp.json();
+    localStorage.setItem('notificationsLog', JSON.stringify(notifLog));
+    if (typeof window.renderNotifications === 'function') {
+      window.renderNotifications();
+    }
+  } else {
+    console.warn('لم يُعثر على سجل إشعارات للمستخدم');
+  }
+} catch (err) {
+  console.warn('فشل جلب سجل الإشعارات:', err);
+}
 
 // ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
 if (typeof window.initNotifications === 'function') {
@@ -120,18 +137,13 @@ if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
   await initPush();
 }
 
-    // 5) تهيئة لوحة الإشعارات
-    if (typeof window.initNotifications === 'function') {
-      window.initNotifications();
-    }
-
-    // 6) جلب وعرض البيانات
-    await fetchAndRender();
-  } catch (e) {
-    console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
-  }
+// 5) تهيئة لوحة الإشعارات
+if (typeof window.initNotifications === 'function') {
+  window.initNotifications();
 }
+
+// 6) جلب وعرض البيانات
+await fetchAndRender();
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
