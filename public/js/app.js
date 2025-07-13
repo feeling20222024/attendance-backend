@@ -147,28 +147,32 @@ async function login() {
         console.warn('⚠️ initPush failed, continuing without push:', e);
       }
     }
- await fetchAndRender();
+    // … بعد await fetchAndRender();
+    await fetchAndRender();
 
-  // 6) جلب الإشعارات الموحدة من الخادم وتخزينها محلياً
-  if (window.currentUser) {
-    try {
-      const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
-      if (res.ok) {
-        const stored = await res.json();
-        localStorage.setItem('notificationsLog', JSON.stringify(stored));
-        if (typeof window.renderNotifications === 'function') {
-          window.renderNotifications();
+    // 6) جلب الإشعارات الموحدة من الخادم وتخزينها محلياً
+    if (window.currentUser) {
+      try {
+        const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
+        if (res.ok) {
+          const stored = await res.json();
+          // خزّنها في localStorage
+          localStorage.setItem('notificationsLog', JSON.stringify(stored));
+          // أعد رسم اللوحة والعداد
+          if (typeof window.renderNotifications === 'function') {
+            window.renderNotifications();
+          }
+          if (typeof window.updateBellCount === 'function') {
+            window.updateBellCount();
+          }
+        } else {
+          console.warn('❌ فشل جلب الإشعارات الموحدة:', res.status);
         }
-        if (typeof window.updateBellCount === 'function') {
-          window.updateBellCount();
-        }
-      } else {
-        console.warn('❌ فشل جلب الإشعارات الموحدة:', res.status);
+      } catch (e) {
+        console.warn('⚠️ خطأ أثناء جلب الإشعارات الموحدة:', e);
       }
-    } catch (e) {
-      console.warn('⚠️ خطأ أثناء جلب الإشعارات الموحدة:', e);
     }
-  }
+
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
