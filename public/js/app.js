@@ -153,7 +153,12 @@ async function login() {
     // 6) جلب الإشعارات الموحدة من الخادم وتخزينها محلياً
     if (window.currentUser) {
       try {
-        const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
+        const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwtToken}`
+          }
+        });
         if (res.ok) {
           const stored = await res.json();
           // خزّنها في localStorage
@@ -172,6 +177,7 @@ async function login() {
         console.warn('⚠️ خطأ أثناء جلب الإشعارات الموحدة:', e);
       }
     }
+
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
