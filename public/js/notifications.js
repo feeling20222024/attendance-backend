@@ -1,159 +1,162 @@
 // public/js/notifications.js
-// —————————————————————————————————————————————————————————————
-// 0) استيراد الإعدادات المشتركة
-// —————————————————————————————————————————————————————————————
-import { API_BASE, messaging } from './config.js';
-// —————————————————————————————————————————————————————————————
-// A) مستمع رسائل من الـ Service Worker
-// —————————————————————————————————————————————————————————————
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('message', event => {
-    const msg = event.data;
-    // نتأكد أن الرسالة من نوع إشعار جديد
-    if (msg && msg.type === 'NEW_NOTIFICATION') {
-      window.addNotification({
-        title: msg.title,
-        body:  msg.body,
-        time:  msg.time
-      });
-    }
-  });
-}
-// —————————————————————————————————————————————————————————————
-// Constants
-// —————————————————————————————————————————————————————————————
-const STORAGE_KEY     = 'notificationsLog';
-const SUPERVISOR_CODE = '35190';
 
-// —————————————————————————————————————————————————————————————
-// 1) جلب الإشعارات الموحدة من الخادم وتخزينها محليًا
-// —————————————————————————————————————————————————————————————
-window.initNotifications = async function() {
-  if (!window.currentUser) return;
+// ——————————————————————————————————————————————————
+// 1) استيراد Modular API من Firebase
+// ——————————————————————————————————————————————————
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-  try {
-    const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
-    if (res.ok) {
-      const serverNotifs = await res.json();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(serverNotifs));
-    }
-  } catch (e) {
-    console.warn('⚠️ لم نتمكن من جلب الإشعارات من الخادم:', e);
-  }
-
-  // ثم استمر في تهيئة الـ UI بعد التحميل:
-  renderNotifications();
-  updateBellCount();
+// ——————————————————————————————————————————————————
+// 2) إعداد Firebase
+// (استبدل بالقيم عندك)
+// ——————————————————————————————————————————————————
+const firebaseConfig = {
+  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
+  projectId:        "device-streaming-47cbe934",
+  storageBucket:    "device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
 };
+const app   = initializeApp(firebaseConfig);
+const db    = getFirestore(app);
+const notifsCol = collection(db, 'notifications');
 
+// ——————————————————————————————————————————————————
+// 3) ثوابت واجهة المستخدم
+// ——————————————————————————————————————————————————
+const STORAGE_KEY    = 'notificationsLog';
+const SUPERVISOR_UID = '35190'; // كود المشرف
 
-// —————————————————————————————————————————————————————————————
-// 1) قراءة الإشعارات من localStorage
-function loadNotifications() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
+// ——————————————————————————————————————————————————
+// 4) جلب آخر 50 إشعار من Firestore
+// ——————————————————————————————————————————————————
+async function loadNotifications() {
+  const q = query(notifsCol, orderBy('time', 'desc'), limit(50));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-// —————————————————————————————————————————————————————————————
-// 2) تحديث عداد الجرس
-function updateBellCount() {
-  const count = loadNotifications().length;
-  const bellCount = document.getElementById('notifCount');
-  if (!bellCount) return;
-  bellCount.textContent = count;
-  bellCount.style.display = count > 0 ? 'inline-block' : 'none';
+// ——————————————————————————————————————————————————
+// 5) عرض عداد الجرس
+// ——————————————————————————————————————————————————
+async function updateBellCount() {
+  const notifs = await loadNotifications();
+  const el = document.getElementById('notifCount');
+  if (!el) return;
+  el.textContent = notifs.length;
+  el.style.display = notifs.length > 0 ? 'inline-block' : 'none';
 }
 
-// —————————————————————————————————————————————————————————————
-// 3) رسم محتوى لوحة الإشعارات
-function renderNotifications() {
-  const list = document.getElementById('notificationsLog');
+// ——————————————————————————————————————————————————
+// 6) رسم لوحة الإشعارات
+// ——————————————————————————————————————————————————
+async function renderNotifications() {
+  const list   = document.getElementById('notificationsLog');
   const clearB = document.getElementById('clearNotifications');
-  const notifs = loadNotifications();
   if (!list || !clearB) return;
 
+  const notifs = await loadNotifications();
   list.innerHTML = '';
+
   if (notifs.length === 0) {
     list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
+    clearB.classList.add('hidden');
   } else {
     notifs.forEach(n => {
       const li = document.createElement('li');
-      li.className = 'mb-4 border-b pb-2';
+      li.className = 'mb-2 border-b pb-2';
       li.innerHTML = `
         <div class="font-semibold text-gray-800">${n.title}</div>
         <div class="text-sm text-gray-700">${n.body}</div>
-        <div class="text-xs text-gray-400 mt-1">${n.time}</div>
+        <div class="text-xs text-gray-400 mt-1">${new Date(n.time).toLocaleString()}</div>
       `;
       list.appendChild(li);
     });
-  }
-
-  // إظهار زر المسح للمشرف فقط
-  if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
-    clearB.classList.remove('hidden');
-    clearB.style.display = 'inline-block';
-  } else {
-    clearB.classList.add('hidden');
-    clearB.style.display = 'none';
+    // زر المسح يظهر للمشرف فقط
+    if (window.currentUser === SUPERVISOR_UID) {
+      clearB.classList.remove('hidden');
+    } else {
+      clearB.classList.add('hidden');
+    }
   }
 }
 
-// —————————————————————————————————————————————————————————————
-// 4) مسح سجل الإشعارات (للمشرف فقط)
-function clearNotifications() {
-  if (window.currentUser !== SUPERVISOR_CODE) {
-    alert('ليس لديك صلاحية لمسح سجل الإشعارات.');
-    return;
+// ——————————————————————————————————————————————————
+// 7) مسح سجل الإشعارات (المشرف فقط)
+// ——————————————————————————————————————————————————
+async function clearNotifications() {
+  if (window.currentUser !== SUPERVISOR_UID) {
+    return alert('ليس لديك صلاحية لمسح الإشعارات');
   }
-  if (!confirm('هل أنت متأكد؟')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  renderNotifications();
-  updateBellCount();
+  if (!confirm('مسح جميع الإشعارات؟')) return;
+
+  const notifs = await loadNotifications();
+  await Promise.all(notifs.map(n => deleteDoc(doc(db, 'notifications', n.id))));
+  await renderNotifications();
+  await updateBellCount();
 }
 
-// —————————————————————————————————————————————————————————————
-// 5) ربط الأحداث عند تحميل الـ DOM
+// ——————————————————————————————————————————————————
+// 8) إضافة إشعار جديد (أي مكان بالواجهة أو push.js يستدعيها)
+// تُخزّن في Firestore، ثم تُحدّث الواجهة
+// ——————————————————————————————————————————————————
+window.addNotification = async function({ title, body, time }) {
+  await addDoc(notifsCol, {
+    title,
+    body,
+    time,
+    createdAt: serverTimestamp()
+  });
+  await updateBellCount();
+  // إذا كانت اللوحة مفتوحة
+  const panel = document.getElementById('notificationsPanel');
+  if (panel && getComputedStyle(panel).display !== 'none') {
+    await renderNotifications();
+  }
+};
+
+// ——————————————————————————————————————————————————
+// 9) ربط الأحداث عند تحميل الـ DOM
+// ——————————————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   const bell   = document.getElementById('notifBell');
   const panel  = document.getElementById('notificationsPanel');
   const clearB = document.getElementById('clearNotifications');
 
+  // العرض الأولي
   updateBellCount();
   renderNotifications();
 
-  bell?.addEventListener('click', () => {
-    const isHidden = panel.classList.contains('hidden') ||
-                     getComputedStyle(panel).display === 'none';
-    panel.style.display = isHidden ? 'block' : 'none';
+  // النقر على جرس الإشعارات
+  bell?.addEventListener('click', async () => {
     panel.classList.toggle('hidden');
-    renderNotifications();
-    updateBellCount();
+    await renderNotifications();
+    await updateBellCount();
   });
 
+  // مسح الإشعارات
   clearB?.addEventListener('click', clearNotifications);
 });
 
-// —————————————————————————————————————————————————————————————
-// 6) إضافة إشعار جديد
-window.addNotification = function(payload) {
-  let saved = loadNotifications();
-  saved.unshift({
-    title: payload.title,
-    body:  payload.body,
-    time:  payload.time
-  });
-  if (saved.length > 50) saved.pop();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-
-  // إن كانت اللوحة مفتوحة، أعد رسمها
-  const panel = document.getElementById('notificationsPanel');
-  if (panel && getComputedStyle(panel).display !== 'none') {
-    renderNotifications();
-  }
-
-  // حدّث العداد دائمًا
-  updateBellCount();
-};
+// ——————————————————————————————————————————————————
+// 10) استرجاع الإشعارات عند تسجيل الدخول
+// (في app.js بعد نجاح login)
+// ——————————————————————————————————————————————————
+// مثال في app.js:
+//   if (window.currentUser) {
+//     // فقط نعيد تحميل الواجهة، لأن notifications.js يقرأ من Firestore مباشرة
+//     await updateBellCount();
+//     await renderNotifications();
+//   }
