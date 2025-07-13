@@ -287,13 +287,14 @@
   </section>
   </main>
 <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
-        .then(r => console.log('✅ SW registered:', r.scope))
-        .catch(console.error);
-    }
-  </script>
+   <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('/firebase-messaging-sw.js')
+      .then(reg => console.log('✅ SW registered:', reg.scope))
+      .catch(err => console.error('❌ SW reg failed:', err));
+  }
+</script>
 
 <script src="/js/config.js"></script>
 <script src="/js/notifications.js"></script>
