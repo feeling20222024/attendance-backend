@@ -413,7 +413,7 @@ async function sendSupervisorNotification() {
 // —————————————————————————————————————————
 function logout() {
   currentUser = null;
-  jwtToken     = null;
+  jwtToken   = null;
   localStorage.removeItem('jwtToken');
   ['records','pushSection','hwafezSection'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
