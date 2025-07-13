@@ -5,9 +5,11 @@
   <link rel="manifest" href="/manifest.json" />
 
 <!-- Firebase compat (app + messaging + firestore) -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+<script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+<script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+<script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js"></script>
+
 
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -298,18 +300,12 @@
   }
 </script>
 
-<!-- 1) ثوابت التهيئة -->
-<script type="module" src="/js/config.js"></script>
-
-<!-- 2) دوال العرض والتخزين -->
+<!-- 1) Notifications rendering & storage -->
 <script type="module" src="/js/notifications.js"></script>
-
-<!-- 3) دوال الـ Push -->
+<!-- 2) Push (FCM) setup -->
 <script type="module" src="/js/push.js"></script>
-
-<!-- 4) التطبيق الرئيسي -->
+<!-- 3) Your app logic (login, fetch) -->
 <script type="module" src="/js/app.js" defer></script>
-<script nomodule src="/js/app.legacy.js" defer></script>
 
 </body>
 </html>
