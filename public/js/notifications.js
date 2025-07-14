@@ -106,21 +106,31 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // —————————————————————————————————————————————————————————————
 // دالة تُستدعى عند وصول إشعار جديد من push.js أو SW
-window.addNotification = function(payload) {
-  let saved = loadNotifications();
-  saved.unshift({
-    title: payload.title,
-    body:  payload.body,
-    time:  payload.time
-  });
-  if (saved.length > 50) saved.pop();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-
-  // إن كانت اللوحة مفتوحة، أعد رسمها
-  const panel = document.getElementById('notificationsPanel');
-  if (panel && getComputedStyle(panel).display !== 'none') {
-    renderNotifications();
+window.addNotification = async ({ title, body, time }) => {
+  // أولاً أرسل الإشعار للخادم
+  try {
+    await fetch(`${API_BASE}/notifications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+      },
+      body: JSON.stringify({ title, body, time })
+    });
+  } catch (err) {
+    console.error('❌ خطأ في إرسال الإشعار للخادم:', err);
   }
+
+  // ثم حدّث الواجهة محلياً
+  const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
+  saved.unshift({ title, body, time });
+  if (saved.length > 50) saved.pop();
+  localStorage.setItem('notificationsLog', JSON.stringify(saved));
+
+  if (typeof window.renderNotifications === 'function') window.renderNotifications();
+  if (typeof window.updateBellCount === 'function')     window.updateBellCount();
+
+  console.log('📩 إشعار مضاف (محلياً وعلى الخادم):', { title, body, time });
 
   // حدّث العداد دائمًا
   updateBellCount();
