@@ -125,8 +125,8 @@ window.addNotification = async ({ title, body, time }) => {
   const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
   saved.unshift({ title, body, time });
   if (saved.length > 50) saved.pop();
-  localStorage.setItem('notificationsLog', JSON.stringify(saved));
-
+const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
   if (typeof window.renderNotifications === 'function') window.renderNotifications();
   if (typeof window.updateBellCount === 'function')     window.updateBellCount();
 
