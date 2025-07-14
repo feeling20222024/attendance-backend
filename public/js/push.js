@@ -60,7 +60,7 @@ const token = await messaging.getToken({
   serviceWorkerRegistration: swReg
 });
 console.log('✅ FCM Token:', token);
-    }
+  
   } catch (err) {
     console.error('❌ أثناء طلب FCM Token:', err);
   }
