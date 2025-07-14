@@ -52,19 +52,14 @@ window.initNotifications = async function () {
       return;
     }
 
-    const registration = await navigator.serviceWorker.getRegistration();
-    const token = await messaging.getToken({
-      vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration: registration
-    });
+   // بعد تسجيل SW:
+const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
-    if (token && window.currentUser) {
-      await fetch(`${API_BASE}/register-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: window.currentUser, token })
-      });
-      console.log('✅ تم إرسال FCM Token إلى الخادم');
+const token = await messaging.getToken({
+  vapidKey: VAPID_PUBLIC_KEY,
+  serviceWorkerRegistration: swReg
+});
+console.log('✅ FCM Token:', token);
     }
   } catch (err) {
     console.error('❌ أثناء طلب FCM Token:', err);
