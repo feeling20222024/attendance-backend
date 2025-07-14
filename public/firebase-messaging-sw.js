@@ -2,8 +2,8 @@
 
 // 1) استيراد مكتبات الـ Compat داخل SW
 importScripts(
-  'https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js'
+ 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js',
+ 'https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js'
 );
 
 // 2) تهيئة تطبيق Firebase (مطابق للويب)
