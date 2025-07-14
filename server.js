@@ -250,6 +250,40 @@ app.get('/api/latest-version', (req, res) => {
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
+// مصفوفة للإحتفاظ بالإشعارات (يمكن لاحقاً استبدالها بقاعدة بيانات)
+let notificationsStore = [];
+
+// حفظ إشعار جديد
+app.post('/api/notifications', authenticate, (req, res) => {
+  const { title, body, time } = req.body;
+  if (!title || !body || !time) {
+    return res.status(400).json({ error: 'title, body, time required' });
+  }
+  // خزّن الإشعار مع كود المستخدم
+  notificationsStore.push({
+    user: req.user.code,
+    title, body, time
+  });
+  // احتفظ فقط بالـ 50 الأحدث لكل مستخدم
+  const userNotifs = notificationsStore
+    .filter(n => n.user === req.user.code)
+    .slice(-50);
+  // أعد كتابة المتجر للمستخدم الحالي
+  notificationsStore = [
+    ...notificationsStore.filter(n => n.user !== req.user.code),
+    ...userNotifs
+  ];
+  res.json({ success: true });
+});
+
+// جلب إشعارات المستخدم الحالي
+app.get('/api/notifications', authenticate, (req, res) => {
+  const list = notificationsStore
+    .filter(n => n.user === req.user.code)
+    .sort((a, b) => new Date(b.time) - new Date(a.time));
+  res.json({ data: list });
+});
+
 
 // بدء الخادم
 const PORT = process.env.PORT || 3000;
