@@ -37,18 +37,31 @@ admin.initializeApp({
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
+    // يظل للدعم العام (Android/iOS)
     notification: { title, body },
+    // إضافة قسم WebPush للمتصفّحات
+    webpush: {
+      headers: {
+        // الوقت الأقصى لبقاء الرسالة في FCM قبل الرفض (بالثواني)
+        TTL: '86400'
+      },
+      notification: {
+        title,
+        body,
+        // يمكنك إضافة icon أو click_action هنا:
+        // icon: '/assets/icon.png',
+        // click_action: 'https://dwam-app-by-omar.onrender.com/'
+      }
+    },
     android: {
-      // تنتهي الرسالة بعد 172800000 ميلي‑ثانية = 48 ساعة
       ttl: 172800000,
       priority: 'high',
       notification: {
-        channel_id: 'default',  // اسم القناة كما أنشأته سابقاً
-        sound:      'default'
-        // لا تضيفي هنا vibrate_timings أو حقول غير مدعومة
+        channel_id: 'default',
+        sound: 'default'
       }
     },
-    data  // بيانات إضافية إن وجدت
+    data
   };
 
   try {
