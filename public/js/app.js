@@ -38,18 +38,44 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('hwafezBtn').onclick = showHwafez;
   document.getElementById('tqeemBtn').onclick  = showTqeem;
 
-  // إذا كان هناك JWT محفوظ، نحاول جلب البيانات + تهيئة الإشعارات
-  const saved = localStorage.getItem('jwtToken');
-  if (saved) {
-    jwtToken = saved;
-    // currentUser أيضاً من localStorage إن أردت تخزينه هناك
-    fetchAndRender().then(() => {
+// إذا كان هناك JWT محفوظ، نُعيد تهيئة الجلسة وجلب البيانات والإشعارات
+const saved = localStorage.getItem('jwtToken');
+if (saved) {
+  jwtToken = saved;
+  // currentUser يمكن حفظه في localStorage أو استرجاعه من الـ /me لاحقاً
+  fetchAndRender()
+    .then(async () => {
+      // 1) بناء الإشعارات محلياً ومحاولة تسجيل SW/FCM
       if (typeof window.initNotifications === 'function') {
-        window.initNotifications();
+        await window.initNotifications();
       }
-    }).catch(logout);
-  }
+      // 2) جلب سجل الإشعارات من الخادم للعرض الأولي
+      try {
+        const res = await fetch(`${API_BASE}/notifications`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwtToken}`
+          }
+        });
+        if (res.ok) {
+          const { data } = await res.json();
+          // خزّنها في localStorage لعرضها فوراً
+          localStorage.setItem('notificationsLog', JSON.stringify(data));
+          // حدّث العداد في الواجهة
+          if (typeof window.updateBellCount === 'function') {
+            window.updateBellCount();
+          }
+        } else {
+          console.warn('❌ فشل جلب الإشعارات، status:', res.status);
+        }
+      } catch (e) {
+        console.warn('❌ لم يتم جلب سجل الإشعارات من الخادم:', e);
+      }
+    })
+    .catch(logout);
+}
 });
+
 // —————————————————————————————————————————
 // ——————————————————————————————
 // 2) دالة تسجيل الدخول
