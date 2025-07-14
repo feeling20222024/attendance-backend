@@ -51,11 +51,9 @@ function renderNotifications() {
 
   // إظهار زر المسح للمشرف فقط
   if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
-    console.log('🧪 Showing clear button for currentUser:', window.currentUser);
     clearB.classList.remove('hidden');
     clearB.style.display = 'inline-block';
   } else {
-    console.log('🧪 Hiding clear button for currentUser:', window.currentUser);
     clearB.classList.add('hidden');
     clearB.style.display = 'none';
   }
@@ -87,9 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!bell || !panel || !clearB) return;
 
   bell.addEventListener('click', function() {
-    // ضمان ظهور اللوحة حتى لو كانت مخفية بـ style أو class
     const isHidden = panel.classList.contains('hidden') || getComputedStyle(panel).display === 'none';
-
     if (isHidden) {
       panel.classList.remove('hidden');
       panel.style.display = 'block';
@@ -97,7 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
       panel.classList.add('hidden');
       panel.style.display = 'none';
     }
-
     renderNotifications();
     updateBellCount();
   });
@@ -122,11 +117,11 @@ window.addNotification = async ({ title, body, time }) => {
   }
 
   // ثم حدّث الواجهة محلياً
-  const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   saved.unshift({ title, body, time });
   if (saved.length > 50) saved.pop();
-const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+
   if (typeof window.renderNotifications === 'function') window.renderNotifications();
   if (typeof window.updateBellCount === 'function')     window.updateBellCount();
 
