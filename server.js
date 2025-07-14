@@ -66,6 +66,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+let notificationsStore = [];
+
+app.post('/api/notifications', authenticate, (req, res) => { /* … */ });
+app.get('/api/notifications', authenticate, (req, res) => { /* … */ });
 
 // 6) قراءة متغيّرات البيئة الأساسية
 const {
