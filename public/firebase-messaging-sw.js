@@ -2,11 +2,11 @@
 
 // 1) استيراد مكتبات الـ Compat داخل SW
 importScripts(
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js'
+  'https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js'
 );
 
-// 2) تهيئة التطبيق
+// 2) تهيئة تطبيق Firebase (مطابق للويب)
 firebase.initializeApp({
   apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
   authDomain:       "device-streaming-47cbe934.firebaseapp.com",
@@ -24,12 +24,12 @@ messaging.onBackgroundMessage(payload => {
   const { title = 'إشعار', body = '' } = payload.notification || {};
   self.registration.showNotification(title, {
     body,
-    icon: '/assets/icon.png',
+    icon: '/assets/icon.png',      // غيّر المسار حسب أيقونتك
     vibrate: [100, 200, 100],
     data: payload.data
   });
 });
 
-// 5) اِعتمد العمل فور التثبيت والتفعيل
+// 5) اعتمد العمل فور التثبيت والتفعيل
 self.addEventListener('install',  () => self.skipWaiting());
 self.addEventListener('activate', evt => evt.waitUntil(self.clients.claim()));
