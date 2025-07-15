@@ -1,3 +1,5 @@
+// public/push.js
+
 // 1. إعدادات أساسية
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 
@@ -27,7 +29,34 @@ window.addNotification = ({ title, body, time }) => {
   console.log('📩 إشعار مضاف:', { title, body, time });
 };
 
-// 3. تهيئة إشعارات الويب وطلب رمز FCM
+// 3. دالة لجلب الإشعارات من الخادم Firestore
+window.loadNotificationsFromServer = async function() {
+  const jwt = localStorage.getItem('jwtToken');
+  if (!jwt) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/notifications`, {
+      headers: { 'Authorization': `Bearer ${jwt}` }
+    });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const json = await res.json();
+
+    if (Array.isArray(json.data)) {
+      localStorage.setItem('notificationsLog', JSON.stringify(json.data.map(n => ({
+        title: n.title,
+        body:  n.body,
+        time:  n.time
+      }))));
+      if (typeof window.renderNotifications === 'function') window.renderNotifications();
+      if (typeof window.updateBellCount === 'function') window.updateBellCount();
+      console.log('✅ Loaded notifications from Firestore');
+    }
+  } catch (e) {
+    console.warn('❌ Failed to load notifications from Firestore:', e);
+  }
+};
+
+// 4. تهيئة إشعارات الويب وطلب رمز FCM
 window.initNotifications = async function () {
   // 1) سجِّل SW من الجذر
   let swRegistration;
@@ -63,52 +92,77 @@ window.initNotifications = async function () {
 
   // 5) اطلب رمز FCM باستخدام SW الفعّال
   try {
-  const token = await messaging.getToken({
-    vapidKey: VAPID_PUBLIC_KEY,
-    serviceWorkerRegistration: swRegistration
-  });
-  console.log('✅ FCM Token:', token);
+    const token = await messaging.getToken({
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: swRegistration
+    });
+    console.log('✅ FCM Token:', token);
 
-  // إذا كان المستخدم مسجلاً دخولاً حالياً
-  const jwt = localStorage.getItem('jwtToken');
-  if (jwt) {
-    // أرسل التوكن للخادم فوراً
-    fetch(`${API_BASE}/register-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwt}`
-      },
-     body: JSON.stringify({ user: window.currentUser, token })
-    })
-    .then(res => {
-      if (!res.ok) throw new Error(`Status ${res.status}`);
+    // إذا كان المستخدم مسجلاً دخولاً حالياً
+    const jwt = localStorage.getItem('jwtToken');
+    if (jwt) {
+      // أرسل التوكن للخادم فوراً
+      await fetch(`${API_BASE}/register-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwt}`
+        },
+        body: JSON.stringify({ user: window.currentUser, token })
+      });
       console.log('✅ Token sent to server');
-    })
-    .catch(err => console.error('❌ Failed to register token:', err));
-  } else {
-    // لم يُسجّل دخول بعد: خزّن التوكن بانتظار تسجيل الدخول
-    window._pendingFCMToken = token;
-    console.log('📌 Token pending until login');
-  }
-} catch (err) {
-  console.error('❌ أثناء طلب FCM Token:', err);
-}
 
-  // 6) استمع لرسائل أثناء فتح التطبيق
-  messaging.onMessage(payload => {
+      // جلب الإشعارات من Firestore بعد تسجيل الدخول
+      await window.loadNotificationsFromServer();
+    } else {
+      // لم يُسجّل دخول بعد: خزّن التوكن بانتظار تسجيل الدخول
+      window._pendingFCMToken = token;
+      console.log('📌 Token pending until login');
+    }
+  } catch (err) {
+    console.error('❌ أثناء طلب FCM Token:', err);
+  }
+
+  // 6) استمع لرسائل أثناء فتح التطبيق (foreground)
+  messaging.onMessage(async payload => {
     const { title, body } = payload.notification || {};
     if (title && body) {
       new Notification(title, { body });
-      window.addNotification({ title, body, time: new Date().toLocaleString() });
+      const time = new Date().toLocaleString();
+
+      // تخزين محلي
+      window.addNotification({ title, body, time });
+
+      // إرسال نسخة للخادم لتخزين Firestore
+      const jwt = localStorage.getItem('jwtToken');
+      if (jwt) {
+        try {
+          await fetch(`${API_BASE}/notifications`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${jwt}`
+            },
+            body: JSON.stringify({ title, body, time })
+          });
+          console.log('✅ Notification stored in Firestore');
+        } catch (e) {
+          console.warn('❌ Failed to store notification in Firestore:', e);
+        }
+      }
     }
   });
 };
 
-// 4. تعريف initPush لاستدعاء initNotifications
+// 5. تعريف initPush لاستدعاء initNotifications
 window.initPush = async function () {
   console.log('🚀 initPush called');
   if (typeof window.initNotifications === 'function') {
     await window.initNotifications();
+  }
+
+  // تحميل الإشعارات من الخادم إذا مسجل دخول
+  if (localStorage.getItem('jwtToken')) {
+    await window.loadNotificationsFromServer();
   }
 };
