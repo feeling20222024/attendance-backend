@@ -1,3 +1,5 @@
+// server.js
+
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
 
@@ -125,9 +127,7 @@ function authenticate(req, res, next) {
   }
 }
 
-// —————————————————————————————————————————
 // 9) تسجيل الدخول
-// —————————————————————————————————————————
 app.post('/api/login', async (req, res) => {
   let { code, pass } = req.body;
   if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
@@ -157,15 +157,99 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// —————————————————————————————————————————
-// 10) نقاط نهاية الـ API المعتادة (me, attendance, hwafez, tqeem, register-token, notify-all…)
-//  تأكد بقاءها كما هي دون تغيير
-// —————————————————————————————————————————
-// … (كما في السابق) …
+// 10) معلومات المستخدم الحالي
+app.get('/api/me', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('Users');
+    const idxCode = headers.indexOf('كود الموظف');
+    const target  = normalizeDigits(String(req.user.code).trim());
+    const row     = data.find(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
+    if (!row) return res.status(404).json({ error: 'User not found' });
 
-// —————————————————————————————————————————
-// 11) تخزين الإشعارات في Firestore
-// —————————————————————————————————————————
+    const single = {};
+    headers.forEach((h,i) => single[h] = row[i] ?? '');
+    res.json({ user: single });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 11) الحضور
+app.get('/api/attendance', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('Attendance');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 12) الحوافز
+app.get('/api/hwafez', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('hwafez');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 13) التقييم السنوي
+app.get('/api/tqeem', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('tqeem');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 14) تسجيل توكن FCM (نجعلها Set لتجنّب التكرار)
+const tokens = new Set();
+
+app.post('/api/register-token', (req, res) => {
+  const { user, token } = req.body;
+  if (!user || !token) return res.status(400).json({ error: 'user and token required' });
+  tokens.add(token);
+  res.json({ success: true });
+});
+
+// 15) إشعار لجميع الأجهزة (للمشرف فقط)
+app.post('/api/notify-all', authenticate, async (req, res) => {
+  if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
+  const { title, body } = req.body;
+  await Promise.allSettled(Array.from(tokens).map(t => sendPushTo(t, title, body)));
+  res.json({ success: true });
+});
+
+// 16) إصدار أحدث نسخة
+app.get('/api/latest-version', (req, res) => {
+  res.json({
+    latest:    '1.0.0',
+    updateUrl: 'https://play.google.com/store/apps/details?id=com.example.app'
+  });
+});
+
+// 17) تخزين الإشعارات في Firestore
 
 // حفظ إشعار جديد
 app.post('/api/notifications', authenticate, async (req, res) => {
@@ -196,7 +280,6 @@ app.get('/api/notifications', authenticate, async (req, res) => {
       .orderBy('createdAt', 'desc')
       .limit(50)
       .get();
-
     const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json({ data });
   } catch (e) {
@@ -205,9 +288,7 @@ app.get('/api/notifications', authenticate, async (req, res) => {
   }
 });
 
-// —————————————————————————————————————————
-// 12) SPA fallback (آخر شيء)
-// —————————————————————————————————————————
+// 18) SPA fallback (آخر شيء)
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
