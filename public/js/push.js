@@ -63,15 +63,37 @@ window.initNotifications = async function () {
 
   // 5) اطلب رمز FCM باستخدام SW الفعّال
   try {
-    const token = await messaging.getToken({
-      vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration: swRegistration
-    });
-    console.log('✅ FCM Token:', token);
+  const token = await messaging.getToken({
+    vapidKey: VAPID_PUBLIC_KEY,
+    serviceWorkerRegistration: swRegistration
+  });
+  console.log('✅ FCM Token:', token);
+
+  // إذا كان المستخدم مسجلاً دخولاً حالياً
+  const jwt = localStorage.getItem('jwtToken');
+  if (jwt) {
+    // أرسل التوكن للخادم فوراً
+    fetch(`${API_BASE}/register-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`
+      },
+      body: JSON.stringify({ user: window.currentUser, token })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      console.log('✅ Token sent to server');
+    })
+    .catch(err => console.error('❌ Failed to register token:', err));
+  } else {
+    // لم يُسجّل دخول بعد: خزّن التوكن بانتظار تسجيل الدخول
     window._pendingFCMToken = token;
-  } catch (err) {
-    console.error('❌ أثناء طلب FCM Token:', err);
+    console.log('📌 Token pending until login');
   }
+} catch (err) {
+  console.error('❌ أثناء طلب FCM Token:', err);
+}
 
   // 6) استمع لرسائل أثناء فتح التطبيق
   messaging.onMessage(payload => {
