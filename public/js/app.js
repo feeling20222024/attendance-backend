@@ -113,6 +113,7 @@ async function login() {
 currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
 window.currentUser = currentUser;
 console.log('✅ login successful, currentUser =', currentUser);
+  window.currentUser = code;
 
 // ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
 if (typeof window.initNotifications === 'function') {
