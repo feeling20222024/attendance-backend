@@ -223,22 +223,43 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
   }
 });
 
-// 14) تسجيل توكن FCM (نجعلها Set لتجنّب التكرار)
-const tokens = new Set();
+// 14) تخزين وتحديث توكنات FCM في Firestore
+const tokensCollection = db.collection('fcmTokens');
 
-app.post('/api/register-token', (req, res) => {
+// تسجيل توكن جديد
+app.post('/api/register-token', authenticate, async (req, res) => {
   const { user, token } = req.body;
   if (!user || !token) return res.status(400).json({ error: 'user and token required' });
-  tokens.add(token);
-  res.json({ success: true });
+  try {
+    await tokensCollection.doc(token).set({ user });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('❌ Failed to store FCM token:', e);
+    res.status(500).json({ error: 'Failed to store token' });
+  }
 });
 
-// 15) إشعار لجميع الأجهزة (للمشرف فقط)
+// 15) إشعار لجميع الأجهزة (للمشرف فقط) مع حذف التوكينات المنتهية
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
   const { title, body } = req.body;
-  await Promise.allSettled(Array.from(tokens).map(t => sendPushTo(t, title, body)));
-  res.json({ success: true });
+
+  const snap = await tokensCollection.get();
+  const results = await Promise.allSettled(
+    snap.docs.map(doc => {
+      const token = doc.id;
+      return sendPushTo(token, title, body)
+        .catch(err => {
+          if (err.errorInfo && err.errorInfo.code === 'messaging/registration-token-not-registered') {
+            // حذف التوكن المنتهي
+            return tokensCollection.doc(token).delete().then(() => null);
+          }
+          throw err;
+        });
+    })
+  );
+
+  res.json({ success: true, results });
 });
 
 // 16) إصدار أحدث نسخة
@@ -250,8 +271,6 @@ app.get('/api/latest-version', (req, res) => {
 });
 
 // 17) تخزين الإشعارات في Firestore
-
-// حفظ إشعار جديد
 app.post('/api/notifications', authenticate, async (req, res) => {
   const { title, body, time } = req.body;
   if (!title || !body || !time) {
@@ -272,7 +291,7 @@ app.post('/api/notifications', authenticate, async (req, res) => {
   }
 });
 
-// جلب إشعارات المستخدم (آخر 50)
+// 18) جلب إشعارات المستخدم (آخر 50)
 app.get('/api/notifications', authenticate, async (req, res) => {
   try {
     const snap = await db.collection('notifications')
@@ -288,7 +307,7 @@ app.get('/api/notifications', authenticate, async (req, res) => {
   }
 });
 
-// 18) SPA fallback (آخر شيء)
+// 19) SPA fallback (آخر شيء)
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
