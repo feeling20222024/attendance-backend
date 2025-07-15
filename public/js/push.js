@@ -29,7 +29,7 @@ window.addNotification = ({ title, body, time }) => {
 
 // 3. تهيئة إشعارات الويب وطلب رمز FCM
 window.initNotifications = async function () {
-  // 3.1 تسجيل Service Worker
+  // 1) سجِّل SW من الجذر
   let swRegistration;
   try {
     swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
@@ -39,34 +39,33 @@ window.initNotifications = async function () {
     return;
   }
 
-  // 3.1.1 انتظر حتى يصبح SW “active”
-  let activeReg;
+  // 2) انتظر حتى يصبح SW “active”
   try {
-    activeReg = await navigator.serviceWorker.ready;
+    await navigator.serviceWorker.ready;
     console.log('✅ SW is active');
   } catch (err) {
     console.error('❌ خطأ أثناء انتظار ready لـ SW:', err);
     return;
   }
 
-  // 3.2 تهيئة Firebase
+  // 3) هيِّئ Firebase وأحصل على Messaging instance
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
   const messaging = firebase.messaging();
 
-  // 3.3 طلب إذن الإشعارات
+  // 4) اطلب إذن الإشعارات
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') {
     console.warn('🔕 إذن الإشعارات غير ممنوح');
     return;
   }
 
-  // 3.4 طلب رمز FCM باستخدام الـ SW الفعّال
+  // 5) اطلب رمز FCM باستخدام SW الفعّال
   try {
     const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration: activeReg
+      serviceWorkerRegistration: swRegistration
     });
     console.log('✅ FCM Token:', token);
     window._pendingFCMToken = token;
@@ -74,18 +73,15 @@ window.initNotifications = async function () {
     console.error('❌ أثناء طلب FCM Token:', err);
   }
 
-  // 3.5 استقبال رسائل أثناء فتح التطبيق
+  // 6) استمع لرسائل أثناء فتح التطبيق
   messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
     if (title && body) {
-      if (Notification.permission === 'granted') {
-        new Notification(title, { body });
-      }
+      new Notification(title, { body });
       window.addNotification({ title, body, time: new Date().toLocaleString() });
     }
   });
 };
-
 
 // 4. تعريف initPush لاستدعاء initNotifications
 window.initPush = async function () {
