@@ -296,7 +296,10 @@ app.get('/api/notifications', authenticate, (req, res) => {
     .sort((a, b) => new Date(b.time) - new Date(a.time));
   res.json({ data: list });
 });
-
+// SPA fallback (يجب أن يكون آخر شيء)
+app.get(/.*/, (_, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
 
 // بدء الخادم
 const PORT = process.env.PORT || 3000;
