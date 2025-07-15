@@ -109,10 +109,16 @@ async function login() {
     jwtToken = loginResponse.token;
     localStorage.setItem('jwtToken', jwtToken);
     
-    // 3) currentUser وتهيئة الإشعارات
-    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
-    window.currentUser = currentUser;
-    console.log('✅ login successful, currentUser =', currentUser);
+   // 3) currentUser وتهيئة الإشعارات
+currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+window.currentUser = currentUser;
+console.log('✅ login successful, currentUser =', currentUser);
+
+// ✅ جلب الإشعارات المخزنة لهذا المستخدم من الخادم
+if (typeof window.loadNotificationsFromServer === 'function') {
+  await window.loadNotificationsFromServer();
+}
+
 
     // ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
     if (typeof window.initNotifications === 'function') {
