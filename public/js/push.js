@@ -46,20 +46,26 @@ window.initNotifications = async function () {
   const messaging = firebase.messaging();
 
   try {
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      console.warn('🔕 إذن الإشعارات غير ممنوح');
-      return;
-    }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+  console.warn('لم يُمنح إذن الإشعارات');
+  return;
+}
+
 
    // بعد تسجيل SW:
+// 1) سجل SW من Render
 const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+console.log('✅ SW for Firebase registered:', swReg.scope);
 
+// 2) اطلب رمز FCM باستخدام نفس التسجيل
+const messaging = firebase.messaging();
 const token = await messaging.getToken({
   vapidKey: VAPID_PUBLIC_KEY,
   serviceWorkerRegistration: swReg
 });
 console.log('✅ FCM Token:', token);
+
   
   } catch (err) {
     console.error('❌ أثناء طلب FCM Token:', err);
