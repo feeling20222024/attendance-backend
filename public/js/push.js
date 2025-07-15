@@ -30,20 +30,29 @@ window.addNotification = ({ title, body, time }) => {
 // 3. تهيئة إشعارات الويب وطلب رمز FCM
 window.initNotifications = async function () {
   // 3.1 تسجيل Service Worker
-  let swReg;
+  let swRegistration;
   try {
-const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('✅ SW for Firebase registered:', swReg.scope);
+    swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('✅ SW registered:', swRegistration.scope);
   } catch (err) {
     console.error('❌ فشل تسجيل SW:', err);
     return;
   }
 
-  // 3.2 تهيئة Firebase إذا لم تكن مهيأة
+  // 3.1.1 انتظر حتى يصبح SW “active”
+  let activeReg;
+  try {
+    activeReg = await navigator.serviceWorker.ready;
+    console.log('✅ SW is active');
+  } catch (err) {
+    console.error('❌ خطأ أثناء انتظار ready لـ SW:', err);
+    return;
+  }
+
+  // 3.2 تهيئة Firebase
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
-
   const messaging = firebase.messaging();
 
   // 3.3 طلب إذن الإشعارات
@@ -53,23 +62,19 @@ const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js'
     return;
   }
 
-  // 3.4 طلب رمز FCM
+  // 3.4 طلب رمز FCM باستخدام الـ SW الفعّال
   try {
     const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration: swReg
+      serviceWorkerRegistration: activeReg
     });
     console.log('✅ FCM Token:', token);
-
-    // إرسال الرمز إلى الخادم للتسجيل
     window._pendingFCMToken = token;
-console.log('✅ FCM Token (pending registration):', token);
-
   } catch (err) {
     console.error('❌ أثناء طلب FCM Token:', err);
   }
 
-  // 3.5 استقبال الإشعارات عند فتح التطبيق
+  // 3.5 استقبال رسائل أثناء فتح التطبيق
   messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
     if (title && body) {
@@ -80,6 +85,7 @@ console.log('✅ FCM Token (pending registration):', token);
     }
   });
 };
+
 
 // 4. تعريف initPush لاستدعاء initNotifications
 window.initPush = async function () {
