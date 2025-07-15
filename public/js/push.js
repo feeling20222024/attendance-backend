@@ -79,7 +79,7 @@ window.initNotifications = async function () {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${jwt}`
       },
-     body: JSON.stringify({ user: window.currentUser.code, token })
+     body: JSON.stringify({ user: window.currentUser, token })
     })
     .then(res => {
       if (!res.ok) throw new Error(`Status ${res.status}`);
