@@ -80,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // —————————————————————————————————————————
 // ——————————————————————————————
 // 2) دالة تسجيل الدخول
-// —————————————————————————————————————————
 async function login() {
   const code = normalizeDigits(
     document.getElementById('codeInput').value.trim()
@@ -109,15 +108,16 @@ async function login() {
     loginResponse = await res.json();
     jwtToken = loginResponse.token;
     localStorage.setItem('jwtToken', jwtToken);
+    
     // 3) currentUser وتهيئة الإشعارات
-currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
-window.currentUser = currentUser;
-console.log('✅ login successful, currentUser =', currentUser);
+    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+    window.currentUser = currentUser;
+    console.log('✅ login successful, currentUser =', currentUser);
 
-// ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
-if (typeof window.initNotifications === 'function') {
-  window.initNotifications();
-}
+    // ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
 
     // 4) تهيئة Push
     console.log('🚀 calling initPush()…');
@@ -133,35 +133,40 @@ if (typeof window.initNotifications === 'function') {
     }
 
     // 5.1) تسجيل FCM Token المعلق بعد أن صار currentUser معرفاً
-    
-if (window._pendingFCMToken) {
-  try {
-    await fetch(`${API_BASE}/register-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      body: JSON.stringify({
-        user: window.currentUser,
-        token: window._pendingFCMToken
-      })
-    });
-    console.log('✅ Pending token registered after login');
-    delete window._pendingFCMToken;
-  } catch (e) {
-    console.error('❌ Failed to register pending token:', e);
-  }
-}
+    if (window._pendingFCMToken) {
+      try {
+        await fetch(`${API_BASE}/register-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwtToken}`
+          },
+          body: JSON.stringify({
+            user: window.currentUser,
+            token: window._pendingFCMToken
+          })
+        });
+        console.log('✅ Pending token registered after login');
+        delete window._pendingFCMToken;
+      } catch (e) {
+        console.error('❌ Failed to register pending token:', e);
+      }
+    }
 
+    // ** هنا: جلب الإشعارات من الخادم بعد تسجيل الدخول **
+    if (typeof loadNotificationsFromServer === 'function') {
+      await loadNotificationsFromServer();
+    }
 
-       // 6) جلب وعرض البيانات
+    // 6) جلب وعرض البيانات
     await fetchAndRender();
+
   } catch (e) {
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
 }  // ← هذا يغلق async function login()
+
 
 
 // —————————————————————————————————————————
