@@ -32,7 +32,7 @@ window.initNotifications = async function () {
   // 3.1 تسجيل Service Worker
   let swReg;
   try {
-    swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('✅ SW for Firebase registered:', swReg.scope);
   } catch (err) {
     console.error('❌ فشل تسجيل SW:', err);
