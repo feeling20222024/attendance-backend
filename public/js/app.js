@@ -132,6 +132,25 @@ if (typeof window.initNotifications === 'function') {
       window.initNotifications();
     }
 
+    // 5.1) تسجيل FCM Token المعلق بعد أن صار currentUser معرفاً
+    if (window._pendingFCMToken) {
+      try {
+        const resToken = await fetch(`${API_BASE}/register-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user: window.currentUser,
+            token: window._pendingFCMToken
+          })
+        });
+        if (!resToken.ok) throw new Error(`Status ${resToken.status}`);
+        console.log('✅ Token sent to server after login');
+        delete window._pendingFCMToken;
+      } catch (er) {
+        console.error('❌ Failed to register token after login:', er);
+      }
+    }
+
     // 6) جلب وعرض البيانات
     await fetchAndRender();
 
