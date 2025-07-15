@@ -62,12 +62,9 @@ window.initNotifications = async function () {
     console.log('✅ FCM Token:', token);
 
     // إرسال الرمز إلى الخادم للتسجيل
-    await fetch(`${API_BASE}/register-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: window.currentUser, token })
-    });
-    console.log('✅ Token sent to server');
+    window._pendingFCMToken = token;
+console.log('✅ FCM Token (pending registration):', token);
+
   } catch (err) {
     console.error('❌ أثناء طلب FCM Token:', err);
   }
