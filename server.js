@@ -55,13 +55,7 @@ async function sendPushTo(token, title, body, data = {}) {
     },
     data
   };
-
-  try {
-    return await admin.messaging().send(message);
-  } catch (err) {
-    console.error('❌ Failed to send push to', token, err);
-    throw err;
-  }
+  return admin.messaging().send(message);
 }
 
 // 5) تهيئة Express
@@ -142,9 +136,8 @@ app.post('/api/login', async (req, res) => {
     const iN = headers.indexOf('الاسم');
 
     const row = data.find(r => {
-      const cellCode = normalizeDigits(String(r[iC] ?? '').trim());
-      const cellPass = normalizeDigits(String(r[iP] ?? '').trim());
-      return cellCode === code && cellPass === pass;
+      return normalizeDigits(r[iC].trim()) === code
+          && normalizeDigits(r[iP].trim()) === pass;
     });
     if (!row) return res.status(401).json({ error: 'Invalid credentials' });
 
@@ -162,10 +155,9 @@ app.get('/api/me', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Users');
     const idxCode = headers.indexOf('كود الموظف');
-    const target  = normalizeDigits(String(req.user.code).trim());
-    const row     = data.find(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
+    const target  = normalizeDigits(req.user.code);
+    const row     = data.find(r => normalizeDigits(r[idxCode].trim()) === target);
     if (!row) return res.status(404).json({ error: 'User not found' });
-
     const single = {};
     headers.forEach((h,i) => single[h] = row[i] ?? '');
     res.json({ user: single });
@@ -175,61 +167,43 @@ app.get('/api/me', authenticate, async (req, res) => {
   }
 });
 
-// 11) الحضور
+// 11) attendance, hwafez, tqeem (كما في السابق)
 app.get('/api/attendance', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('Attendance');
-    const idx    = headers.indexOf('رقم الموظف');
-    const target = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits(String(r[idx] ?? '').trim()) === target
-    );
-    res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
-  }
+  const { headers, data } = await readSheet('Attendance');
+  const idx    = headers.indexOf('رقم الموظف');
+  const target = normalizeDigits(req.user.code);
+  res.json({
+    headers,
+    data: data.filter(r => normalizeDigits(r[idx].trim()) === target)
+  });
 });
-
-// 12) الحوافز
 app.get('/api/hwafez', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('hwafez');
-    const idx    = headers.indexOf('رقم الموظف');
-    const target = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits(String(r[idx] ?? '').trim()) === target
-    );
-    res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
-  }
+  const { headers, data } = await readSheet('hwafez');
+  const idx    = headers.indexOf('رقم الموظف');
+  const target = normalizeDigits(req.user.code);
+  res.json({
+    headers,
+    data: data.filter(r => normalizeDigits(r[idx].trim()) === target)
+  });
 });
-
-// 13) التقييم السنوي
 app.get('/api/tqeem', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('tqeem');
-    const idx    = headers.indexOf('رقم الموظف');
-    const target = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits(String(r[idx] ?? '').trim()) === target
-    );
-    res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
-  }
+  const { headers, data } = await readSheet('tqeem');
+  const idx    = headers.indexOf('رقم الموظف');
+  const target = normalizeDigits(req.user.code);
+  res.json({
+    headers,
+    data: data.filter(r => normalizeDigits(r[idx].trim()) === target)
+  });
 });
 
-// 14) تخزين وتحديث توكنات FCM في Firestore
+// 12) تخزين وتحديث توكنات FCM في Firestore
 const tokensCollection = db.collection('fcmTokens');
 
-// تسجيل توكن جديد
 app.post('/api/register-token', authenticate, async (req, res) => {
   const { user, token } = req.body;
-  if (!user || !token) return res.status(400).json({ error: 'user and token required' });
+  if (!user || !token) {
+    return res.status(400).json({ error: 'user and token required' });
+  }
   try {
     await tokensCollection.doc(token).set({ user });
     res.json({ success: true });
@@ -239,30 +213,34 @@ app.post('/api/register-token', authenticate, async (req, res) => {
   }
 });
 
-// 15) إشعار لجميع الأجهزة (للمشرف فقط) مع حذف التوكينات المنتهية
+// 13) notify-all مع تنظيف التوكنات المنتهية
 app.post('/api/notify-all', authenticate, async (req, res) => {
-  if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
+  if (req.user.code !== SUPERVISOR_CODE) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   const { title, body } = req.body;
 
-  const snap = await tokensCollection.get();
-  const results = await Promise.allSettled(
-    snap.docs.map(doc => {
-      const token = doc.id;
-      return sendPushTo(token, title, body)
-        .catch(err => {
-          if (err.errorInfo && err.errorInfo.code === 'messaging/registration-token-not-registered') {
-            // حذف التوكن المنتهي
-            return tokensCollection.doc(token).delete().then(() => null);
+  try {
+    const snap    = await tokensCollection.get();
+    const tokens  = snap.docs.map(d => d.id);
+    const results = await Promise.allSettled(
+      tokens.map(token =>
+        sendPushTo(token, title, body).catch(err => {
+          if (err.errorInfo?.code === 'messaging/registration-token-not-registered') {
+            return tokensCollection.doc(token).delete();
           }
           throw err;
-        });
-    })
-  );
-
-  res.json({ success: true, results });
+        })
+      )
+    );
+    res.json({ success: true, results });
+  } catch (e) {
+    console.error('❌ notify-all failed:', e);
+    res.status(500).json({ error: 'Failed to send notifications' });
+  }
 });
 
-// 16) إصدار أحدث نسخة
+// 14) latest-version
 app.get('/api/latest-version', (req, res) => {
   res.json({
     latest:    '1.0.0',
@@ -270,7 +248,7 @@ app.get('/api/latest-version', (req, res) => {
   });
 });
 
-// 17) تخزين الإشعارات في Firestore
+// 15) تخزين الإشعارات في Firestore
 app.post('/api/notifications', authenticate, async (req, res) => {
   const { title, body, time } = req.body;
   if (!title || !body || !time) {
@@ -291,7 +269,7 @@ app.post('/api/notifications', authenticate, async (req, res) => {
   }
 });
 
-// 18) جلب إشعارات المستخدم (آخر 50)
+// 16) جلب إشعارات المستخدم
 app.get('/api/notifications', authenticate, async (req, res) => {
   try {
     const snap = await db.collection('notifications')
@@ -299,7 +277,7 @@ app.get('/api/notifications', authenticate, async (req, res) => {
       .orderBy('createdAt', 'desc')
       .limit(50)
       .get();
-    const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     res.json({ data });
   } catch (e) {
     console.error('❌ Firestore read failed:', e);
@@ -307,11 +285,11 @@ app.get('/api/notifications', authenticate, async (req, res) => {
   }
 });
 
-// 19) SPA fallback (آخر شيء)
+// 17) SPA fallback
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
 
-// بدء الخادم
+// 18) بدء الخادم
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 الخادم يعمل على ${PORT}`));
