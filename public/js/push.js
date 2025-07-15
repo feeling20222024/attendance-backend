@@ -1,6 +1,8 @@
-// public/push.js
+// push.js
 
-// 1. إعدادات أساسية
+// —————————————————————————————————————————
+// 1) إعداد المتغيرات العامة
+// —————————————————————————————————————————
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 
 const firebaseConfig = {
@@ -12,10 +14,11 @@ const firebaseConfig = {
   appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
 };
 
-// مفتاح VAPID العام الخاص بمشروعك من Firebase Console → Cloud Messaging → Web Push certificates
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// 2. دالة لإضافة الإشعار محلياً
+// —————————————————————————————————————————
+// 2) إضافة إشعار إلى localStorage وتحديث الواجهة
+// —————————————————————————————————————————
 window.addNotification = ({ title, body, time }) => {
   const STORAGE_KEY = 'notificationsLog';
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -24,41 +27,16 @@ window.addNotification = ({ title, body, time }) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
 
   if (typeof window.renderNotifications === 'function') window.renderNotifications();
-  if (typeof window.updateBellCount === 'function')     window.updateBellCount();
+  if (typeof window.updateBellCount === 'function') window.updateBellCount();
 
   console.log('📩 إشعار مضاف:', { title, body, time });
 };
 
-// 3. دالة لجلب الإشعارات من الخادم Firestore
-window.loadNotificationsFromServer = async function() {
-  const jwt = localStorage.getItem('jwtToken');
-  if (!jwt) return;
-
-  try {
-    const res = await fetch(`${API_BASE}/notifications`, {
-      headers: { 'Authorization': `Bearer ${jwt}` }
-    });
-    if (!res.ok) throw new Error(`Status ${res.status}`);
-    const json = await res.json();
-
-    if (Array.isArray(json.data)) {
-      localStorage.setItem('notificationsLog', JSON.stringify(json.data.map(n => ({
-        title: n.title,
-        body:  n.body,
-        time:  n.time
-      }))));
-      if (typeof window.renderNotifications === 'function') window.renderNotifications();
-      if (typeof window.updateBellCount === 'function') window.updateBellCount();
-      console.log('✅ Loaded notifications from Firestore');
-    }
-  } catch (e) {
-    console.warn('❌ Failed to load notifications from Firestore:', e);
-  }
-};
-
-// 4. تهيئة إشعارات الويب وطلب رمز FCM
+// —————————————————————————————————————————
+// 3) تهيئة Firebase وإشعارات الويب (Service Worker + FCM)
+// —————————————————————————————————————————
 window.initNotifications = async function () {
-  // 1) سجِّل SW من الجذر
+  // تسجيل Service Worker
   let swRegistration;
   try {
     swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
@@ -68,7 +46,7 @@ window.initNotifications = async function () {
     return;
   }
 
-  // 2) انتظر حتى يصبح SW “active”
+  // انتظار تفعيل SW
   try {
     await navigator.serviceWorker.ready;
     console.log('✅ SW is active');
@@ -77,20 +55,20 @@ window.initNotifications = async function () {
     return;
   }
 
-  // 3) هيِّئ Firebase وأحصل على Messaging instance
+  // تهيئة Firebase
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
   const messaging = firebase.messaging();
 
-  // 4) اطلب إذن الإشعارات
+  // طلب إذن الإشعارات
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') {
     console.warn('🔕 إذن الإشعارات غير ممنوح');
     return;
   }
 
-  // 5) اطلب رمز FCM باستخدام SW الفعّال
+  // الحصول على FCM Token
   try {
     const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
@@ -98,10 +76,9 @@ window.initNotifications = async function () {
     });
     console.log('✅ FCM Token:', token);
 
-    // إذا كان المستخدم مسجلاً دخولاً حالياً
+    // إرسال التوكن للخادم إذا كان المستخدم مسجلاً دخولاً
     const jwt = localStorage.getItem('jwtToken');
-    if (jwt) {
-      // أرسل التوكن للخادم فوراً
+    if (jwt && window.currentUser) {
       await fetch(`${API_BASE}/register-token`, {
         method: 'POST',
         headers: {
@@ -111,11 +88,8 @@ window.initNotifications = async function () {
         body: JSON.stringify({ user: window.currentUser, token })
       });
       console.log('✅ Token sent to server');
-
-      // جلب الإشعارات من Firestore بعد تسجيل الدخول
-      await window.loadNotificationsFromServer();
     } else {
-      // لم يُسجّل دخول بعد: خزّن التوكن بانتظار تسجيل الدخول
+      // تخزين التوكن بانتظار تسجيل الدخول
       window._pendingFCMToken = token;
       console.log('📌 Token pending until login');
     }
@@ -123,46 +97,72 @@ window.initNotifications = async function () {
     console.error('❌ أثناء طلب FCM Token:', err);
   }
 
-  // 6) استمع لرسائل أثناء فتح التطبيق (foreground)
-  messaging.onMessage(async payload => {
+  // استقبال الرسائل أثناء فتح التطبيق (foreground)
+  messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
     if (title && body) {
       new Notification(title, { body });
-      const time = new Date().toLocaleString();
-
-      // تخزين محلي
-      window.addNotification({ title, body, time });
-
-      // إرسال نسخة للخادم لتخزين Firestore
-      const jwt = localStorage.getItem('jwtToken');
-      if (jwt) {
-        try {
-          await fetch(`${API_BASE}/notifications`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${jwt}`
-            },
-            body: JSON.stringify({ title, body, time })
-          });
-          console.log('✅ Notification stored in Firestore');
-        } catch (e) {
-          console.warn('❌ Failed to store notification in Firestore:', e);
-        }
-      }
+      window.addNotification({ title, body, time: new Date().toLocaleString() });
     }
   });
+
+  // جلب الإشعارات من الخادم لتحديث السجل عند التهيئة
+  if (typeof window.loadNotificationsFromServer === 'function') {
+    await window.loadNotificationsFromServer();
+  }
 };
 
-// 5. تعريف initPush لاستدعاء initNotifications
+// —————————————————————————————————————————
+// 4) دالة لجلب سجل الإشعارات من الخادم وتخزينها
+// —————————————————————————————————————————
+window.loadNotificationsFromServer = async function () {
+  const jwt = localStorage.getItem('jwtToken');
+  if (!jwt) {
+    console.warn('⚠️ لا يوجد توكن JWT مخزن، الرجاء تسجيل الدخول.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/notifications`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`
+      }
+    });
+
+    console.log('🔄 استجابة الخادم للإشعارات:', res.status, res.statusText);
+
+    const text = await res.text();
+
+    try {
+      const json = JSON.parse(text);
+
+      if (!json.data) {
+        console.warn('⚠️ الرد من الخادم لا يحتوي على بيانات "data".', json);
+      }
+
+      localStorage.setItem('notificationsLog', JSON.stringify(json.data || []));
+
+      if (typeof window.renderNotifications === 'function') window.renderNotifications();
+      if (typeof window.updateBellCount === 'function') window.updateBellCount();
+
+      console.log('✅ تم جلب الإشعارات وتحديثها من الخادم بنجاح.');
+    } catch (jsonError) {
+      console.error('❌ الخطأ: الرد من الخادم ليس JSON صالح:', text);
+      throw jsonError;
+    }
+
+  } catch (fetchError) {
+    console.error('❌ فشل في جلب الإشعارات من الخادم:', fetchError);
+  }
+};
+
+// —————————————————————————————————————————
+// 5) initPush هي دالة مساعدة لاستدعاء initNotifications()
+// —————————————————————————————————————————
 window.initPush = async function () {
   console.log('🚀 initPush called');
   if (typeof window.initNotifications === 'function') {
     await window.initNotifications();
-  }
-
-  // تحميل الإشعارات من الخادم إذا مسجل دخول
-  if (localStorage.getItem('jwtToken')) {
-    await window.loadNotificationsFromServer();
   }
 };
