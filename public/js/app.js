@@ -119,13 +119,13 @@ if (typeof window.initNotifications === 'function') {
   window.initNotifications();
 }
 
-// 4) تهيئة Push
-console.log('🚀 calling initPush()…');
-if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-  await initNativePush();
-} else {
-  await initPush();
-}
+    // 4) تهيئة Push
+    console.log('🚀 calling initPush()…');
+    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+      await initNativePush();
+    } else {
+      await initPush();
+    }
 
     // 5) تهيئة لوحة الإشعارات
     if (typeof window.initNotifications === 'function') {
@@ -134,11 +134,6 @@ if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
 
     // 6) جلب وعرض البيانات
     await fetchAndRender();
-  } catch (e) {
-    console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
-  }
-}
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
