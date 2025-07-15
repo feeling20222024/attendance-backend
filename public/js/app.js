@@ -151,8 +151,14 @@ if (typeof window.initNotifications === 'function') {
       }
     }
 
-    // 6) جلب وعرض البيانات
+       // 6) جلب وعرض البيانات
     await fetchAndRender();
+  } catch (e) {
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
+}  // ← هذا يغلق async function login()
+
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
