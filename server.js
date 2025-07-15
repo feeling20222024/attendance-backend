@@ -106,6 +106,9 @@ async function readSheet(title) {
   const data    = rows.map(r => headers.map(h => r[h] ?? ''));
   return { headers, data };
 }
+app.get('/api/notifications', (req, res, next) => {
+  console.log('🔍 notifications request, headers:', req.headers);
+  next();
 
 // 8) Middleware للتحقّق من JWT
 function authenticate(req, res, next) {
