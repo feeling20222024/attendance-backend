@@ -1,4 +1,8 @@
-// push.js
+// public/js/push.js
+
+// —————————————————————————————————————————
+// 1) استيراد Firebase Modular API
+// —————————————————————————————————————————
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import {
   getMessaging,
@@ -6,6 +10,9 @@ import {
   onMessage
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js';
 
+// —————————————————————————————————————————
+// 2) إعدادات التطبيق و VAPID
+// —————————————————————————————————————————
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 const firebaseConfig = {
   apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
@@ -17,29 +24,35 @@ const firebaseConfig = {
 };
 const VAPID_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// تهيئة Firebase مرة واحدة
-if (!getApps().length) initializeApp(firebaseConfig);
+// —————————————————————————————————————————
+// 3) تهيئة Firebase (مرة واحدة فقط)
+// —————————————————————————————————————————
+if (!getApps().length) {
+  initializeApp(firebaseConfig);
+}
 const messaging = getMessaging();
 
-// دالة تهيئة الويب
+// —————————————————————————————————————————
+// 4) دالة تهيئة إشعارات الويب وتصديرها
+// —————————————————————————————————————————
 export async function initPush() {
-  // 1) تسجيل الـ SW
+  // 4.1 تسجيل Service Worker
   try {
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('✅ SW registered:', reg.scope);
-  } catch(e) {
+  } catch (e) {
     console.warn('❌ SW registration failed:', e);
     return;
   }
 
-  // 2) طلب إذن الإشعارات
+  // 4.2 طلب إذن الإشعارات
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') {
     console.warn('🔕 Notification permission denied');
     return;
   }
 
-  // 3) احصل على التوكن
+  // 4.3 احصل على FCM token وأرسله للسيرفر
   try {
     const registration = await navigator.serviceWorker.getRegistration();
     const token = await getToken(messaging, {
@@ -49,8 +62,8 @@ export async function initPush() {
     console.log('✅ FCM token:', token);
     if (token && window.currentUser) {
       await fetch(`${API_BASE}/register-token`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: window.currentUser, token })
       });
       console.log('✅ token sent to server');
@@ -59,10 +72,11 @@ export async function initPush() {
     console.warn('⚠️ could not get/send token:', e);
   }
 
-  // 4) استمع للرسائل عند فتح الصفحة
+  // 4.4 الاستماع للرسائل أثناء فتح الصفحة
   onMessage(messaging, payload => {
     const { title, body } = payload.notification || {};
     const now = new Date().toLocaleString();
+    console.log('📩 Message received (web):', title, body);
     if (title && body && Notification.permission === 'granted') {
       new Notification(title, { body });
       window.addNotification({ title, body, time: now });
