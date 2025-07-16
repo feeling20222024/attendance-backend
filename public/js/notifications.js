@@ -1,96 +1,80 @@
-//  == public/js/notifications.js ==
-// 1) استيراد Modular API من Firebase
-import { getApps, initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+// notifications.js
+// هذا الملف لا يستورد Firebase إطلاقاً، يختص فقط بتحميل/عرض/مسح سجل الإشعارات
 
-if (!getApps().length) {
-  initializeApp(firebaseConfig);
-}
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit
-} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+const STORAGE_KEY = 'notificationsLog';
+const SUPERVISOR_CODE = '35190'; // كود المشرف
 
-// 2) تهيئة Firebase & Firestore
-const firebaseConfig = {
-  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
-  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
-  projectId:        "device-streaming-47cbe934",
-  storageBucket:    "device-streaming-47cbe934.appspot.com",
-  messagingSenderId:"235398312189",
-  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
-};
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-const notifsCol = collection(db, 'notifications'); // موحّد لكل المستخدمين
-
-// 3) تحميل آخر 50 إشعارًا من Firestore ثمّ عرضها
-export async function loadAndRenderNotifications() {
-  // 3.1 جلب
-  const q       = query(notifsCol, orderBy('time', 'desc'), limit(50));
-  const snap    = await getDocs(q);
-  const notifs  = snap.docs.map(d => d.data());
-  // 3.2 خزّن عرض مؤقت في localStorage (للعدّ السريع)
-  localStorage.setItem('notificationsLog', JSON.stringify(notifs));
-  // 3.3 حدّث الواجهة
-  renderNotifications(notifs);
+export function loadNotifications() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
 }
 
-// 4) العرض في الـ DOM
-function renderNotifications(notifs) {
-  const list   = document.getElementById('notificationsLog');
-  const clearB = document.getElementById('clearNotifications');
+export function saveNotifications(arr) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+}
+
+export function updateBellCount() {
+  const count = loadNotifications().length;
+  const badge = document.getElementById('notifCount');
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'inline-block' : 'none';
+}
+
+export function renderNotifications() {
+  const list = document.getElementById('notificationsLog');
+  const clearBtn = document.getElementById('clearNotifications');
+  const notifs = loadNotifications();
   list.innerHTML = '';
-  if (!notifs.length) {
-    list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
-    clearB.classList.add('hidden');
+  if (notifs.length === 0) {
+    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    clearBtn.classList.add('hidden');
   } else {
     notifs.forEach(n => {
       const li = document.createElement('li');
-      li.className = 'mb-2 border-b pb-2';
+      li.className = 'mb-2 border-b pb-1';
       li.innerHTML = `
-        <div class="font-semibold text-gray-800">${n.title}</div>
-        <div class="text-sm text-gray-700">${n.body}</div>
-        <div class="text-xs text-gray-400 mt-1">${new Date(n.time).toLocaleString()}</div>
+        <div class="font-semibold">${n.title}</div>
+        <div class="text-sm">${n.body}</div>
+        <div class="text-xs text-gray-400">${n.time}</div>
       `;
       list.appendChild(li);
     });
-    clearB.classList.remove('hidden');
+    // إظهار زر المسح للمشرف فقط
+    clearBtn.classList.toggle('hidden', window.currentUser !== SUPERVISOR_CODE);
   }
-  // حدّث العداد
-  const count = notifs.length;
-  const bellCount = document.getElementById('notifCount');
-  bellCount.textContent = count;
-  bellCount.style.display = count ? 'inline-block' : 'none';
 }
 
-// 5) إضافة إشعار جديد إلى Firestore
-export async function addNotification({ title, body }) {
-  const time = Date.now();
-  await addDoc(notifsCol, { title, body, time });
-  // أعد التحميل والعرض
-  await loadAndRenderNotifications();
-}
+// الدالة العمومية لإضافة إشعار جديد
+window.addNotification = function({ title, body, time }) {
+  const arr = loadNotifications();
+  arr.unshift({ title, body, time });
+  if (arr.length > 50) arr.pop();
+  saveNotifications(arr);
+  renderNotifications();
+  updateBellCount();
+};
 
-// 6) مسح الإشعارات (للمشرف فقط بافتراض user 35190)
-export async function clearNotifications() {
-  const notifs = JSON.parse(localStorage.getItem('notificationsLog')) || [];
-  // احذف كل المستندات
-  await Promise.all(notifs.map(n => deleteDoc(doc(db, 'notifications', n.id))));
-  await loadAndRenderNotifications();
-}
+// مسح السجل
+document.getElementById('clearNotifications')
+  .addEventListener('click', () => {
+    if (confirm('مسح جميع الإشعارات؟')) {
+      localStorage.removeItem(STORAGE_KEY);
+      renderNotifications();
+      updateBellCount();
+    }
+  });
 
-// 7) ربط الواجهة
+// ربط الحدث على أيقونة الجرس
+document.getElementById('notifBell')
+  .addEventListener('click', () => {
+    const panel = document.getElementById('notificationsPanel');
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    renderNotifications();
+    updateBellCount();
+  });
+
+// عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('notifBell').onclick = () => {
-    document.getElementById('notificationsPanel').classList.toggle('hidden');
-  };
-  document.getElementById('clearNotifications')
-          .addEventListener('click', clearNotifications);
-  // عند التحميل: جلب وعرض
-  loadAndRenderNotifications();
+  renderNotifications();
+  updateBellCount();
 });
