@@ -11,11 +11,6 @@ const firebaseConfig = {
 };
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// إضافة آمنة: يخزن محليًا ثم على الخادم
-// public/js/push.js
-
-const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
-
 async function saveToServer(user, { title, body, time }) {
   try {
     await fetch(`${API_BASE}/save-notification`, {
