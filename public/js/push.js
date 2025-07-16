@@ -14,10 +14,13 @@ const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWW
 // إضافة آمنة: يخزن محليًا ثم على الخادم
 async function safeAddNotification({ title, body, time }) {
   try {
-    // 1) حفظ محلي
-    window.addNotification({ title, body, time });
+    // 1) خزّن محلياً
+    const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
+    saved.unshift({ title, body, time });
+    if (saved.length > 50) saved.pop();
+    localStorage.setItem('notificationsLog', JSON.stringify(saved));
 
-    // 2) حفظ مركزي
+    // 2) خزّن على الخادم
     if (window.currentUser) {
       await fetch(`${API_BASE}/save-notification`, {
         method: 'POST',
@@ -25,10 +28,20 @@ async function safeAddNotification({ title, body, time }) {
         body: JSON.stringify({ user: window.currentUser, title, body, time })
       });
     }
+
+    // 3) حدّث العرض
+    if (typeof window.renderNotifications === 'function') window.renderNotifications();
+    if (typeof window.updateBellCount     === 'function') window.updateBellCount();
+
+    console.log('📩 إشعار محفوظ:', { title, body, time });
   } catch (e) {
     console.warn('⚠️ خطأ في تخزين الإشعار:', e);
   }
 }
+
+// في كل مكان كنت تستدعي window.addNotification
+// استبدلها باستدعاء safeAddNotification:
+window.addNotification = safeAddNotification;
 
 // تهيئة Web Push
 window.initNotifications = async function() {
