@@ -146,31 +146,22 @@ async function login() {
   // 1) جلب وعرض البيانات الأساسية:
   await fetchAndRender();
 
-  // 2) جلب سجل الإشعارات وتخزين محلياً ثم تهيئة لوحة الإشعارات
+// بعد fetchAndRender() في دالة login()
+if (window.currentUser) {
   try {
-    const res = await fetch(`${API_BASE}/notifications/${currentUser}`, {
-      headers: { 'Authorization': `Bearer ${jwtToken}` }
+    const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`, {
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwtToken}` }
     });
     if (res.ok) {
-      const list = await res.json();
-      localStorage.setItem('notificationsLog', JSON.stringify(list));
+      const stored = await res.json();
+      // خزّن في localStorage كـ المصدر الموحد
+      localStorage.setItem('notificationsLog', JSON.stringify(stored));
+      // حدّث العرض
+      if (typeof window.renderNotifications === 'function') window.renderNotifications();
+      if (typeof window.updateBellCount === 'function')     window.updateBellCount();
     }
   } catch (e) {
-    console.warn('⚠️ خطأ جلب الإشعارات عند login:', e);
-  }
-
-  // 3) استدعاء initPush ثم initNotifications
-  if (typeof window.initPush === 'function') {
-    await window.initPush();
-  }
-  if (typeof window.initNotifications === 'function') {
-    await window.initNotifications();
-  }
-
-  // 4) أخيراً قم بتحديث واجهة الإشعارات
-  if (typeof window.renderNotifications === 'function') {
-    window.renderNotifications();
-    window.updateBellCount();
+    console.warn('⚠️ failed loading stored notifs:', e);
   }
 }
 
