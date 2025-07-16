@@ -1,24 +1,18 @@
 // —————————————————————————————————————————
-// 1) إعداد نقاط النهاية والمتغيرات العامة
+// public/js/app.js
 // —————————————————————————————————————————
 
-const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT  = `${API_BASE}/login`;
-const SUPERVISOR_CODE = '35190';
+// —————————————————————————————————————————
+// 0) ثوابت التخزين والنقاط النهائية
+// —————————————————————————————————————————
+const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT = `${API_BASE}/login`;
+const NOTIFS_ENDPOINT= `${API_BASE}/notifications`;
+const STORAGE_KEY    = 'notificationsLog';
+const SUPERVISOR_CODE= '35190';
 
-let headersAtt      = [], attendanceData = [];
-let headersHw       = [], hwafezData     = [];
-let headersTq       = [], tqeemData      = [];
-let currentUser     = null;
-let jwtToken        = null;
-
-const caseMapping = {
-  '1': "غياب غير مبرر (بدون إذن رسمي)",
-  '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
-  '3': "خروج مبكر (أو عدم مهر البصمة مساءً)",
-  '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
-  '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
-};
+let jwtToken    = null;
+let currentUser = null;
 
 // —————————————————————————————————————————
 // Helper: تطبيع أرقام عربية → غربية
@@ -28,151 +22,169 @@ function normalizeDigits(str) {
 }
 
 // —————————————————————————————————————————
+// دوال التخزين المحلية + العرض
+// —————————————————————————————————————————
+function loadNotificationsLocal() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+function saveNotificationsLocal(arr) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+}
+function updateBellCount() {
+  const cnt = loadNotificationsLocal().length;
+  const el  = document.getElementById('notifCount');
+  if (!el) return;
+  el.textContent = cnt;
+  el.style.display = cnt > 0 ? 'inline-block' : 'none';
+}
+function renderNotifications() {
+  const list = document.getElementById('notificationsLog');
+  const clearBtn = document.getElementById('clearNotifications');
+  const nots = loadNotificationsLocal();
+  if (!list || !clearBtn) return;
+
+  list.innerHTML = '';
+  if (nots.length === 0) {
+    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    clearBtn.classList.add('hidden');
+  } else {
+    nots.forEach(n => {
+      const li = document.createElement('li');
+      li.innerHTML = `<strong>${n.title}</strong><br>${n.body}<br><small>${n.time}</small>`;
+      li.className = 'mb-2 border-b pb-1';
+      list.appendChild(li);
+    });
+    // زر مسح للمشرف فقط
+    if (currentUser === SUPERVISOR_CODE) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+    }
+  }
+}
+function clearNotifications() {
+  if (currentUser !== SUPERVISOR_CODE) return alert('ليس لديك صلاحية');
+  if (!confirm('مسح جميع الإشعارات؟')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderNotifications();
+  updateBellCount();
+}
+
+// —————————————————————————————————————————
+// دالة جلب الإشعارات من الخادم وحفظها محليًا
+// —————————————————————————————————————————
+window.loadNotificationsFromServer = async function() {
+  try {
+    const res = await fetch(NOTIFS_ENDPOINT, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const { data } = await res.json();
+    saveNotificationsLocal(data);
+    renderNotifications();
+    updateBellCount();
+  } catch (e) {
+    console.warn('❌ لم يتم جلب الإشعارات من الخادم:', e);
+  }
+};
+
+// —————————————————————————————————————————
+// دالة addNotification تُستخدم من push.js و SW
+// —————————————————————————————————————————
+window.addNotification = function({ title, body, time }) {
+  const arr = loadNotificationsLocal();
+  arr.unshift({ title, body, time });
+  if (arr.length > 50) arr.pop();
+  saveNotificationsLocal(arr);
+  renderNotifications();
+  updateBellCount();
+};
+
 // —————————————————————————————————————————
 // DOMContentLoaded: ربط الأزرار وجلب الإشعارات
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  // ربط الأزرار الأساسية
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
-    alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
+    alert('فكرة وإعداد وتصميم عمر عونـي السابق');
   document.getElementById('hwafezBtn').onclick = showHwafez;
   document.getElementById('tqeemBtn').onclick  = showTqeem;
+  document.getElementById('clearNotifications').onclick = clearNotifications;
 
-  // إذا كان هناك JWT محفوظ، نُعيد تهيئة الجلسة وجلب البيانات والإشعارات
   const savedToken = localStorage.getItem('jwtToken');
   if (savedToken) {
     jwtToken = savedToken;
+    // 1) جلب البيانات
     fetchAndRender()
       .then(async () => {
-        // 1) تهيئة إشعارات الويب (SW + FCM)
+        // 2) تهيئة الإشعارات (SW + FCM)
         if (typeof window.initNotifications === 'function') {
           await window.initNotifications();
         }
-        // 2) جلب سجل الإشعارات من الخادم للعرض الأولي
-        try {
-          const res = await fetch(`${API_BASE}/notifications`, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${jwtToken}`
-            }
-          });
-          if (res.ok) {
-            const { data } = await res.json();
-            // خزّنها في localStorage لعرضها فوراً
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            // حدّث العداد في الواجهة
-            if (typeof window.updateBellCount === 'function') {
-              window.updateBellCount();
-            }
-          } else {
-            console.warn('❌ فشل جلب الإشعارات، status:', res.status);
-          }
-        } catch (e) {
-          console.warn('❌ لم يتم جلب سجل الإشعارات من الخادم:', e);
-        }
+        // 3) جلب سجل الإشعارات من الخادم
+        await window.loadNotificationsFromServer();
       })
       .catch(logout);
   }
 });
 
 // —————————————————————————————————————————
-// ——————————————————————————————
-// 2) دالة تسجيل الدخول
+// دالة تسجيل الدخول
+// —————————————————————————————————————————
 async function login() {
-  const code = normalizeDigits(
-    document.getElementById('codeInput').value.trim()
-  );
+  const code = normalizeDigits(document.getElementById('codeInput').value.trim());
   const pass = document.getElementById('passwordInput').value.trim();
-  if (!code || !pass) {
-    return alert('يرجى إدخال الكود وكلمة المرور.');
-  }
+  if (!code || !pass) return alert('يرجى إدخال الكود وكلمة المرور.');
 
-  let loginResponse;
   try {
-    // 1) طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, pass })
     });
-    if (res.status === 401) {
-      return alert('بيانات الدخول خاطئة');
-    }
-    if (!res.ok) {
-      throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
-    }
+    if (res.status === 401) return alert('بيانات الدخول خاطئة');
+    if (!res.ok) throw new Error(`Status ${res.status}`);
 
-    // 2) استلام التوكن
-    loginResponse = await res.json();
-    jwtToken = loginResponse.token;
+    const json = await res.json();
+    jwtToken    = json.token;
     localStorage.setItem('jwtToken', jwtToken);
-    
-   // 3) currentUser وتهيئة الإشعارات
-currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
-window.currentUser = currentUser;
-console.log('✅ login successful, currentUser =', currentUser);
 
-// ✅ جلب الإشعارات المخزنة لهذا المستخدم من الخادم
-if (typeof window.loadNotificationsFromServer === 'function') {
-  await window.loadNotificationsFromServer();
-}
+    currentUser     = json.user.code ?? json.user['كود الموظف'];
+    window.currentUser = currentUser;
 
+    console.log('✅ login successful, user =', currentUser);
 
-    // ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
+    // 1) جلب الإشعارات المخزنة من الخادم
+    await window.loadNotificationsFromServer();
+
+    // 2) تهيئة الإشعارات (SW + FCM)
     if (typeof window.initNotifications === 'function') {
-      window.initNotifications();
+      await window.initNotifications();
     }
 
-    // 4) تهيئة Push
+    // 3) تهيئة Push (ويب أو Native)
     console.log('🚀 calling initPush()…');
     if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-      await initNativePush();
+      await initPushNative();
     } else {
       await initPush();
     }
 
-    // 5) تهيئة لوحة الإشعارات
-    if (typeof window.initNotifications === 'function') {
-      window.initNotifications();
-    }
-
-    // 5.1) تسجيل FCM Token المعلق بعد أن صار currentUser معرفاً
-    if (window._pendingFCMToken) {
-      try {
-        await fetch(`${API_BASE}/register-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwtToken}`
-          },
-          body: JSON.stringify({
-            user: window.currentUser,
-            token: window._pendingFCMToken
-          })
-        });
-        console.log('✅ Pending token registered after login');
-        delete window._pendingFCMToken;
-      } catch (e) {
-        console.error('❌ Failed to register pending token:', e);
-      }
-    }
-
-    // ** هنا: جلب الإشعارات من الخادم بعد تسجيل الدخول **
-    if (typeof loadNotificationsFromServer === 'function') {
-      await loadNotificationsFromServer();
-    }
-
-    // 6) جلب وعرض البيانات
+    // 4) أخيرًا جلب باقي بيانات التطبيق
     await fetchAndRender();
-
   } catch (e) {
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
-}  // ← هذا يغلق async function login()
-
+}
 
 
 // —————————————————————————————————————————
