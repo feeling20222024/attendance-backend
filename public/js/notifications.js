@@ -1,6 +1,10 @@
 //  == public/js/notifications.js ==
 // 1) استيراد Modular API من Firebase
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import { getApps, initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+
+if (!getApps().length) {
+  initializeApp(firebaseConfig);
+}
 import {
   getFirestore,
   collection,
