@@ -1,5 +1,8 @@
 // public/js/push.js
 
+// ——————————————————————————————
+// 1) إعدادات السيرفر وFirebase
+// ——————————————————————————————
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 const firebaseConfig = {
   apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
@@ -11,6 +14,9 @@ const firebaseConfig = {
 };
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
+// ——————————————————————————————
+// 2) دالة مساعدة لحفظ الإشعار في السيرفر
+// ——————————————————————————————
 async function saveToServer(user, { title, body, time }) {
   try {
     await fetch(`${API_BASE}/save-notification`, {
@@ -23,24 +29,27 @@ async function saveToServer(user, { title, body, time }) {
   }
 }
 
-window.addNotification = async function({ title, body, time }) {
-  // 1) خزن محلياً
-  const KEY = 'notificationsLog';
-  const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
-  arr.unshift({ title, body, time });
-  if (arr.length > 50) arr.pop();
-  localStorage.setItem(KEY, JSON.stringify(arr));
+// ——————————————————————————————
+// 3) الدالة الموحدة لإضافة إشعار
+//    تحفظه محلياً وعلى السيرفر
+// ——————————————————————————————
+async function safeAddNotification({ title, body, time }) {
+  try {
+    // 3.1) حفظ في localStorage
+    const KEY = 'notificationsLog';
+    const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+    arr.unshift({ title, body, time });
+    if (arr.length > 50) arr.pop();
+    localStorage.setItem(KEY, JSON.stringify(arr));
 
-  // 2) خزن في الخادم
-  if (window.currentUser) {
-    await saveToServer(window.currentUser, { title, body, time });
-  }
+    // 3.2) حفظ في السيرفر
+    if (window.currentUser) {
+      await saveToServer(window.currentUser, { title, body, time });
+    }
 
-  // 3) حدث العرض
-  if (typeof window.renderNotifications === 'function') window.renderNotifications();
-  if (typeof window.updateBellCount === 'function')     window.updateBellCount();
-};
-
+    // 3.3) تحديث العرض إن وجدت الدوال
+    if (typeof window.renderNotifications === 'function') window.renderNotifications();
+    if (typeof window.updateBellCount      === 'function') window.updateBellCount();
 
     console.log('📩 إشعار محفوظ:', { title, body, time });
   } catch (e) {
@@ -48,30 +57,33 @@ window.addNotification = async function({ title, body, time }) {
   }
 }
 
-// في كل مكان كنت تستدعي window.addNotification
-// استبدلها باستدعاء safeAddNotification:
+// اجعل window.addNotification تشير إلى دالتنا
 window.addNotification = safeAddNotification;
 
-// تهيئة Web Push
+// ——————————————————————————————
+// 4) تهيئة Web Push (Firebase compat)
+// ——————————————————————————————
 window.initNotifications = async function() {
+  // 4.1 تسجيل Service Worker
   try {
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('✅ SW for Firebase registered:', reg.scope);
+    console.log('✅ SW registered:', reg.scope);
   } catch (err) {
     console.error('❌ SW registration failed:', err);
     return;
   }
 
-  // compat
+  // 4.2 تهيئة Firebase-compat
   if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
   const messaging = firebase.messaging();
 
+  // 4.3 الحصول على FCM Token
   try {
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') {
-      console.warn('🔕 إذن الإشعارات غير ممنوح');
+      console.warn('🔕 Notification permission not granted.');
       return;
     }
     const swReg = await navigator.serviceWorker.getRegistration();
@@ -91,6 +103,7 @@ window.initNotifications = async function() {
     console.warn('⚠️ Unable to get/send FCM token:', e);
   }
 
+  // 4.4 الاستماع للرسائل الواردة في المقدمة
   messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
     const now = new Date().toLocaleString();
@@ -101,11 +114,13 @@ window.initNotifications = async function() {
   });
 };
 
-// دالة موحدة لاستدعاء التهيئات
+// ——————————————————————————————
+// 5) دالة موحدة لتهيئة جميع الإشعارات
+// ——————————————————————————————
 window.initPush = async function() {
   console.log('⚙️ initPush');
   if (typeof window.initNotifications === 'function') {
     await window.initNotifications();
   }
-  // إذا كان لديك push native عبر Capacitor، أضفه هنا
+  // لو عندك initPushNative للموبايل فاستدعها هنا
 };
