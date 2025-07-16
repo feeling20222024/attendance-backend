@@ -1,57 +1,21 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <link rel="manifest" href="/manifest.json">
-
-  <!-- Firebase compat -->
-   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
-
-  <meta http-equiv="Content-Security-Policy"
-      content="
-        default-src 'self' data:;
-        img-src     'self' data: https://www.gstatic.com https://www.google.com;
-        script-src  'self' 'unsafe-inline' 'unsafe-eval'
-                    https://www.gstatic.com
-                    https://cdn.tailwindcss.com;
-        style-src   'self' 'unsafe-inline'
-                    https://cdn.tailwindcss.com;
-        connect-src 'self'
-                    https://dwam-app-by-omar.onrender.com
-                    https://www.googleapis.com
-                    https://fcm.googleapis.com
-                    https://firebaseinstallations.googleapis.com
-                    https://firebasestorage.googleapis.com
-                    https://firestore.googleapis.com;
-      ">
-
-  <!-- Tailwind + ستايلات عامة -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تطبيق متابعة الدوام</title>
+  <link rel="manifest" href="/manifest.json" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css" />
-
   <style>
-    /* dropdown notifications */
-    #notificationsPanel {
-      position: absolute; top: 3.5rem; right: 1rem;
-      width: 300px; max-height: 400px; overflow-y: auto;
-      background: #fff; border: 1px solid #ccc;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      padding: 0.5rem; display: none; z-index: 1000;
+    /* ستايل لوحة الإشعارات */
+    #notificationsPanel { position:absolute; top:4rem; right:1rem; width:300px; max-height:400px;
+      overflow-y:auto; background:#fff; border:1px solid #ccc; box-shadow:0 2px 6px rgba(0,0,0,0.2);
+      padding:.5rem; display:none; z-index:1000;
     }
-    #notifBell {
-      position: absolute; top: 1rem; right: 1rem;
-      cursor: pointer; font-size: 1.5rem;
-    }
-    #notifBell .badge {
-      font-size: 0.75rem; background: red; color: white;
-      border-radius: 50%; padding: 0 5px;
-      vertical-align: top; margin-left: 4px;
-    }
-    #clearNotifications {
-      display: none; margin: 0.5rem auto 0;
-      background: #f44336; color: white; border: none;
-      padding: 0.25rem 0.5rem; cursor: pointer;
+    #notifBell { position:absolute; top:1rem; right:1rem; cursor:pointer; font-size:1.5rem; }
+    #notifBell .badge { font-size:.75rem; background:red; color:#fff; border-radius:50%;
+      padding:0 5px; vertical-align:top; margin-left:2px;
     }
   </style>
 </head>
@@ -306,8 +270,6 @@
   <!-- 3) app.js: بعد تسجيل الدخول يعيّن window.currentUser ثم يستدعي initPush() -->
   <script type="module" src="/js/app.js" defer></script>
   <script nomodule src="/js/app.legacy.js" defer></script>
-</body>
-</html>
 
 </body>
 </html>
