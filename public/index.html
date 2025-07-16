@@ -275,18 +275,10 @@
     }
   </script>
 
-  <!-- 1) notifications.js أولاً: يعرّف renderNotifications و addNotification -->
-  <script type="module" src="/js/notifications.js"></script>
-
-  <!-- 2) push.js: يعرّف initPush (ويب) و initPushNative (جوال) -->
-  <script type="module">
-    import { initPush } from '/js/push.js';
-    window.initPush = initPush;
-  </script>
-
-  <!-- 3) app.js: بعد تسجيل الدخول يعيّن window.currentUser ثم يستدعي initPush() -->
-  <script type="module" src="/js/app.js" defer></script>
-  <script nomodule src="/js/app.legacy.js" defer></script>
+  <!-- قبل آخر </body> -->
+<script type="module" src="/js/notifications.js"></script>
+<script type="module" src="/js/push.js"></script> <!-- ملف initPush(Web+Native) -->
+<script type="module" src="/js/app.js" defer></script>
 
 </body>
 </html>
