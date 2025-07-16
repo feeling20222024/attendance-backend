@@ -1,7 +1,11 @@
 //  == public/js/push.js ==
 // 1) استيراد Firebase Messaging
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js';
+import { getApps, initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+
+if (!getApps().length) {
+  initializeApp(firebaseConfig);
+}
 import { addNotification } from './notifications.js';  // دوال التخزين والرفع
 
 const firebaseConfig = { /* نفس الإعدادات */ };
