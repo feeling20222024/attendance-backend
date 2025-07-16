@@ -2,8 +2,27 @@
 
 (() => {
   const STORAGE_KEY = 'notificationsLog';
+  const API_BASE    = 'https://dwam-app-by-omar.onrender.com/api';
 
-  // تحميل الإشعارات من localStorage
+  // —————————————————————————————————————————————————————————————
+  // 1) Bootstrap: جلب الإشعارات من الخادم عند فتح الصفحة
+  // —————————————————————————————————————————————————————————————
+  async function bootstrapNotifications() {
+    if (!window.currentUser) return;
+    try {
+      const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
+      if (res.ok) {
+        const list = await res.json();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      }
+    } catch (e) {
+      console.warn('⚠️ خطأ جلب الإشعارات من الخادم:', e);
+    }
+  }
+
+  // —————————————————————————————————————————————————————————————
+  // 2) دوال localStorage
+  // —————————————————————————————————————————————————————————————
   function loadNotifications() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -12,12 +31,13 @@
     }
   }
 
-  // حفظ مصفوفة الإشعارات في localStorage
   function saveNotificationsLocal(arr) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
   }
 
-  // تحديث عداد الجرس
+  // —————————————————————————————————————————————————————————————
+  // 3) تحديث عداد الجرس
+  // —————————————————————————————————————————————————————————————
   window.updateBellCount = function() {
     const count = loadNotifications().length;
     const bellCount = document.getElementById('notifCount');
@@ -26,7 +46,9 @@
     bellCount.style.display = count > 0 ? 'inline-block' : 'none';
   };
 
-  // رسم لوحة الإشعارات
+  // —————————————————————————————————————————————————————————————
+  // 4) رسم لوحة الإشعارات
+  // —————————————————————————————————————————————————————————————
   window.renderNotifications = function() {
     const list   = document.getElementById('notificationsLog');
     const clearB = document.getElementById('clearNotifications');
@@ -52,7 +74,9 @@
     }
   };
 
-  // مسح سجل الإشعارات
+  // —————————————————————————————————————————————————————————————
+  // 5) مسح سجل الإشعارات
+  // —————————————————————————————————————————————————————————————
   function clearNotifications() {
     if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
     localStorage.removeItem(STORAGE_KEY);
@@ -60,7 +84,14 @@
     updateBellCount();
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  // —————————————————————————————————————————————————————————————
+  // 6) ربط الأحداث عند تحميل DOM + bootstrap
+  // —————————————————————————————————————————————————————————————
+  document.addEventListener('DOMContentLoaded', async () => {
+    // أولاً: جلب الإشعارات من الخادم
+    await bootstrapNotifications();
+
+    // ثمّ ربط الأحداث
     document.getElementById('notifBell')?.addEventListener('click', () => {
       const panel = document.getElementById('notificationsPanel');
       panel.classList.toggle('hidden');
@@ -69,20 +100,22 @@
     });
     document.getElementById('clearNotifications')?.addEventListener('click', clearNotifications);
 
-    // أول رسم
+    // وأخيراً الرسم الأوّلي
     updateBellCount();
     renderNotifications();
   });
 
-  // ⚙️ دالة تُستدعى من push.js و service worker
+  // —————————————————————————————————————————————————————————————
+  // 7) دالة إضافة إشعار جديدة (تُستدعى من push.js أو من الـ SW)
+  // —————————————————————————————————————————————————————————————
   window.addNotification = function({ title, body, time }) {
-    // فقط إضافة محليًا؛ حفظ على الخادم يتم من push.js
+    // 1) خزّن محليًّا
     const saved = loadNotifications();
     saved.unshift({ title, body, time });
     if (saved.length > 50) saved.pop();
     saveNotificationsLocal(saved);
 
-    // تحديث العرض
+    // 2) حدّث العرض
     updateBellCount();
     const panel = document.getElementById('notificationsPanel');
     if (panel && !panel.classList.contains('hidden')) {
