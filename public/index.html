@@ -285,19 +285,35 @@
    </div>
   </section>
   </main>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker
-      .register('/firebase-messaging-sw.js')
-      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-      .catch(err => console.error('❌ SW registration failed', err));
-  }
-</script>
+<!-- 1) تسجيل Service Worker فوراً -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/firebase-messaging-sw.js')
+        .then(reg => console.log('✅ SW registered:', reg.scope))
+        .catch(err => console.error('❌ SW reg failed', err));
+    }
+  </script>
 
-<!-- 2) notifications.js (لا تتضمّن به initNotifications) -->
+  <!-- 2) notifications.js أولاً (يعرّف renderNotifications, updateBellCount, addNotification) -->
   <script src="js/notifications.js"></script>
 
-  <!-- 3) initNotifications بعد DOM جاهز -->
+  <!-- 3) رسائل الـ SW → notifications.js -->
+  <script>
+    // هذا يلتقط الرسائل المرسَلة من الـ Service Worker
+    navigator.serviceWorker?.addEventListener('message', event => {
+      const msg = event.data;
+      if (msg && msg.type === 'NEW_NOTIFICATION') {
+        window.addNotification({
+          title: msg.title,
+          body:  msg.body,
+          time:  msg.time
+        });
+      }
+    });
+  </script>
+
+  <!-- 4) initNotifications بعد DOM جاهز -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       if (typeof window.initNotifications === 'function') {
@@ -306,7 +322,7 @@
     });
   </script>
 
-  <!-- 4) push.js & app.js -->
+  <!-- 5) ثمّ Push + App -->
   <script type="module" src="js/push.js" defer></script>
   <script nomodule src="js/app.legacy.js" defer></script>
   <script type="module" src="js/app.js" defer></script>
