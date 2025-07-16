@@ -12,26 +12,40 @@ const firebaseConfig = {
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
 // إضافة آمنة: يخزن محليًا ثم على الخادم
-async function safeAddNotification({ title, body, time }) {
+// public/js/push.js
+
+const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
+
+async function saveToServer(user, { title, body, time }) {
   try {
-    // 1) خزّن محلياً
-    const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
-    saved.unshift({ title, body, time });
-    if (saved.length > 50) saved.pop();
-    localStorage.setItem('notificationsLog', JSON.stringify(saved));
+    await fetch(`${API_BASE}/save-notification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user, title, body, time })
+    });
+  } catch (e) {
+    console.warn('⚠️ failed saving notif to server:', e);
+  }
+}
 
-    // 2) خزّن على الخادم
-    if (window.currentUser) {
-      await fetch(`${API_BASE}/save-notification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: window.currentUser, title, body, time })
-      });
-    }
+window.addNotification = async function({ title, body, time }) {
+  // 1) خزن محلياً
+  const KEY = 'notificationsLog';
+  const arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+  arr.unshift({ title, body, time });
+  if (arr.length > 50) arr.pop();
+  localStorage.setItem(KEY, JSON.stringify(arr));
 
-    // 3) حدّث العرض
-    if (typeof window.renderNotifications === 'function') window.renderNotifications();
-    if (typeof window.updateBellCount     === 'function') window.updateBellCount();
+  // 2) خزن في الخادم
+  if (window.currentUser) {
+    await saveToServer(window.currentUser, { title, body, time });
+  }
+
+  // 3) حدث العرض
+  if (typeof window.renderNotifications === 'function') window.renderNotifications();
+  if (typeof window.updateBellCount === 'function')     window.updateBellCount();
+};
+
 
     console.log('📩 إشعار محفوظ:', { title, body, time });
   } catch (e) {
