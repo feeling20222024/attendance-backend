@@ -8,26 +8,23 @@
    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
 
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تطبيق متابعة الدوام</title>
-
-  <!-- CSP مخفّفة -->
   <meta http-equiv="Content-Security-Policy"
-        content="
-          default-src 'self' data:;
-          script-src  'self' 'unsafe-inline' 'unsafe-eval'
-                       https://www.gstatic.com
-                       https://cdn.tailwindcss.com;
-          style-src   'self' 'unsafe-inline'
-                       https://cdn.tailwindcss.com;
-          connect-src 'self'
-                       https://dwam-app-by-omar.onrender.com
-                       https://www.googleapis.com
-                       https://fcm.googleapis.com
-                       https://firebaseinstallations.googleapis.com
-                       https://fcmregistrations.googleapis.com;
-        ">
+      content="
+        default-src 'self' data:;
+        img-src     'self' data: https://www.gstatic.com https://www.google.com;
+        script-src  'self' 'unsafe-inline' 'unsafe-eval'
+                    https://www.gstatic.com
+                    https://cdn.tailwindcss.com;
+        style-src   'self' 'unsafe-inline'
+                    https://cdn.tailwindcss.com;
+        connect-src 'self'
+                    https://dwam-app-by-omar.onrender.com
+                    https://www.googleapis.com
+                    https://fcm.googleapis.com
+                    https://firebaseinstallations.googleapis.com
+                    https://firebasestorage.googleapis.com
+                    https://firestore.googleapis.com;
+      ">
 
   <!-- Tailwind + ستايلات عامة -->
   <script src="https://cdn.tailwindcss.com"></script>
