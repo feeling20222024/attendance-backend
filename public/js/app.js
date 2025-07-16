@@ -158,34 +158,54 @@ async function login() {
     localStorage.setItem('jwtToken', jwtToken);
 
     currentUser     = json.user.code ?? json.user['كود الموظف'];
-    window.currentUser = currentUser;
+// … بعد تعيين currentUser:
+window.currentUser = currentUser;
+console.log('✅ login successful, user =', currentUser);
 
-    console.log('✅ login successful, user =', currentUser);
-
-    // 1) جلب الإشعارات المخزنة من الخادم
-    await window.loadNotificationsFromServer();
-
-    // 2) تهيئة الإشعارات (SW + FCM)
-    if (typeof window.initNotifications === 'function') {
-      await window.initNotifications();
+// ↓ أضف المقطع هنا ↓
+try {
+  // 1) اجلب آخر 50 إشعار من السيرفر
+  const notifRes = await fetch(`${API_BASE}/notifications/${currentUser}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${jwtToken}`
     }
-
-    // 3) تهيئة Push (ويب أو Native)
-    console.log('🚀 calling initPush()…');
-    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-      await initPushNative();
-    } else {
-      await initPush();
+  });
+  if (notifRes.ok) {
+    const serverNotifs = await notifRes.json();
+    // 2) خزنها في localStorage (موحّد لجميع المنصات)
+    localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
+    // 3) حدّث العرض والعداد
+    if (typeof window.renderNotifications === 'function') {
+      window.renderNotifications();
     }
-
-    // 4) أخيرًا جلب باقي بيانات التطبيق
-    await fetchAndRender();
-  } catch (e) {
-    console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+    if (typeof window.updateBellCount === 'function') {
+      window.updateBellCount();
+    }
+  } else {
+    console.warn('Failed to fetch server notifications:', notifRes.status);
   }
+} catch (e) {
+  console.warn('Error fetching server notifications:', e);
 }
 
+// إذا كنت تريد أيضاً استدعاء دالة مساعدة لتحميل الإشعارات من السيرفر:
+// await window.loadNotificationsFromServer();
+
+// ثم الاستمرار بتهيئة الإشعارات وباقي التطبيق:
+if (typeof window.initNotifications === 'function') {
+  await window.initNotifications();
+}
+
+console.log('🚀 calling initPush()…');
+if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+  await initPushNative();
+} else {
+  await initPush();
+}
+
+// أخيراً جلب بيانات التطبيق
+await fetchAndRender();
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
