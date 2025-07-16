@@ -287,23 +287,27 @@
   </main>
   
  <!-- تسجيل Service Worker -->
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker
-      .register('/firebase-messaging-sw.js')
-      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-      .catch(err => console.error('❌ SW reg failed', err));
-  }
-</script>
+  <!-- تسجيل Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/firebase-messaging-sw.js')
+        .then(reg => console.log('✅ FCM SW registered:', reg.scope))
+        .catch(err => console.error('❌ SW reg failed', err));
+    }
+  </script>
 
-<!-- 1) notifications.js: يحتوي على import/export، لذا يجب type="module" -->
-<script type="module" src="/js/notifications.js"></script>
+  <!-- 1) notifications.js أولاً -->
+  <script type="module" src="/js/notifications.js"></script>
 
-<!-- 2) push.js: أيضاً يحتوي على import/export -->
-<script type="module" src="/js/push.js"></script>
+  <!-- 2) push.js لتعريف initPush -->
+  <script type="module">
+    import { initPush } from '/js/push.js';
+    window.initPush = initPush;
+  </script>
 
-<!-- 3) app.js: يحتوي على استدعاء initPush، ولا يحتاج imports -->
-<script type="module" src="/js/app.js" defer></script>
-
+  <!-- 3) تطبيقك (app.js) حيث تُدعى initPush() بعد تسجيل الدخول -->
+  <script type="module" src="/js/app.js" defer></script>
+  <script nomodule src="/js/app.legacy.js" defer></script>
 </body>
 </html>
