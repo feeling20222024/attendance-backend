@@ -160,6 +160,9 @@ async function login() {
     // 3) currentUser وتخزينه
     currentUser = json.user.code ?? json.user['كود الموظف'];
     window.currentUser = currentUser;
+    if (typeof window.initPush === 'function') {
+  await window.initPush();
+}
     console.log('✅ login successful, user =', currentUser);
 
     // ↓ هنا نضيف جلب الإشعارات من السيرفر ↓
