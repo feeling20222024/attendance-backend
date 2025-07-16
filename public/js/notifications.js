@@ -106,10 +106,10 @@
   });
 
   // —————————————————————————————————————————————————————————————
-  // 7) دالة إضافة إشعار جديدة (تُستدعى من push.js أو من الـ SW)
+  // 7) دالة إضافة إشعار جديد (تُستدعى من push.js أو من Service Worker)
   // —————————————————————————————————————————————————————————————
   window.addNotification = function({ title, body, time }) {
-    // 1) خزّن محليًّا
+    // 1) خزن محليًّا
     const saved = loadNotifications();
     saved.unshift({ title, body, time });
     if (saved.length > 50) saved.pop();
