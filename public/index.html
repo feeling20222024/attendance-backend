@@ -282,10 +282,11 @@
 <script type="module" src="/js/notifications.js"></script>
 
 <!-- 2) push.js: يعرّف initNotifications و initPush و يخزّن initPush في window -->
-<script type="module">
-  import { initNotifications, initPush } from '/js/push.js';
-  window.initNotifications = initNotifications;
-  window.initPush          = initPush;
+<script>
+// لا حاجة للاستيراد هنا لأن push.js يكتب initNotifications على window
+if (typeof window.initNotifications === 'function') {
+  window.initNotifications();
+}
 </script>
 
 <!-- 3) app.js: يستخدم window.initPush داخل دالة login -->
