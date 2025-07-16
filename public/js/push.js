@@ -1,18 +1,5 @@
 // public/js/push.js
 
-// —————————————————————————————————————————
-// 1) استيراد Firebase Modular API
-// —————————————————————————————————————————
-import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
-import {
-  getMessaging,
-  getToken,
-  onMessage
-} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js';
-
-// —————————————————————————————————————————
-// 2) إعدادات التطبيق و VAPID
-// —————————————————————————————————————————
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 const firebaseConfig = {
   apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
@@ -22,64 +9,81 @@ const firebaseConfig = {
   messagingSenderId:"235398312189",
   appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
 };
-const VAPID_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
+const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// —————————————————————————————————————————
-// 3) تهيئة Firebase (مرة واحدة فقط)
-// —————————————————————————————————————————
-if (!getApps().length) {
-  initializeApp(firebaseConfig);
+// إضافة آمنة: يخزن محليًا ثم على الخادم
+async function safeAddNotification({ title, body, time }) {
+  try {
+    // 1) حفظ محلي
+    window.addNotification({ title, body, time });
+
+    // 2) حفظ مركزي
+    if (window.currentUser) {
+      await fetch(`${API_BASE}/save-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: window.currentUser, title, body, time })
+      });
+    }
+  } catch (e) {
+    console.warn('⚠️ خطأ في تخزين الإشعار:', e);
+  }
 }
-const messaging = getMessaging();
 
-// —————————————————————————————————————————
-// 4) دالة تهيئة إشعارات الويب وتصديرها
-// —————————————————————————————————————————
-export async function initPush() {
-  // 4.1 تسجيل Service Worker
+// تهيئة Web Push
+window.initNotifications = async function() {
   try {
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('✅ SW registered:', reg.scope);
-  } catch (e) {
-    console.warn('❌ SW registration failed:', e);
+    console.log('✅ SW for Firebase registered:', reg.scope);
+  } catch (err) {
+    console.error('❌ SW registration failed:', err);
     return;
   }
 
-  // 4.2 طلب إذن الإشعارات
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') {
-    console.warn('🔕 Notification permission denied');
-    return;
+  // compat
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
   }
+  const messaging = firebase.messaging();
 
-  // 4.3 احصل على FCM token وأرسله للسيرفر
   try {
-    const registration = await navigator.serviceWorker.getRegistration();
-    const token = await getToken(messaging, {
-      vapidKey: VAPID_KEY,
-      serviceWorkerRegistration: registration
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      console.warn('🔕 إذن الإشعارات غير ممنوح');
+      return;
+    }
+    const swReg = await navigator.serviceWorker.getRegistration();
+    const token = await messaging.getToken({
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: swReg
     });
-    console.log('✅ FCM token:', token);
+    console.log('✅ FCM Token:', token);
     if (token && window.currentUser) {
       await fetch(`${API_BASE}/register-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: window.currentUser, token })
       });
-      console.log('✅ token sent to server');
     }
   } catch (e) {
-    console.warn('⚠️ could not get/send token:', e);
+    console.warn('⚠️ Unable to get/send FCM token:', e);
   }
 
-  // 4.4 الاستماع للرسائل أثناء فتح الصفحة
-  onMessage(messaging, payload => {
+  messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
     const now = new Date().toLocaleString();
-    console.log('📩 Message received (web):', title, body);
     if (title && body && Notification.permission === 'granted') {
       new Notification(title, { body });
-      window.addNotification({ title, body, time: now });
     }
+    safeAddNotification({ title, body, time: now });
   });
-}
+};
+
+// دالة موحدة لاستدعاء التهيئات
+window.initPush = async function() {
+  console.log('⚙️ initPush');
+  if (typeof window.initNotifications === 'function') {
+    await window.initNotifications();
+  }
+  // إذا كان لديك push native عبر Capacitor، أضفه هنا
+};
