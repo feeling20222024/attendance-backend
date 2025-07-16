@@ -287,7 +287,7 @@
   </main>
   
  <!-- تسجيل Service Worker -->
-  <!-- تسجيل Service Worker -->
+    <!-- تسجيل Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker
@@ -297,17 +297,20 @@
     }
   </script>
 
-  <!-- 1) notifications.js أولاً -->
+  <!-- 1) notifications.js أولاً: يعرّف renderNotifications و addNotification -->
   <script type="module" src="/js/notifications.js"></script>
 
-  <!-- 2) push.js لتعريف initPush -->
+  <!-- 2) push.js: يعرّف initPush (ويب) و initPushNative (جوال) -->
   <script type="module">
     import { initPush } from '/js/push.js';
     window.initPush = initPush;
   </script>
 
-  <!-- 3) تطبيقك (app.js) حيث تُدعى initPush() بعد تسجيل الدخول -->
+  <!-- 3) app.js: بعد تسجيل الدخول يعيّن window.currentUser ثم يستدعي initPush() -->
   <script type="module" src="/js/app.js" defer></script>
   <script nomodule src="/js/app.legacy.js" defer></script>
+</body>
+</html>
+
 </body>
 </html>
