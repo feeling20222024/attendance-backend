@@ -10,10 +10,11 @@ const LOGIN_ENDPOINT = `${API_BASE}/login`;
 const NOTIFS_ENDPOINT= `${API_BASE}/notifications`;
 const STORAGE_KEY    = 'notificationsLog';
 const SUPERVISOR_CODE= '35190';
-
-let jwtToken    = null;
-let currentUser = null;
-
+let headersAtt      = [], attendanceData = [];
+let headersHw       = [], hwafezData     = [];
+let headersTq       = [], tqeemData      = [];
+let currentUser     = null;
+let jwtToken        = null;
 // —————————————————————————————————————————
 // Helper: تطبيع أرقام عربية → غربية
 // —————————————————————————————————————————
