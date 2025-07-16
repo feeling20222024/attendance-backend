@@ -276,9 +276,16 @@
   </script>
 
   <!-- قبل آخر </body> -->
+<!-- 1) notifications.js: يعرّف renderNotifications و addNotification -->
 <script type="module" src="/js/notifications.js"></script>
-<script type="module" src="/js/push.js"></script> <!-- ملف initPush(Web+Native) -->
-<script type="module" src="/js/app.js" defer></script>
 
-</body>
-</html>
+<!-- 2) push.js: يعرّف initNotifications و initPush و يخزّن initPush في window -->
+<script type="module">
+  import { initNotifications, initPush } from '/js/push.js';
+  window.initNotifications = initNotifications;
+  window.initPush          = initPush;
+</script>
+
+<!-- 3) app.js: يستخدم window.initPush داخل دالة login -->
+<script type="module" src="/js/app.js" defer></script>
+<script nomodule src="/js/app.legacy.js" defer></script>
