@@ -139,81 +139,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // —————————————————————————————————————————
 async function login() {
-  const code = normalizeDigits(document.getElementById('codeInput').value.trim());
-  const pass = document.getElementById('passwordInput').value.trim();
-  if (!code || !pass) return alert('يرجى إدخال الكود وكلمة المرور.');
+  // … بعد استلام JWT وتعيين window.currentUser
+  window.currentUser = currentUser;
+  localStorage.setItem('jwtToken', jwtToken);
 
+  // 1) جلب وعرض البيانات الأساسية:
+  await fetchAndRender();
+
+  // 2) جلب سجل الإشعارات وتخزين محلياً ثم تهيئة لوحة الإشعارات
   try {
-    // 1) طلب تسجيل الدخول
-    const res = await fetch(LOGIN_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, pass })
+    const res = await fetch(`${API_BASE}/notifications/${currentUser}`, {
+      headers: { 'Authorization': `Bearer ${jwtToken}` }
     });
-    if (res.status === 401) return alert('بيانات الدخول خاطئة');
-    if (!res.ok) throw new Error(`Status ${res.status}`);
-
-    // 2) استلام التوكن وتهيئة المصادقة محلياً
-    const json = await res.json();
-    jwtToken = json.token;
-    localStorage.setItem('jwtToken', jwtToken);
-
-    // 3) currentUser وتخزينه
-    currentUser = json.user.code ?? json.user['كود الموظف'];
-    window.currentUser = currentUser;
-    if (typeof window.initPush === 'function') {
-  await window.initPush();
-}
-    console.log('✅ login successful, user =', currentUser);
-
-    // ↓ هنا نضيف جلب الإشعارات من السيرفر ↓
-    try {
-      const notifRes = await fetch(`${API_BASE}/notifications/${currentUser}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jwtToken}`
-        }
-      });
-      if (notifRes.ok) {
-        const serverNotifs = await notifRes.json();
-        // خزنها في localStorage لكي تكون موحدة
-        localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
-        // حدّث اللوحة والعداد
-        if (typeof window.renderNotifications === 'function') {
-          window.renderNotifications();
-        }
-        if (typeof window.updateBellCount === 'function') {
-          window.updateBellCount();
-        }
-      } else {
-        console.warn('Failed to fetch server notifications:', notifRes.status);
-      }
-    } catch (e) {
-      console.warn('Error fetching server notifications:', e);
+    if (res.ok) {
+      const list = await res.json();
+      localStorage.setItem('notificationsLog', JSON.stringify(list));
     }
-
-    // 4) ثبّت الاستقبال الفوري للإشعارات
-    if (typeof window.initNotifications === 'function') {
-      await window.initNotifications();
-    }
-
-    // 5) ثبّت الـ push (ويب + Native)
-    console.log('🚀 calling initPush()…');
-    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-      await initPushNative();
-    } else {
-      await initPush();
-    }
-
-    // 6) وأخيراً: جلب باقي بيانات التطبيق
-    await fetchAndRender();
-
   } catch (e) {
-    console.error('❌ login error:', e);
-    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+    console.warn('⚠️ خطأ جلب الإشعارات عند login:', e);
+  }
+
+  // 3) استدعاء initPush ثم initNotifications
+  if (typeof window.initPush === 'function') {
+    await window.initPush();
+  }
+  if (typeof window.initNotifications === 'function') {
+    await window.initNotifications();
+  }
+
+  // 4) أخيراً قم بتحديث واجهة الإشعارات
+  if (typeof window.renderNotifications === 'function') {
+    window.renderNotifications();
+    window.updateBellCount();
   }
 }
-
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
