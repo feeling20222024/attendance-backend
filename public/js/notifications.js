@@ -1,87 +1,68 @@
-// public/js/notifications.js
+import { initializeApp }   from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
 
-const STORAGE_KEY = 'notificationsLog';
-const SUPERVISOR_CODE = '35190';  // أو الكود اللي تختاره للمشرف
-
-export function loadNotifications() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveNotifications(arr) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-}
-
-export function updateBellCount() {
-  const count = loadNotifications().length;
-  const badge = document.getElementById('notifCount');
-  if (!badge) return;
-  badge.textContent = count;
-  badge.style.display = count > 0 ? 'inline-block' : 'none';
-}
-
-export function renderNotifications() {
-  const list = document.getElementById('notificationsLog');
-  const clearBtn = document.getElementById('clearNotifications');
-  const notifs = loadNotifications();
-  if (!list || !clearBtn) return;
-
-  list.innerHTML = notifs.length
-    ? notifs.map(n => `
-        <li class="mb-2 border-b pb-2">
-          <div class="font-semibold">${n.title}</div>
-          <div class="text-sm">${n.body}</div>
-          <div class="text-xs text-gray-500">${n.time}</div>
-        </li>
-      `).join('')
-    : '<li class="text-gray-500">لا توجد إشعارات</li>';
-
-  // إظهار زر المسح للمشرف فقط
-  if (window.currentUser === SUPERVISOR_CODE && notifs.length) {
-    clearBtn.style.display = 'block';
-  } else {
-    clearBtn.style.display = 'none';
-  }
-}
-
-export function clearNotifications() {
-  if (window.currentUser !== SUPERVISOR_CODE) {
-    return alert('لا تملك صلاحية المسح.');
-  }
-  if (!confirm('مسح جميع الإشعارات؟')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  renderNotifications();
-  updateBellCount();
-}
-
-// تُستخدم من خارج هذا الملف لإضافة إشعار جديد:
-window.addNotification = function({ title, body, time }) {
-  const arr = loadNotifications();
-  arr.unshift({ title, body, time });
-  if (arr.length > 50) arr.pop();
-  saveNotifications(arr);
-  updateBellCount();
-  // إذا اللوحة مفتوحة
-  const panel = document.getElementById('notificationsPanel');
-  if (panel && panel.style.display !== 'none') {
-    renderNotifications();
-  }
+const firebaseConfig = {
+  apiKey:    "…",
+  authDomain:"…",
+  projectId: "…",
+  // … بقية الإعدادات
 };
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
-// ربط الأحداث عند التحميل
+// دالةٌ لجلب آخر 50 إشعارًا من Firestore
+export async function loadNotifications() {
+  const col = collection(db, 'notifications');
+  const q   = query(
+    col,
+    where('user', '==', window.currentUser),
+    orderBy('time', 'desc'),
+    limit(50)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data());
+}
+
+// دوال العرض التي كانت عندك
+function updateBellCount() {
+  const count = JSON.parse(localStorage.getItem('notificationsLog') || '[]').length;
+  const bell = document.getElementById('notifCount');
+  if (!bell) return;
+  bell.textContent = count;
+  bell.style.display = count ? 'inline-block' : 'none';
+}
+
+export async function renderNotifications() {
+  const notifs = await loadNotifications();
+  const list   = document.getElementById('notificationsLog');
+  const clearB = document.getElementById('clearNotifications');
+  if (!list || !clearB) return;
+
+  list.innerHTML = '';
+  if (notifs.length === 0) {
+    list.innerHTML = '<li>لا توجد إشعارات</li>';
+    clearB.classList.add('hidden');
+  } else {
+    notifs.forEach(({ title, body, time }) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<strong>${title}</strong><br>${body}<br><em>${new Date(time).toLocaleString()}</em>`;
+      list.appendChild(li);
+    });
+    clearB.classList.toggle('hidden', window.currentUser !== '35190');
+  }
+  updateBellCount();
+}
+
+// عند التحميل
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('notifBell')?.addEventListener('click', () => {
-    const panel = document.getElementById('notificationsPanel');
-    if (!panel) return;
-    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-    renderNotifications();
-    updateBellCount();
-  });
-  document.getElementById('clearNotifications')?.addEventListener('click', clearNotifications);
-  // تحديث واجهة الإشعارات عند بدء التشغيل
   updateBellCount();
   renderNotifications();
 });
