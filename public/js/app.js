@@ -145,7 +145,7 @@ async function login() {
 
   // 1) جلب وعرض البيانات الأساسية:
   await fetchAndRender();
-
+}
 // بعد fetchAndRender() في دالة login()
 if (window.currentUser) {
   try {
