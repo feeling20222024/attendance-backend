@@ -21,24 +21,26 @@ const messaging = firebase.messaging();
 
 // 4) تعامل مع الرسائل في الخلفية
 messaging.onBackgroundMessage(payload => {
-  const { title='Notification', body='' } = payload.notification || {};
+  const { title = 'Notification', body = '' } = payload.notification || {};
   const time = new Date().toLocaleString();
 
-  // 1) إبقاء عرض الإشعار النظامي
+  // 1) عرض Notification
   self.registration.showNotification(title, { body });
 
-  // 2) إرسال رسالة إلى الـ page clients ليخزّنها notifications.js
-  self.clients.matchAll().then(clients => {
-    for (const client of clients) {
-      client.postMessage({
-        type:  'NEW_NOTIFICATION',
-        title,
-        body,
-        time
-      });
-    }
-  });
+  // 2) إبلاغ الـ page(s) المفتوحة
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then(clients => {
+      for (const client of clients) {
+        client.postMessage({
+          type: 'NEW_NOTIFICATION',
+          title,
+          body,
+          time
+        });
+      }
+    });
 });
+
 
 self.addEventListener('install',  () => self.skipWaiting());
 self.addEventListener('activate', evt => evt.waitUntil(self.clients.claim()));
