@@ -1,118 +1,56 @@
-// public/js/notifications.js
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import {
+  getFirestore,
+  collection,
+  addDoc
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import {
+  getMessaging,
+  getToken,
+  onMessage
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js';
 
-// —————————————————————————————————————————————
-// المفاتيح والضوابط
-// —————————————————————————————————————————————
-const STORAGE_KEY      = 'notificationsLog';
-const SUPERVISOR_CODE  = '35190';  // رمز المشرف لمسح السجل
+const firebaseConfig = { /* كما في الأعلى */ };
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const messaging = getMessaging(app);
 
-// —————————————————————————————————————————————
-// 1) تحميل الإشعارات من localStorage
-// —————————————————————————————————————————————
-export function loadNotifications() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
-  }
-}
+const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
+const VAPID_PUBLIC_KEY = '…';
 
-// —————————————————————————————————————————————
-// 2) حفظ مصفوفة الإشعارات في localStorage
-// —————————————————————————————————————————————
-export function saveNotifications(arr) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-}
-
-// —————————————————————————————————————————————
-// 3) تحديث عداد الجرس
-// —————————————————————————————————————————————
-export function updateBellCount() {
-  const count = loadNotifications().length;
-  const badge = document.getElementById('notifCount');
-  if (!badge) return;
-  badge.textContent = count;
-  badge.style.display = count > 0 ? 'inline-block' : 'none';
-}
-
-// —————————————————————————————————————————————
-// 4) رسم قائمة الإشعارات في اللوحة
-// —————————————————————————————————————————————
-export function renderNotifications() {
-  const list      = document.getElementById('notificationsLog');
-  const clearBtn  = document.getElementById('clearNotifications');
-  const notifs    = loadNotifications();
-  if (!list || !clearBtn) return;
-
-  if (notifs.length === 0) {
-    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
-  } else {
-    list.innerHTML = notifs.map(n => `
-      <li class="mb-2 border-b pb-2">
-        <div class="font-semibold text-gray-800">${n.title}</div>
-        <div class="text-sm text-gray-700">${n.body}</div>
-        <div class="text-xs text-gray-500 mt-1">${n.time}</div>
-      </li>
-    `).join('');
-  }
-
-  // إظهار زر المسح للمشرف فقط إذا هناك إشعارات
-  if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
-    clearBtn.style.display = 'block';
-  } else {
-    clearBtn.style.display = 'none';
-  }
-}
-
-// —————————————————————————————————————————————
-// 5) مسح سجل الإشعارات (للمشرف فقط)
-// —————————————————————————————————————————————
-export function clearNotifications() {
-  if (window.currentUser !== SUPERVISOR_CODE) {
-    alert('لا تملك صلاحية مسح سجل الإشعارات.');
-    return;
-  }
-  if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
-  localStorage.removeItem(STORAGE_KEY);
-  renderNotifications();
-  updateBellCount();
-}
-
-// —————————————————————————————————————————————
-// 6) إضافة إشعار جديد (يُستدعى من push.js أو من SW)
-// —————————————————————————————————————————————
-window.addNotification = function({ title, body, time }) {
-  const arr = loadNotifications();
-  arr.unshift({ title, body, time });
-  if (arr.length > 50) arr.pop();
-  saveNotifications(arr);
-  updateBellCount();
-
-  // إذا اللوحة مفتوحة، أعد رسمها
-  const panel = document.getElementById('notificationsPanel');
-  if (panel && getComputedStyle(panel).display !== 'none') {
-    renderNotifications();
-  }
-  console.log('📩 إشعار مضاف:', { title, body, time });
-};
-
-// —————————————————————————————————————————————
-// 7) ربط الأحداث عند تحميل الصفحة
-// —————————————————————————————————————————————
-document.addEventListener('DOMContentLoaded', () => {
-  // النقر على أيقونة الجرس لفتح/إغلاق اللوحة
-  document.getElementById('notifBell')?.addEventListener('click', () => {
-    const panel = document.getElementById('notificationsPanel');
-    if (!panel) return;
-    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-    renderNotifications();
-    updateBellCount();
+// دالة لإضافة إشعار في Firestore
+async function saveToFirestore({ title, body, time }) {
+  if (!window.currentUser) return;
+  await addDoc(collection(db, 'notifications'), {
+    user:  window.currentUser,
+    title, body, time
   });
+}
 
-  // زر مسح الإشعارات
-  document.getElementById('clearNotifications')?.addEventListener('click', clearNotifications);
-
-  // إعداد الواجهة عند أول تحميل
-  updateBellCount();
-  renderNotifications();
-});
+// دالة initPush للويب
+export async function initPush() {
+  // 1) سجّل SW
+  await navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(console.warn);
+  // 2) احصل على صلاحية وToken
+  if (await Notification.requestPermission() !== 'granted') return;
+  const reg   = await navigator.serviceWorker.getRegistration();
+  const token = await getToken(messaging, { vapidKey: VAPID_PUBLIC_KEY, serviceWorkerRegistration: reg })
+    .catch(console.warn);
+  if (token && window.currentUser) {
+    // بعث التوكن للسيرفر (لـ server-side notifications)
+    fetch(`${API_BASE}/register-token`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ user: window.currentUser, token })
+    }).catch(console.warn);
+  }
+  // 3) استمع للرسائل الواردة في المقدمة
+  onMessage(messaging, payload => {
+    const { title, body } = payload.notification || {};
+    const now = Date.now();
+    if (title && body) {
+      new Notification(title, { body });
+      saveToFirestore({ title, body, time: now });
+      window.renderNotifications();
+    }
+  });
+}
