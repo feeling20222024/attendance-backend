@@ -285,46 +285,25 @@
    </div>
   </section>
   </main>
-<!-- 1) تسجيل Service Worker فوراً -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
-        .then(reg => console.log('✅ SW registered:', reg.scope))
-        .catch(err => console.error('❌ SW reg failed', err));
-    }
-  </script>
+  
+ <!-- تسجيل Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('/firebase-messaging-sw.js')
+      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
+      .catch(err => console.error('❌ SW reg failed', err));
+  }
+</script>
 
-  <!-- 2) notifications.js أولاً (يعرّف renderNotifications, updateBellCount, addNotification) -->
-  <script src="js/notifications.js"></script>
+<!-- 1) notifications.js: يحتوي على import/export، لذا يجب type="module" -->
+<script type="module" src="/js/notifications.js"></script>
 
-  <!-- 3) رسائل الـ SW → notifications.js -->
-  <script>
-    // هذا يلتقط الرسائل المرسَلة من الـ Service Worker
-    navigator.serviceWorker?.addEventListener('message', event => {
-      const msg = event.data;
-      if (msg && msg.type === 'NEW_NOTIFICATION') {
-        window.addNotification({
-          title: msg.title,
-          body:  msg.body,
-          time:  msg.time
-        });
-      }
-    });
-  </script>
+<!-- 2) push.js: أيضاً يحتوي على import/export -->
+<script type="module" src="/js/push.js"></script>
 
-  <!-- 4) initNotifications بعد DOM جاهز -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof window.initNotifications === 'function') {
-        window.initNotifications();
-      }
-    });
-  </script>
+<!-- 3) app.js: يحتوي على استدعاء initPush، ولا يحتاج imports -->
+<script type="module" src="/js/app.js" defer></script>
 
-  <!-- 5) ثمّ Push + App -->
-  <script type="module" src="js/push.js" defer></script>
-  <script nomodule src="js/app.legacy.js" defer></script>
-  <script type="module" src="js/app.js" defer></script>
 </body>
 </html>
