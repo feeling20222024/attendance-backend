@@ -137,14 +137,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // —————————————————————————————————————————
-// دالة تسجيل الدخول
-// —————————————————————————————————————————
 async function login() {
   const code = normalizeDigits(document.getElementById('codeInput').value.trim());
   const pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) return alert('يرجى إدخال الكود وكلمة المرور.');
 
   try {
+    // 1) طلب تسجيل الدخول
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -153,59 +152,64 @@ async function login() {
     if (res.status === 401) return alert('بيانات الدخول خاطئة');
     if (!res.ok) throw new Error(`Status ${res.status}`);
 
+    // 2) استلام التوكن وتهيئة المصادقة محلياً
     const json = await res.json();
-    jwtToken    = json.token;
+    jwtToken = json.token;
     localStorage.setItem('jwtToken', jwtToken);
 
-    currentUser     = json.user.code ?? json.user['كود الموظف'];
-// … بعد تعيين currentUser:
-window.currentUser = currentUser;
-console.log('✅ login successful, user =', currentUser);
+    // 3) currentUser وتخزينه
+    currentUser = json.user.code ?? json.user['كود الموظف'];
+    window.currentUser = currentUser;
+    console.log('✅ login successful, user =', currentUser);
 
-// ↓ أضف المقطع هنا ↓
-try {
-  // 1) اجلب آخر 50 إشعار من السيرفر
-  const notifRes = await fetch(`${API_BASE}/notifications/${currentUser}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwtToken}`
+    // ↓ هنا نضيف جلب الإشعارات من السيرفر ↓
+    try {
+      const notifRes = await fetch(`${API_BASE}/notifications/${currentUser}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      if (notifRes.ok) {
+        const serverNotifs = await notifRes.json();
+        // خزنها في localStorage لكي تكون موحدة
+        localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
+        // حدّث اللوحة والعداد
+        if (typeof window.renderNotifications === 'function') {
+          window.renderNotifications();
+        }
+        if (typeof window.updateBellCount === 'function') {
+          window.updateBellCount();
+        }
+      } else {
+        console.warn('Failed to fetch server notifications:', notifRes.status);
+      }
+    } catch (e) {
+      console.warn('Error fetching server notifications:', e);
     }
-  });
-  if (notifRes.ok) {
-    const serverNotifs = await notifRes.json();
-    // 2) خزنها في localStorage (موحّد لجميع المنصات)
-    localStorage.setItem('notificationsLog', JSON.stringify(serverNotifs));
-    // 3) حدّث العرض والعداد
-    if (typeof window.renderNotifications === 'function') {
-      window.renderNotifications();
+
+    // 4) ثبّت الاستقبال الفوري للإشعارات
+    if (typeof window.initNotifications === 'function') {
+      await window.initNotifications();
     }
-    if (typeof window.updateBellCount === 'function') {
-      window.updateBellCount();
+
+    // 5) ثبّت الـ push (ويب + Native)
+    console.log('🚀 calling initPush()…');
+    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+      await initPushNative();
+    } else {
+      await initPush();
     }
-  } else {
-    console.warn('Failed to fetch server notifications:', notifRes.status);
+
+    // 6) وأخيراً: جلب باقي بيانات التطبيق
+    await fetchAndRender();
+
+  } catch (e) {
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
-} catch (e) {
-  console.warn('Error fetching server notifications:', e);
 }
 
-// إذا كنت تريد أيضاً استدعاء دالة مساعدة لتحميل الإشعارات من السيرفر:
-// await window.loadNotificationsFromServer();
-
-// ثم الاستمرار بتهيئة الإشعارات وباقي التطبيق:
-if (typeof window.initNotifications === 'function') {
-  await window.initNotifications();
-}
-
-console.log('🚀 calling initPush()…');
-if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-  await initPushNative();
-} else {
-  await initPush();
-}
-
-// أخيراً جلب بيانات التطبيق
-await fetchAndRender();
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
