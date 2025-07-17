@@ -1,5 +1,4 @@
 // public/js/notifications.js
-
 (function(){
   const STORAGE_KEY = 'notificationsLog';
   const bell        = document.getElementById('notifBell');
@@ -21,7 +20,6 @@
   // عرض الإشعارات في اللوحة وتحديث العداد
   function renderNotifications() {
     const notifs = loadNotifications();
-    // لوائح الإشعارات
     if (notifs.length === 0) {
       list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
     } else {
@@ -36,7 +34,7 @@
     // تحديث العداد
     countBadge.textContent = notifs.length;
     countBadge.style.display = notifs.length ? 'inline-block' : 'none';
-    // إظهار زر المسح إذا كان المشرف وهناك إشعارات
+    // إظهار زر المسح فقط للمشرف
     clearBtn.style.display = (window.currentUser === SUPERVISOR && notifs.length)
       ? 'inline-block'
       : 'none';
@@ -44,8 +42,7 @@
 
   // تبديل عرض اللوحة عند الضغط على الجرس
   bell.addEventListener('click', () => {
-    // لا نفعل شيئ قبل تسجيل الدخول
-    if (!window.currentUser) return;
+    // **إزالة شرط تسجيل الدخول** لنفتح اللوحة دائماً
     const isOpen = panel.style.display === 'block';
     panel.style.display = isOpen ? 'none' : 'block';
     if (!isOpen) renderNotifications();
@@ -59,9 +56,8 @@
     renderNotifications();
   });
 
-  // يتيح لـ push.js استدعاء إعادة العرض
+  // دوال يمكن لـ push.js استدعاؤها
   window.renderNotifications = renderNotifications;
-  // تحديث العداد فقط
   window.updateBellCount = () => {
     const cnt = loadNotifications().length;
     countBadge.textContent = cnt;
