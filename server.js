@@ -1,5 +1,3 @@
-// server.js
-
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
 
@@ -32,32 +30,29 @@ try {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
-
 // 4) دالة لإرسال إشعار FCM
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
     notification: { title, body },
     android: {
-      // تنتهي الرسالة بعد 172800000 ميلي‑ثانية = 48 ساعة
-      ttl: 172800000,
+      // تنتهي الرسالة بعد 3600 ثانية (1 ساعة)
+      ttl: '172800s',
       priority: 'high',
       notification: {
-        channel_id: 'default',  // اسم القناة كما أنشأته سابقاً
-        sound:      'default'
-        // لا تضيفي هنا vibrate_timings أو حقول غير مدعومة
+        android_channel_id: 'default',
+        sound:             'default',
+        vibrate_timings:   [100, 200, 100]
       }
     },
     data  // بيانات إضافية إن وجدت
   };
 
   try {
-    const response = await admin.messaging().send(message);
-    console.log('✅ Push sent:', response);
-    return response;
+    const resp = await admin.messaging().send(message);
+    console.log(`✅ تم الإرسال إلى ${token}: ${resp}`);
   } catch (err) {
-    console.error('❌ Failed to send push to', token, err);
-    throw err;
+    console.error(`❌ فشل الإرسال إلى ${token}:`, err);
   }
 }
 
@@ -222,13 +217,12 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
   }
 });
 
-// 14) تسجيل توكن FCM (نجعلها Set لتجنّب التكرار)
-const tokens = new Set();
-
+// 14) تسجيل توكن FCM
+const tokens = new Map();
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
   if (!user || !token) return res.status(400).json({ error: 'user and token required' });
-  tokens.add(token);  // Set يضمن فريدانية التوكن
+  tokens.set(token, user);
   res.json({ success: true });
 });
 
@@ -236,16 +230,11 @@ app.post('/api/register-token', (req, res) => {
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
   const { title, body } = req.body;
-  const list = Array.from(tokens);
+  const list = Array.from(tokens.keys());
   await Promise.allSettled(list.map(t => sendPushTo(t, title, body)));
   res.json({ success: true });
 });
-app.get('/api/latest-version', (req, res) => {
-  res.json({
-    latest:    '1.0.0',  // عدّل هذا عند إصدار نسخة جديدة
-    updateUrl: 'https://play.google.com/store/apps/details?id=com.example.app'
-  });
-});
+
 // 16) SPA fallback (يجب أن يكون آخر شيء)
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
