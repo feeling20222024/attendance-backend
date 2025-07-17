@@ -34,6 +34,8 @@ admin.initializeApp({
 });
 
 // 4) دالة لإرسال إشعار FCM
+const tokens = new Set();  // نجعلها Set لتجنّب التكرار
+
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
@@ -45,7 +47,6 @@ async function sendPushTo(token, title, body, data = {}) {
       notification: {
         channel_id: 'default',  // اسم القناة كما أنشأته سابقاً
         sound:      'default'
-        // لا تضيفي هنا vibrate_timings أو حقول غير مدعومة
       }
     },
     data  // بيانات إضافية إن وجدت
@@ -53,11 +54,18 @@ async function sendPushTo(token, title, body, data = {}) {
 
   try {
     const response = await admin.messaging().send(message);
-    console.log('✅ Push sent:', response);
+    console.log('✅ Push sent to', token, response);
     return response;
   } catch (err) {
     console.error('❌ Failed to send push to', token, err);
-    throw err;
+    // إذا التوكن غير مُسجّل أو غير صالح، نحذفه من المجموعـة
+    const code = err.errorInfo && err.errorInfo.code;
+    if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-argument') {
+      tokens.delete(token);
+      console.log('🗑️ Removed invalid/expired token:', token);
+    }
+    // لا نعيد رمي الخطأ كي لا يوقف المعالجة لبقية التوكنات
+    return;
   }
 }
 
@@ -222,13 +230,12 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
   }
 });
 
-// 14) تسجيل توكن FCM (نجعلها Set لتجنّب التكرار)
-const tokens = new Set();
-
+// 14) تسجيل توكن FCM
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
   if (!user || !token) return res.status(400).json({ error: 'user and token required' });
-  tokens.add(token);  // Set يضمن فريدانية التوكن
+  tokens.add(token);
+  console.log('🔖 Registered FCM token:', token);
   res.json({ success: true });
 });
 
@@ -240,13 +247,16 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   await Promise.allSettled(list.map(t => sendPushTo(t, title, body)));
   res.json({ success: true });
 });
+
+// 16) إصدار أحدث نسخة للتطبيق
 app.get('/api/latest-version', (req, res) => {
   res.json({
     latest:    '1.0.0',  // عدّل هذا عند إصدار نسخة جديدة
     updateUrl: 'https://play.google.com/store/apps/details?id=com.example.app'
   });
 });
-// 16) SPA fallback (يجب أن يكون آخر شيء)
+
+// 17) SPA fallback (يجب أن يكون آخر شيء)
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
