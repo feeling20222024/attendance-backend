@@ -10,6 +10,32 @@ const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const NOTIFS_ENDPOINT = `${API_BASE}/notifications`;
 const STORAGE_KEY     = 'notificationsLog';
 const SUPERVISOR_CODE = '35190';
+// —————————————————————————————————————————
+// جلب إشعارات المستخدم من السيرفر وتخزينها محلياً
+// —————————————————————————————————————————
+async function loadNotificationsFromServer() {
+  if (!window.currentUser) return [];
+  try {
+    const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
+    if (!res.ok) {
+      console.warn('لم يتم جلب الإشعارات من السيرفر:', res.status);
+      return [];
+    }
+    const arr = await res.json();
+    // تأكد أنها مصفوفة من { title, body, time }
+    if (!Array.isArray(arr)) {
+      console.warn('رد غير متوقع من السيرفر:', arr);
+      return [];
+    }
+    // خزّنها في localStorage
+    localStorage.setItem('notificationsLog', JSON.stringify(arr));
+    return arr;
+  } catch (e) {
+    console.warn('❌ لم يتم جلب إشعارات الخادم:', e);
+    return [];
+  }
+}
+
 
 let headersAtt      = [], attendanceData = [];
 let headersHw       = [], hwafezData     = [];
