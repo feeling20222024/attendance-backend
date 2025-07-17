@@ -297,15 +297,14 @@
         .catch(e => console.warn('❌ SW register failed', e));
     }
   </script>
-
-  <!-- سكربتات الإشعارات وفاقتها -->
+<!-- notifications.js فيه تعريف initNotifications و renderNotifications … -->
 <script src="/js/notifications.js"></script>
+
+<!-- ثم push.js الذي يستدعي initPush و initNotifications -->
 <script type="module" src="/js/push.js"></script>
+
+<!-- ثم app.js الذي يستدعي initPush داخل login() -->
 <script type="module" src="/js/app.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    window.initNotifications();
-  });
-</script>
+
 </body>
 </html>
