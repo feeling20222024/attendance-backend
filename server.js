@@ -45,11 +45,11 @@ async function sendPushTo(token, title, body, data = {}) {
       ttl: 172800000,
       priority: 'high',
       notification: {
-        channel_id: 'default',  // اسم القناة كما أنشأته سابقاً
+        channel_id: 'default',
         sound:      'default'
       }
     },
-    data  // بيانات إضافية إن وجدت
+    data
   };
 
   try {
@@ -58,13 +58,20 @@ async function sendPushTo(token, title, body, data = {}) {
     return response;
   } catch (err) {
     console.error('❌ Failed to send push to', token, err);
-    // إذا التوكن غير مُسجّل أو غير صالح، نحذفه من المجموعـة
-    const code = err.errorInfo && err.errorInfo.code;
-    if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-argument') {
+
+    // 1) اقرأ الكود من err.code أو err.errorInfo.code
+    const errCode = err.code || (err.errorInfo && err.errorInfo.code) || '';
+
+    // 2) إذا كان متعلقاً بتوكن منتهي الصلاحية أو غير مسجّل، أحذفه
+    if (
+      errCode.includes('registration-token-not-registered') ||
+      errCode.includes('invalid-argument')
+    ) {
       tokens.delete(token);
       console.log('🗑️ Removed invalid/expired token:', token);
     }
-    // لا نعيد رمي الخطأ كي لا يوقف المعالجة لبقية التوكنات
+
+    // لا نعيد رمي الخطأ لكي نستمر بإرسال الإشعارات إلى بقية التوكنات
     return;
   }
 }
@@ -156,7 +163,6 @@ app.post('/api/login', async (req, res) => {
     const payload = { code, name: row[iN] };
     const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
     res.json({ token, user: payload });
-
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Login failed' });
@@ -175,7 +181,6 @@ app.get('/api/me', authenticate, async (req, res) => {
     const single = {};
     headers.forEach((h,i) => single[h] = row[i] ?? '');
     res.json({ user: single });
-
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.message });
@@ -251,7 +256,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
 // 16) إصدار أحدث نسخة للتطبيق
 app.get('/api/latest-version', (req, res) => {
   res.json({
-    latest:    '1.0.0',  // عدّل هذا عند إصدار نسخة جديدة
+    latest:    '1.0.0',  
     updateUrl: 'https://play.google.com/store/apps/details?id=com.example.app'
   });
 });
