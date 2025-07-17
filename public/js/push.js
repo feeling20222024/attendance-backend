@@ -86,10 +86,10 @@ if (window.currentUser) {
 window.initPush = async function () {
   console.log('🚀 initPush called');
   if (typeof window.initNotifications === 'function') {
-    // 1) انتظر انتهاء تسجيل الـ SW وتهيئة Firebase وطلب الإذن
+    // 1) انتظر انتهاء تسجيل SW وتهيئة Firebase
     await window.initNotifications();
 
-    // 2) **هنا**: جلب سجل الإشعارات من الخادم وحفظها محلياً
+    // 2) جلب سجل الإشعارات من الخادم
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
         headers: {
@@ -99,9 +99,7 @@ window.initPush = async function () {
       });
       if (res.ok) {
         const { notifications } = await res.json();
-        // خزِّنها في localStorage حتى يستخدمها notifications.js
         localStorage.setItem('notificationsLog', JSON.stringify(notifications));
-        // حدّث الواجهة
         window.renderNotifications();
         window.updateBellCount();
       }
