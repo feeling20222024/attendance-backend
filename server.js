@@ -43,36 +43,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 6) Routes الإشعارات
 
 // 6.1) حفظ إشعار جديد
+// حفظ إشعار
 app.post('/api/save-notification', async (req, res) => {
-  try {
-    const { user, title, body, time } = req.body;
-    if (!user || !title || !body || !time) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    const coll = db.collection('notifications');
-    await coll.insertOne({ user, title, body, time });
-    res.json({ success: true });
-  } catch (e) {
-    console.error('❌ save-notification error:', e);
-    res.status(500).json({ error: 'Internal server error' });
+  const { user, title, body, time } = req.body;
+  if (!user || !title || !body || !time) {
+    return res.status(400).json({ error: 'Missing fields' });
   }
+  // احفظ في الـ DB
+  await db.collection('notifications').insertOne({ user, title, body, time });
+  res.json({ success: true });
 });
 
-// 6.2) جلب آخر 50 إشعاراً لمستخدم معيّن
+// جلب إشعارات المستخدم (آخر 50)
 app.get('/api/notifications/:user', async (req, res) => {
-  try {
-    const user = req.params.user;
-    const coll = db.collection('notifications');
-    const notifs = await coll
-      .find({ user })
-      .sort({ time: -1 })
-      .limit(50)
-      .toArray();
-    res.json(notifs);
-  } catch (e) {
-    console.error('❌ get-notifications error:', e);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  const user = req.params.user;
+  const docs = await db.collection('notifications')
+                       .find({ user })
+                       .sort({ time: -1 })
+                       .limit(50)
+                       .toArray();
+  res.json(docs);
 });
 
 // 7) هنا تضيف باقي الـ routes: login, attendance, hwafez, tqeem، …
