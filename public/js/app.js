@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
-    alert('فكرة وإعداد وتصميم عمر عونـي السابق');
+    alert('فكرة وإعداد وتصميم عمر عونـي الماضي');
   document.getElementById('hwafezBtn').onclick = showHwafez;
   document.getElementById('tqeemBtn').onclick  = showTqeem;
   document.getElementById('clearNotifications').onclick = clearNotifications;
