@@ -35,9 +35,7 @@
     countBadge.textContent = notifs.length;
     countBadge.style.display = notifs.length ? 'inline-block' : 'none';
     // إظهار زر المسح فقط للمشرف
-    clearBtn.style.display = (window.currentUser === SUPERVISOR && notifs.length)
-      ? 'inline-block'
-      : 'none';
+ clearBtn.style.display = notifs.length ? 'inline-block' : 'none';
   }
 
   // تبديل عرض اللوحة عند الضغط على الجرس
