@@ -1,55 +1,73 @@
-// —————————————————————————————————————————
-// دالة تهيئة واجهة لوحة الإشعارات
-// —————————————————————————————————————————
-window.initNotifications = function() {
-  const bell   = document.getElementById('notifBell');
-  const panel  = document.getElementById('notificationsPanel');
-  const ul     = document.getElementById('notificationsLog');
-  const count  = document.getElementById('notifCount');
-  const clearB = document.getElementById('clearNotifications');
+// public/js/notifications.js
 
-  // إعادة عرض الإشعارات المخزّنة
-  function render() {
-    const saved = JSON.parse(localStorage.getItem('notifications') || '[]');
-    ul.innerHTML = '';
-    saved.forEach(n => {
-      const li = document.createElement('li');
-      li.style.padding = '0.5rem 0';
-      li.innerHTML = `
-        <strong>${n.title}</strong><br>
-        ${n.body}<br>
-        <small>📅 ${n.time}</small>
-        <hr style="margin:0.5rem 0">
-      `;
-      ul.appendChild(li);
-    });
-    count.textContent = saved.length;
+(function(){
+  const STORAGE_KEY = 'notificationsLog';
+  const bell        = document.getElementById('notifBell');
+  const panel       = document.getElementById('notificationsPanel');
+  const list        = document.getElementById('notificationsLog');
+  const clearBtn    = document.getElementById('clearNotifications');
+  const countBadge  = document.getElementById('notifCount');
+  const SUPERVISOR  = '35190';
+
+  // تحميل الإشعارات من localStorage
+  function loadNotifications() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    } catch {
+      return [];
+    }
   }
 
-  // فتح/غلق اللوحة عند الضغط على الجرس (مُتاح بعد login)
-  bell.addEventListener('click', () => {
-    if (!window.currentUser) return;      // لا يفتح قبل login
-    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-    // عند الفتح، لا نحذف سجل الإشعارات، لكن نصفر العداد
-    if (panel.style.display === 'block') {
-      count.textContent = '0';
+  // عرض الإشعارات في اللوحة وتحديث العداد
+  function renderNotifications() {
+    const notifs = loadNotifications();
+    // لوائح الإشعارات
+    if (notifs.length === 0) {
+      list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
+    } else {
+      list.innerHTML = notifs.map(n => `
+        <li class="mb-4 border-b pb-2">
+          <div class="font-semibold text-gray-800">${n.title}</div>
+          <div class="text-sm text-gray-700">${n.body}</div>
+          <div class="text-xs text-gray-400 mt-1">${n.time}</div>
+        </li>
+      `).join('');
     }
+    // تحديث العداد
+    countBadge.textContent = notifs.length;
+    countBadge.style.display = notifs.length ? 'inline-block' : 'none';
+    // إظهار زر المسح إذا كان المشرف وهناك إشعارات
+    clearBtn.style.display = (window.currentUser === SUPERVISOR && notifs.length)
+      ? 'inline-block'
+      : 'none';
+  }
+
+  // تبديل عرض اللوحة عند الضغط على الجرس
+  bell.addEventListener('click', () => {
+    // لا نفعل شيئ قبل تسجيل الدخول
+    if (!window.currentUser) return;
+    const isOpen = panel.style.display === 'block';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) renderNotifications();
   });
 
-  // زر المسح يظهر فقط للمشرف
-  if (window.currentUser === '35190') {
-    clearB.style.display = 'block';
-    clearB.addEventListener('click', () => {
-      if (confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) {
-        localStorage.removeItem('notifications');
-        render();
-        alert('✅ تم مسح الإشعارات بنجاح');
-      }
-    });
-  } else {
-    clearB.style.display = 'none';
-  }
+  // مسح سجل الإشعارات (للمشرف فقط)
+  clearBtn.addEventListener('click', () => {
+    if (window.currentUser !== SUPERVISOR) return;
+    if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    renderNotifications();
+  });
 
-  // في كل مرة تُستدعى initNotifications، أعد العرض
-  render();
-};
+  // يتيح لـ push.js استدعاء إعادة العرض
+  window.renderNotifications = renderNotifications;
+  // تحديث العداد فقط
+  window.updateBellCount = () => {
+    const cnt = loadNotifications().length;
+    countBadge.textContent = cnt;
+    countBadge.style.display = cnt ? 'inline-block' : 'none';
+  };
+
+  // تهيئة أولية للعداد
+  updateBellCount();
+})();
