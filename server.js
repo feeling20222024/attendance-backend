@@ -2,13 +2,15 @@
 
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
-
+const APP_VERSION = process.env.APP_VERSION || '1.0.7';
 const express               = require('express');
 const cors                  = require('cors');
 const path                  = require('path');
 const jwt                   = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin                 = require('firebase-admin');
+const APP_VERSION = process.env.APP_VERSION || '1.0.7';
+
 
 // 2) دالة لتحويل الأرقام العربية/الفارسية إلى لاتينية
 function normalizeDigits(str) {
@@ -256,6 +258,9 @@ app.post('/api/notifications', authenticate, (req, res) => {
 app.get('/api/notifications', authenticate, (req, res) => {
   const code = req.user.code;
   res.json({ notifications: userNotifications[code] || [] });
+});
+app.get('/api/version', (req, res) => {
+  res.json({ version: APP_VERSION });
 });
 
 // 16) SPA fallback (يجب أن يكون آخر شيء)
