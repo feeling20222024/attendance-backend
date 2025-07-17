@@ -1,1 +1,255 @@
-const _0x36de60=_0x30cd;(function(_0x4a9f93,_0x51eb36){const _0xa292ec=_0x30cd,_0x487785=_0x4a9f93();while(!![]){try{const _0x2dfa1f=parseInt(_0xa292ec(0x1ed))/0x1+parseInt(_0xa292ec(0x1c9))/0x2+-parseInt(_0xa292ec(0x1bd))/0x3+parseInt(_0xa292ec(0x1ce))/0x4*(parseInt(_0xa292ec(0x1e9))/0x5)+parseInt(_0xa292ec(0x1ea))/0x6+parseInt(_0xa292ec(0x17f))/0x7*(-parseInt(_0xa292ec(0x17c))/0x8)+-parseInt(_0xa292ec(0x1b5))/0x9;if(_0x2dfa1f===_0x51eb36)break;else _0x487785['push'](_0x487785['shift']());}catch(_0x49b728){_0x487785['push'](_0x487785['shift']());}}}(_0x37b4,0xbe737),firebase[_0x36de60(0x187)]({'apiKey':'AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y','authDomain':_0x36de60(0x1c4),'projectId':_0x36de60(0x1a2),'storageBucket':_0x36de60(0x1b8),'messagingSenderId':_0x36de60(0x1f2),'appId':_0x36de60(0x19c)}));function _0x30cd(_0x212823,_0x1d40e7){const _0x37b4e0=_0x37b4();return _0x30cd=function(_0x30cd01,_0x56a046){_0x30cd01=_0x30cd01-0x17b;let _0x500073=_0x37b4e0[_0x30cd01];return _0x500073;},_0x30cd(_0x212823,_0x1d40e7);}const API_BASE='https://dwam-app-by-omar.onrender.com/api',LOGIN_ENDPOINT=API_BASE+_0x36de60(0x19f),SUPERVISOR_CODE=_0x36de60(0x1d0);let jwtToken=null,currentUser=null;window['initPush']=async()=>{const _0x1d9689=_0x36de60;if(!('serviceWorker'in navigator)||!firebase[_0x1d9689(0x1ca)])return;const _0xa94ceb=await navigator['serviceWorker'][_0x1d9689(0x1c6)];console[_0x1d9689(0x1e2)](_0x1d9689(0x1a9),_0xa94ceb[_0x1d9689(0x1aa)]);const _0x82b4eb=firebase['messaging'](),_0x3852f7=await Notification[_0x1d9689(0x184)]();if(_0x3852f7!==_0x1d9689(0x1c1)){console[_0x1d9689(0x1b9)]('❌\x20إذن\x20الإشعارات\x20مرفوض');return;}const _0x31a2a0=await _0x82b4eb['getToken']({'vapidKey':_0x1d9689(0x180),'serviceWorkerRegistration':_0xa94ceb});console['log']('✅\x20FCM\x20token\x20(web):',_0x31a2a0),await fetch(API_BASE+_0x1d9689(0x1a0),{'method':_0x1d9689(0x18f),'headers':{'Content-Type':_0x1d9689(0x1d6)},'body':JSON[_0x1d9689(0x183)]({'user':currentUser,'token':_0x31a2a0})}),console[_0x1d9689(0x1e2)](_0x1d9689(0x1ee)),_0x82b4eb[_0x1d9689(0x17d)](_0x22336e=>{console['log']('📩\x20foreground\x20message:',_0x22336e);const {title:_0x5bbb3d,body:_0x56fb04}=_0x22336e['notification']||{};if(_0x5bbb3d)new Notification(_0x5bbb3d,{'body':_0x56fb04});});};function _0x37b4(){const _0x1f0c59=['innerHTML','hwafezBody','responsibility','replace','POST','leadership','getElementById','initiative','mastery','مهارة\x20الإدارة\x20الذاتية','balance','يرجى\x20إدخال\x20الكود\x20وكلمة\x20المرور.','date','ساعية\x20(من\x20الساعة)','sendPushBtn','❌\x20خطأ\x20في\x20الإرسال:\x20','مرحباً\x20','1:235398312189:web:8febe5e63f7b134b808e94','Unauthorized','welcomeMsg','/login','/register-token','/attendance','device-streaming-47cbe934','mTo','المبادرة\x20والتطوير\x20الذاتي','ملاحظات','name','حجم\x20العمل','text','✅\x20Using\x20active\x20Service\x20Worker\x20at','scope','records','hidden','code','value','عدد\x20الأيام\x20المحتسبة\x20بتقرير\x20الساعيات\x20أو\x20التأخر\x20أقل\x20من\x20ساعة','attendancePct','trim','Bearer\x20','status','عدد\x20الإجازات\x20الإدارية\x20المتبقية\x20للعامل','15855417kYjezg','اتقان\x20العمل\x20وفعاليته','سنوات\x20الخبرة','device-streaming-47cbe934.appspot.com','warn','appendChild','الحالة','comms','469980gGNvvG','passwordInput','التاريخ','مستوى\x20التأهيل','granted','دخول','user','device-streaming-47cbe934.firebaseapp.com','✅\x20loginWeb\x20successful,\x20currentUser\x20=','ready','adminC','رقم\x20الموظف','782328WqwzQl','messaging','\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>','work','adminR','337684ZsnyNG','pushSection','35190','textContent','كود\x20الموظف','يرجى\x20إدخال\x20عنوان\x20ونص\x20الإشعار.','days','initPush','application/json','notes','المهارات\x20القيادية','adminDue','mFrom','عدد\x20الإجازات\x20الإدارية\x20المستحقة\x20للعامل','json','headers','currentUser','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>','عدد\x20الإجازات\x20الإدارية\x20المحتسبة\x20للعامل','createElement','log','filter','خروج','qualification','مهمة\x20(إلى\x20الساعة)','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20','٠١٢٣٤٥٦٧٨٩','5fHwlmu','7458072nQEfqX','onclick','بيانات\x20الدخول\x20خاطئة','1130202pXXrPa','✅\x20تم\x20تسجيل\x20التوكن\x20على\x20الخادم','indexOf','الإستقلال\x20والموثوقية','data','235398312189','sTo','setItem','attendanceBody','24mzzAoB','onMessage','✅\x20تم\x20إرسال\x20الإشعار','350791XBAbFS','BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1l8go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ','/me','forEach','stringify','requestPermission','مهمة\x20(من\x20الساعة)','loginSection','initializeApp','independence','الاسم','/notify-all'];_0x37b4=function(){return _0x1f0c59;};return _0x37b4();}function normalizeDigits(_0x4a250d){const _0x174dd2=_0x36de60;return _0x4a250d[_0x174dd2(0x18e)](/[٠-٩]/g,_0x2d79b0=>_0x174dd2(0x1e8)[_0x174dd2(0x1ef)](_0x2d79b0));}async function loginWeb(){const _0xaa984f=_0x36de60,_0x3fd3e1=normalizeDigits(document[_0xaa984f(0x191)]('codeInput')[_0xaa984f(0x1ae)][_0xaa984f(0x1b1)]()),_0x4b80b5=document[_0xaa984f(0x191)](_0xaa984f(0x1be))[_0xaa984f(0x1ae)]['trim']();if(!_0x3fd3e1||!_0x4b80b5)return alert(_0xaa984f(0x196));const _0x3d89da=await fetch(LOGIN_ENDPOINT,{'method':_0xaa984f(0x18f),'headers':{'Content-Type':_0xaa984f(0x1d6)},'body':JSON[_0xaa984f(0x183)]({'code':_0x3fd3e1,'pass':_0x4b80b5})});if(_0x3d89da['status']===0x191)return alert(_0xaa984f(0x1ec));if(!_0x3d89da['ok'])throw new Error('خطأ\x20بالخادم\x20('+_0x3d89da[_0xaa984f(0x1b3)]+')');const {token:_0x2049f2,user:_0x2627d8}=await _0x3d89da[_0xaa984f(0x1dc)]();jwtToken=_0x2049f2,localStorage[_0xaa984f(0x1f4)]('jwtToken',_0x2049f2),currentUser=_0x2627d8[_0xaa984f(0x1ad)]??_0x2627d8[_0xaa984f(0x1d2)],window[_0xaa984f(0x1de)]=currentUser,console['log'](_0xaa984f(0x1c5),currentUser),await window[_0xaa984f(0x1d5)](),await fetchAndRenderWeb();}async function fetchAndRenderWeb(){const _0x2a9761=_0x36de60;if(!jwtToken)return;const _0x4e6e28={'Content-Type':_0x2a9761(0x1d6),'Authorization':'Bearer\x20'+jwtToken},[_0x4a3172,_0x4de508,_0x262af4]=await Promise['all']([fetch(API_BASE+_0x2a9761(0x1a1),{'headers':_0x4e6e28}),fetch(API_BASE+'/hwafez',{'headers':_0x4e6e28}),fetch(API_BASE+_0x2a9761(0x181),{'headers':_0x4e6e28})]);if(!_0x4a3172['ok']||!_0x4de508['ok']||!_0x262af4['ok'])throw new Error(_0x2a9761(0x19d));const _0x276610=await _0x4a3172[_0x2a9761(0x1dc)](),_0x36e6ff=await _0x4de508[_0x2a9761(0x1dc)](),_0xb6f050=await _0x262af4['json']();renderAttendance(_0x276610[_0x2a9761(0x1dd)],_0x276610[_0x2a9761(0x1f1)],_0xb6f050[_0x2a9761(0x1c3)]['كود\x20الموظف']),renderHwafez(_0x36e6ff[_0x2a9761(0x1dd)],_0x36e6ff[_0x2a9761(0x1f1)]);}function renderAttendance(_0x42f120,_0x446f27,_0x2cf31d){const _0x5d697e=_0x36de60;document[_0x5d697e(0x191)](_0x5d697e(0x186))['hidden']=!![],document[_0x5d697e(0x191)](_0x5d697e(0x1ab))[_0x5d697e(0x1ac)]=![],document[_0x5d697e(0x191)](_0x5d697e(0x19e))[_0x5d697e(0x1d1)]=_0x5d697e(0x19b)+_0x2cf31d;String(_0x2cf31d)===SUPERVISOR_CODE&&(document[_0x5d697e(0x191)](_0x5d697e(0x1cf))[_0x5d697e(0x1ac)]=![],document[_0x5d697e(0x191)](_0x5d697e(0x199))[_0x5d697e(0x1eb)]=async()=>{const _0x34beb2=_0x5d697e,_0x31491d=document[_0x34beb2(0x191)]('notifTitleInput')[_0x34beb2(0x1ae)][_0x34beb2(0x1b1)](),_0x9850f2=document[_0x34beb2(0x191)]('notifBodyInput')[_0x34beb2(0x1ae)][_0x34beb2(0x1b1)]();if(!_0x31491d||!_0x9850f2)return alert(_0x34beb2(0x1d3));const _0xccef0e=await fetch(API_BASE+_0x34beb2(0x18a),{'method':_0x34beb2(0x18f),'headers':{'Content-Type':'application/json','Authorization':_0x34beb2(0x1b2)+jwtToken},'body':JSON[_0x34beb2(0x183)]({'title':_0x31491d,'body':_0x9850f2})});if(_0xccef0e['ok'])alert(_0x34beb2(0x17e));else{const _0x4f1b1f=await _0xccef0e[_0x34beb2(0x1a8)]();alert(_0x34beb2(0x19a)+_0x4f1b1f);}});const _0xad44fd={'code':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1c8)),'name':_0x42f120['indexOf'](_0x5d697e(0x189)),'status':_0x42f120['indexOf'](_0x5d697e(0x1bb)),'date':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1bf)),'in':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1c2)),'out':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1e4)),'sFrom':_0x42f120['indexOf'](_0x5d697e(0x198)),'sTo':_0x42f120[_0x5d697e(0x1ef)]('ساعية\x20(إلى\x20الساعة)'),'mFrom':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x185)),'mTo':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1e6)),'days':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1af)),'notes':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1a5)),'adminC':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1e0)),'adminR':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1b4)),'adminDue':_0x42f120[_0x5d697e(0x1ef)](_0x5d697e(0x1db))},_0xfb164d=document[_0x5d697e(0x191)](_0x5d697e(0x17b));_0xfb164d['innerHTML']='',_0x446f27[_0x5d697e(0x1e3)](_0x3b66be=>String(_0x3b66be[_0xad44fd[_0x5d697e(0x1ad)]]||'')[_0x5d697e(0x1b1)]()===String(_0x2cf31d))[_0x5d697e(0x182)](_0x18c419=>{const _0x2e8aa7=_0x5d697e,_0x282dc1=document[_0x2e8aa7(0x1e1)]('tr');_0x282dc1[_0x2e8aa7(0x18b)]=_0x2e8aa7(0x1cb)+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1ad)]]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1a6)]]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(caseMapping[String(_0x18c419[_0xad44fd['status']])[_0x2e8aa7(0x1b1)]()]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x18c419[_0xad44fd[_0x2e8aa7(0x197)]]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd['in']]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd['out']]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd['sFrom']]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1f3)]]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1da)]]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1a3)]]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1d4)]]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1d7)]]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1c7)]]||'')+_0x2e8aa7(0x1df)+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1cd)]]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x18c419[_0xad44fd[_0x2e8aa7(0x1d9)]]||'')+_0x2e8aa7(0x1e7),_0xfb164d[_0x2e8aa7(0x1ba)](_0x282dc1);});}function renderHwafez(_0x43dec3,_0x5e0bda){const _0x34ad17=_0x36de60,_0x25cfc4={'code':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x1c8)),'name':_0x43dec3['indexOf']('الاسم'),'work':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x1a7)),'mastery':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x1b6)),'leadership':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x1d8)),'self':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x194)),'comms':_0x43dec3[_0x34ad17(0x1ef)]('مهارات\x20التواصل\x20والتفاعل'),'initiative':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x1a4)),'independence':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x1f0)),'responsibility':_0x43dec3[_0x34ad17(0x1ef)]('الإلتزام\x20والمسؤولية'),'attendancePct':_0x43dec3['indexOf']('نسبة\x20الدوام\x20الفعلي\x20للعامل'),'balance':_0x43dec3['indexOf']('السويّة\x20الوظيفيّة'),'qualification':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x1c0)),'experience':_0x43dec3[_0x34ad17(0x1ef)](_0x34ad17(0x1b7))},_0x3638f3=document[_0x34ad17(0x191)](_0x34ad17(0x18c));_0x3638f3[_0x34ad17(0x18b)]='',_0x5e0bda[_0x34ad17(0x1e3)](_0x461edb=>String(_0x461edb[_0x25cfc4[_0x34ad17(0x1ad)]])[_0x34ad17(0x1b1)]()===String(currentUser))[_0x34ad17(0x182)](_0x285839=>{const _0x5ce84f=_0x34ad17,_0x29a9f0=document[_0x5ce84f(0x1e1)]('tr');_0x29a9f0['innerHTML']='\x0a\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x285839[_0x25cfc4['code']]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x285839[_0x25cfc4['name']]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x1cc)]]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x193)]]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x285839[_0x25cfc4[_0x5ce84f(0x190)]]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4['self']]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x1bc)]]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x192)]]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x188)]]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x18d)]]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x1b0)]]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x195)]]||'')+_0x5ce84f(0x1df)+(_0x285839[_0x25cfc4[_0x5ce84f(0x1e5)]]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x285839[_0x25cfc4['experience']]||'')+_0x5ce84f(0x1e7),_0x3638f3[_0x5ce84f(0x1ba)](_0x29a9f0);});}
+// public/js/app.web.js
+
+// —————————————————————————————————————————
+// 1) إعداد Firebase (مطابق لفirebase-messaging-sw.js)
+// —————————————————————————————————————————
+firebase.initializeApp({
+  apiKey:    "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:"device-streaming-47cbe934.firebaseapp.com",
+  projectId: "device-streaming-47cbe934",
+  storageBucket:"device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:     "1:235398312189:web:8febe5e63f7b134b808e94"
+});
+
+// —————————————————————————————————————————
+// 2) المتغيرات العامة ونقاط النهاية
+// —————————————————————————————————————————
+const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT  = `${API_BASE}/login`;
+const SUPERVISOR_CODE = '35190';
+let jwtToken  = null, currentUser = null;
+
+// —————————————————————————————————————————
+// 3) initPush: تهيئة إشعارات الويب عبر FCM + SW
+// —————————————————————————————————————————
+window.initPush = async () => {
+  if (!('serviceWorker' in navigator) || !firebase.messaging) return;
+
+  // 3.1) انتظر أي SW فعّال
+  const reg = await navigator.serviceWorker.ready;
+  console.log('✅ Using active Service Worker at', reg.scope);
+
+  // 3.2) احصل على كائن messaging
+  const messaging = firebase.messaging();
+
+  // 3.3) طلب إذن الإشعارات
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    console.warn('❌ إذن الإشعارات مرفوض');
+    return;
+  }
+
+  // 3.4) جلب FCM token
+  const token = await messaging.getToken({
+    vapidKey: "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1l8go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ",
+    serviceWorkerRegistration: reg
+  });
+  console.log('✅ FCM token (web):', token);
+
+  // 3.5) سجلّ التوكن في الخادم
+  await fetch(`${API_BASE}/register-token`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ user: currentUser, token })
+  });
+  console.log('✅ تم تسجيل التوكن على الخادم');
+
+  // 3.6) استمع للرسائل أثناء التواجد في الواجهة
+  messaging.onMessage(payload => {
+    console.log('📩 foreground message:', payload);
+    const { title, body } = payload.notification || {};
+    if (title) new Notification(title, { body });
+  });
+};
+
+// —————————————————————————————————————————
+// 4) Helper: تطبيع أرقام عربية → غربية
+// —————————————————————————————————————————
+function normalizeDigits(str) {
+  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
+
+// —————————————————————————————————————————
+// 5) تسجيل الدخول (ويب فقط)
+// —————————————————————————————————————————
+async function loginWeb() {
+  const code = normalizeDigits(document.getElementById('codeInput').value.trim());
+  const pass = document.getElementById('passwordInput').value.trim();
+  if (!code || !pass) {
+    return alert('يرجى إدخال الكود وكلمة المرور.');
+  }
+
+  // 5.1) طلب المصادقة
+  const res = await fetch(LOGIN_ENDPOINT, {
+    method: 'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify({ code, pass })
+  });
+  if (res.status === 401) {
+    return alert('بيانات الدخول خاطئة');
+  }
+  if (!res.ok) {
+    throw new Error(`خطأ بالخادم (${res.status})`);
+  }
+
+  // 5.2) استلام الـ JWT والـ user
+  const { token, user } = await res.json();
+  jwtToken = token;
+  localStorage.setItem('jwtToken', token);
+
+  currentUser = user.code ?? user['كود الموظف'];
+  window.currentUser = currentUser;
+  console.log('✅ loginWeb successful, currentUser =', currentUser);
+
+  // 5.3) تهيئة إشعارات الويب
+  await window.initPush();
+
+  // 5.4) جلب وعرض البيانات
+  await fetchAndRenderWeb();
+}
+
+// —————————————————————————————————————————
+// 6) جلب وعرض البيانات (ويب فقط)
+// —————————————————————————————————————————
+async function fetchAndRenderWeb() {
+  if (!jwtToken) return;
+
+  // مهم: أضف هيدر الـ Authorization
+  const headers = {
+    'Content-Type':'application/json',
+    'Authorization': `Bearer ${jwtToken}`
+  };
+
+  const [aRes, hwRes, meRes] = await Promise.all([
+    fetch(`${API_BASE}/attendance`, { headers }),
+    fetch(`${API_BASE}/hwafez`,      { headers }),
+    fetch(`${API_BASE}/me`,          { headers })
+  ]);
+  if (!aRes.ok || !hwRes.ok || !meRes.ok) {
+    throw new Error('Unauthorized');
+  }
+
+  const aJson  = await aRes.json();
+  const hwJson = await hwRes.json();
+  const meJson = await meRes.json();
+
+  renderAttendance(aJson.headers, aJson.data, meJson.user['كود الموظف']);
+  renderHwafez     (hwJson.headers, hwJson.data);
+}
+
+// —————————————————————————————————————————
+// 7) رسم جدول الحضور (ويب)
+// —————————————————————————————————————————
+function renderAttendance(headers, data, userCode) {
+  document.getElementById('loginSection').hidden  = true;
+  document.getElementById('records').hidden       = false;
+  document.getElementById('welcomeMsg').textContent = `مرحباً ${userCode}`;
+
+  if (String(userCode) === SUPERVISOR_CODE) {
+    document.getElementById('pushSection').hidden = false;
+    document.getElementById('sendPushBtn').onclick = async () => {
+      const title = document.getElementById('notifTitleInput').value.trim();
+      const body  = document.getElementById('notifBodyInput').value.trim();
+      if (!title || !body) return alert('يرجى إدخال عنوان ونص الإشعار.');
+      const res2 = await fetch(`${API_BASE}/notify-all`, {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        },
+        body: JSON.stringify({ title, body })
+      });
+      if (res2.ok)  alert('✅ تم إرسال الإشعار');
+      else { const e = await res2.text(); alert('❌ خطأ في الإرسال: '+e); }
+    };
+  }
+
+  const idx = {
+    code:     headers.indexOf('رقم الموظف'),
+    name:     headers.indexOf('الاسم'),
+    status:   headers.indexOf('الحالة'),
+    date:     headers.indexOf('التاريخ'),
+    in:       headers.indexOf('دخول'),
+    out:      headers.indexOf('خروج'),
+    sFrom:    headers.indexOf('ساعية (من الساعة)'),
+    sTo:      headers.indexOf('ساعية (إلى الساعة)'),
+    mFrom:    headers.indexOf('مهمة (من الساعة)'),
+    mTo:      headers.indexOf('مهمة (إلى الساعة)'),
+    days:     headers.indexOf('عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة'),
+    notes:    headers.indexOf('ملاحظات'),
+    adminC:   headers.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
+    adminR:   headers.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
+    adminDue: headers.indexOf('عدد الإجازات الإدارية المستحقة للعامل')
+  };
+
+  const tbody = document.getElementById('attendanceBody');
+  tbody.innerHTML = '';
+  data.filter(r=>String(r[idx.code]||'').trim()===String(userCode))
+      .forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="border px-4 py-2">${r[idx.code]  ||''}</td>
+          <td class="border px-4 py-2">${r[idx.name]  ||''}</td>
+          <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]||''}</td>
+          <td class="border px-4 py-2">${r[idx.date]  ||''}</td>
+          <td class="border px-4 py-2">${r[idx.in]    ||''}</td>
+          <td class="border px-4 py-2">${r[idx.out]   ||''}</td>
+          <td class="border px-4 py-2">${r[idx.sFrom] ||''}</td>
+          <td class="border px-4 py-2">${r[idx.sTo]   ||''}</td>
+          <td class="border px-4 py-2">${r[idx.mFrom] ||''}</td>
+          <td class="border px-4 py-2">${r[idx.mTo]   ||''}</td>
+          <td class="border px-4 py-2">${r[idx.days]  ||''}</td>
+          <td class="border px-4 py-2">${r[idx.notes] ||''}</td>
+          <td class="border px-4 py-2">${r[idx.adminC]||''}</td>
+          <td class="border px-4 py-2">${r[idx.adminR]||''}</td>
+          <td class="border px-4 py-2">${r[idx.adminDue]||''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+}
+
+// —————————————————————————————————————————
+// 8) رسم جدول الحوافز (ويب)
+// —————————————————————————————————————————
+function renderHwafez(headers, data) {
+  const idx = {
+    code:         headers.indexOf('رقم الموظف'),
+    name:         headers.indexOf('الاسم'),
+    work:         headers.indexOf('حجم العمل'),
+    mastery:      headers.indexOf('اتقان العمل وفعاليته'),
+    leadership:   headers.indexOf('المهارات القيادية'),
+    self:         headers.indexOf('مهارة الإدارة الذاتية'),
+    comms:        headers.indexOf('مهارات التواصل والتفاعل'),
+    initiative:   headers.indexOf('المبادرة والتطوير الذاتي'),
+    independence: headers.indexOf('الإستقلال والموثوقية'),
+    responsibility: headers.indexOf('الإلتزام والمسؤولية'),
+    attendancePct:  headers.indexOf('نسبة الدوام الفعلي للعامل'),
+    balance:        headers.indexOf('السويّة الوظيفيّة'),
+    qualification:  headers.indexOf('مستوى التأهيل'),
+    experience:     headers.indexOf('سنوات الخبرة')
+  };
+  const tbody = document.getElementById('hwafezBody');
+  tbody.innerHTML = '';
+  data.filter(r=>String(r[idx.code]).trim()===String(currentUser))
+      .forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+        <td class="border px-4 py-2">${r[idx.code]         || ''}</td>
+          <td class="border px-4 py-2">${r[idx.name]         || ''}</td>
+          <td class="border px-4 py-2">${r[idx.work]         || ''}</td>
+          <td class="border px-4 py-2">${r[idx.mastery]      || ''}</td>
+          <td class="border px-4 py-2">${r[idx.leadership]   || ''}</td>
+          <td class="border px-4 py-2">${r[idx.self]         || ''}</td>
+          <td class="border px-4 py-2">${r[idx.comms]        || ''}</td>
+          <td class="border px-4 py-2">${r[idx.initiative]   || ''}</td>
+          <td class="border px-4 py-2">${r[idx.independence] || ''}</td>
+          <td class="border px-4 py-2">${r[idx.responsibility] || ''}</td>
+          <td class="border px-4 py-2">${r[idx.attendancePct]  || ''}</td>
+          <td class="border px-4 py-2">${r[idx.balance]        || ''}</td>
+          <td class="border px-4 py-2">${r[idx.qualification]  || ''}</td>
+          <td class="border px-4 py-2">${r[idx.experience]     || ''}</td>
+        `;
+        tbody.appendChild(tr);
+           });
+}
