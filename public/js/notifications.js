@@ -1,125 +1,127 @@
-// public/js/notifications.js
+// —————————————————————————————————————————————————————————————
+// Constants
+const STORAGE_KEY     = 'notificationsLog';
+const SUPERVISOR_CODE = '35190';
 
-(() => {
-  const STORAGE_KEY = 'notificationsLog';
-  const API_BASE    = 'https://dwam-app-by-omar.onrender.com/api';
-
-  // —————————————————————————————————————————————————————————————
-  // 1) Bootstrap: جلب الإشعارات من الخادم عند فتح الصفحة
-  // —————————————————————————————————————————————————————————————
-  async function bootstrapNotifications() {
-    if (!window.currentUser) return;
-    try {
-      const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
-      if (res.ok) {
-        const list = await res.json();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-      }
-    } catch (e) {
-      console.warn('⚠️ خطأ جلب الإشعارات من الخادم:', e);
-    }
+// —————————————————————————————————————————————————————————————
+// قراءة الإشعارات من localStorage
+function loadNotifications() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch {
+    return [];
   }
+}
 
-  // —————————————————————————————————————————————————————————————
-  // 2) دوال localStorage
-  // —————————————————————————————————————————————————————————————
-  function loadNotifications() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch {
-      return [];
-    }
-  }
+// —————————————————————————————————————————————————————————————
+// تحديث عداد الجرس
+function updateBellCount() {
+  const count = loadNotifications().length;
+  const bellCount = document.getElementById('notifCount');
+  if (!bellCount) return;
+  bellCount.textContent = count;
+  bellCount.style.display = count > 0 ? 'inline-block' : 'none';
+}
 
-  function saveNotificationsLocal(arr) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-  }
+// —————————————————————————————————————————————————————————————
+// رسم محتوى لوحة الإشعارات
+function renderNotifications() {
+  const list = document.getElementById('notificationsLog');
+  const clearB = document.getElementById('clearNotifications');
+  const notifs = loadNotifications();
 
-  // —————————————————————————————————————————————————————————————
-  // 3) تحديث عداد الجرس
-  // —————————————————————————————————————————————————————————————
-  window.updateBellCount = function() {
-    const count = loadNotifications().length;
-    const bellCount = document.getElementById('notifCount');
-    if (!bellCount) return;
-    bellCount.textContent = count;
-    bellCount.style.display = count > 0 ? 'inline-block' : 'none';
-  };
+  if (!list || !clearB) return;
 
-  // —————————————————————————————————————————————————————————————
-  // 4) رسم لوحة الإشعارات
-  // —————————————————————————————————————————————————————————————
-  window.renderNotifications = function() {
-    const list   = document.getElementById('notificationsLog');
-    const clearB = document.getElementById('clearNotifications');
-    const notifs = loadNotifications();
-    if (!list || !clearB) return;
+  list.innerHTML = '';
 
-    list.innerHTML = '';
-    if (notifs.length === 0) {
-      list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
-      clearB.classList.add('hidden');
-    } else {
-      notifs.forEach(n => {
-        const li = document.createElement('li');
-        li.className = 'mb-2 border-b pb-2';
-        li.innerHTML = `
-          <div class="font-semibold text-gray-800">${n.title}</div>
-          <div class="text-sm text-gray-700">${n.body}</div>
-          <div class="text-xs text-gray-400 mt-1">${n.time}</div>
-        `;
-        list.appendChild(li);
-      });
-      clearB.classList.remove('hidden');
-    }
-  };
-
-  // —————————————————————————————————————————————————————————————
-  // 5) مسح سجل الإشعارات
-  // —————————————————————————————————————————————————————————————
-  function clearNotifications() {
-    if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
-    localStorage.removeItem(STORAGE_KEY);
-    renderNotifications();
-    updateBellCount();
-  }
-
-  // —————————————————————————————————————————————————————————————
-  // 6) ربط الأحداث عند تحميل DOM + bootstrap
-  // —————————————————————————————————————————————————————————————
-  document.addEventListener('DOMContentLoaded', async () => {
-    // أولاً: جلب الإشعارات من الخادم
-    await bootstrapNotifications();
-
-    // ثمّ ربط الأحداث
-    document.getElementById('notifBell')?.addEventListener('click', () => {
-      const panel = document.getElementById('notificationsPanel');
-      panel.classList.toggle('hidden');
-      renderNotifications();
-      updateBellCount();
+  if (notifs.length === 0) {
+    list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
+  } else {
+    notifs.forEach(n => {
+      const li = document.createElement('li');
+      li.className = 'mb-4 border-b pb-2';
+      li.innerHTML = `
+        <div class="font-semibold text-gray-800">${n.title}</div>
+        <div class="text-sm text-gray-700">${n.body}</div>
+        <div class="text-xs text-gray-400 mt-1">${n.time}</div>
+      `;
+      list.appendChild(li);
     });
-    document.getElementById('clearNotifications')?.addEventListener('click', clearNotifications);
+  }
 
-    // وأخيراً الرسم الأوّلي
-    updateBellCount();
+  // إظهار زر المسح للمشرف فقط
+  if (window.currentUser === SUPERVISOR_CODE && notifs.length > 0) {
+    console.log('🧪 Showing clear button for currentUser:', window.currentUser);
+    clearB.classList.remove('hidden');
+    clearB.style.display = 'inline-block';
+  } else {
+    console.log('🧪 Hiding clear button for currentUser:', window.currentUser);
+    clearB.classList.add('hidden');
+    clearB.style.display = 'none';
+  }
+}
+
+// —————————————————————————————————————————————————————————————
+// مسح سجل الإشعارات (للمشرف فقط)
+function clearNotifications() {
+  if (window.currentUser !== SUPERVISOR_CODE) {
+    alert('ليس لديك صلاحية لمسح سجل الإشعارات.');
+    return;
+  }
+  if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
+
+  localStorage.removeItem(STORAGE_KEY);
+  renderNotifications();
+  updateBellCount();
+}
+
+// —————————————————————————————————————————————————————————————
+// ربط الأحداث عند تحميل الـDOM
+document.addEventListener('DOMContentLoaded', function() {
+  const bell   = document.getElementById('notifBell');
+  const panel  = document.getElementById('notificationsPanel');
+  const clearB = document.getElementById('clearNotifications');
+
+  updateBellCount();
+
+  if (!bell || !panel || !clearB) return;
+
+  bell.addEventListener('click', function() {
+    // ضمان ظهور اللوحة حتى لو كانت مخفية بـ style أو class
+    const isHidden = panel.classList.contains('hidden') || getComputedStyle(panel).display === 'none';
+
+    if (isHidden) {
+      panel.classList.remove('hidden');
+      panel.style.display = 'block';
+    } else {
+      panel.classList.add('hidden');
+      panel.style.display = 'none';
+    }
+
     renderNotifications();
+    updateBellCount();
   });
 
-  // —————————————————————————————————————————————————————————————
-  // 7) دالة إضافة إشعار جديد (تُستدعى من push.js أو من Service Worker)
-  // —————————————————————————————————————————————————————————————
-  window.addNotification = function({ title, body, time }) {
-    // 1) خزن محليًّا
-    const saved = loadNotifications();
-    saved.unshift({ title, body, time });
-    if (saved.length > 50) saved.pop();
-    saveNotificationsLocal(saved);
+  clearB.addEventListener('click', clearNotifications);
+});
+// —————————————————————————————————————————————————————————————
+// دالة تُستدعى عند وصول إشعار جديد من push.js أو SW
+window.addNotification = function(payload) {
+  let saved = loadNotifications();
+  saved.unshift({
+    title: payload.title,
+    body:  payload.body,
+    time:  payload.time
+  });
+  if (saved.length > 50) saved.pop();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
 
-    // 2) حدّث العرض
-    updateBellCount();
-    const panel = document.getElementById('notificationsPanel');
-    if (panel && !panel.classList.contains('hidden')) {
-      renderNotifications();
-    }
-  };
-})();
+  // إن كانت اللوحة مفتوحة، أعد رسمها
+  const panel = document.getElementById('notificationsPanel');
+  if (panel && getComputedStyle(panel).display !== 'none') {
+    renderNotifications();
+  }
+
+  // حدّث العداد دائمًا
+  updateBellCount();
+};
