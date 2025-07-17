@@ -33,16 +33,16 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// 4) دالة لإرسال إشعار FCM
-const tokens = new Set();  // نجعلها Set لتجنّب التكرار
+// 4) تجميعة التوكنات
+const tokens = new Set();  // نستخدم Set لتجنُّب التكرار
 
+// 5) دالة لإرسال إشعار FCM
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
     notification: { title, body },
     android: {
-      // تنتهي الرسالة بعد 172800000 ميلي‑ثانية = 48 ساعة
-      ttl: 172800000,
+      ttl: 172800000,      // 48 ساعة
       priority: 'high',
       notification: {
         channel_id: 'default',
@@ -59,10 +59,10 @@ async function sendPushTo(token, title, body, data = {}) {
   } catch (err) {
     console.error('❌ Failed to send push to', token, err);
 
-    // 1) اقرأ الكود من err.code أو err.errorInfo.code
+    // اقرأ الكود من err.code أو err.errorInfo.code
     const errCode = err.code || (err.errorInfo && err.errorInfo.code) || '';
 
-    // 2) إذا كان متعلقاً بتوكن منتهي الصلاحية أو غير مسجّل، أحذفه
+    // إذا كان التسجيل منتهي الصلاحية أو التوكن غير صالح، احذفه
     if (
       errCode.includes('registration-token-not-registered') ||
       errCode.includes('invalid-argument')
@@ -71,18 +71,18 @@ async function sendPushTo(token, title, body, data = {}) {
       console.log('🗑️ Removed invalid/expired token:', token);
     }
 
-    // لا نعيد رمي الخطأ لكي نستمر بإرسال الإشعارات إلى بقية التوكنات
+    // لا نعيد رمي الخطأ كي لا يتوقف إرسال الإشعارات للبقية
     return;
   }
 }
 
-// 5) تهيئة Express
+// 6) تهيئة Express
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 6) قراءة متغيّرات البيئة الأساسية
+// 7) قراءة متغيّرات البيئة الأساسية
 const {
   JWT_SECRET,
   SUPERVISOR_CODE,
@@ -95,6 +95,7 @@ if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY) {
   process.exit(1);
 }
 
+// 8) إعداد اعتماد Google Sheets
 let sheetCreds;
 try {
   sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY);
@@ -103,12 +104,11 @@ try {
   process.exit(1);
 }
 
-// 7) دوال الوصول إلى Google Sheets
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
     client_email: sheetCreds.client_email,
-    private_key: sheetCreds.private_key.replace(/\\n/g, '\n')
+    private_key:  sheetCreds.private_key.replace(/\\n/g, '\n')
   });
   await doc.loadInfo();
   return doc;
@@ -125,7 +125,7 @@ async function readSheet(title) {
   return { headers, data };
 }
 
-// 8) Middleware للتحقّق من JWT
+// 9) Middleware للتحقّق من JWT
 function authenticate(req, res, next) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) {
@@ -139,7 +139,7 @@ function authenticate(req, res, next) {
   }
 }
 
-// 9) تسجيل الدخول
+// 10) تسجيل الدخول
 app.post('/api/login', async (req, res) => {
   let { code, pass } = req.body;
   if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
@@ -169,7 +169,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 10) معلومات المستخدم الحالي
+// 11) معلومات المستخدم الحالي
 app.get('/api/me', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Users');
@@ -187,7 +187,7 @@ app.get('/api/me', authenticate, async (req, res) => {
   }
 });
 
-// 11) الحضور
+// 12) الحضور
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
@@ -203,7 +203,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
   }
 });
 
-// 12) الحوافز
+// 13) الحوافز
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
@@ -219,7 +219,7 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
   }
 });
 
-// 13) التقييم السنوي
+// 14) التقييم السنوي
 app.get('/api/tqeem', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('tqeem');
@@ -235,7 +235,7 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
   }
 });
 
-// 14) تسجيل توكن FCM
+// 15) تسجيل توكن FCM
 app.post('/api/register-token', (req, res) => {
   const { user, token } = req.body;
   if (!user || !token) return res.status(400).json({ error: 'user and token required' });
@@ -244,7 +244,7 @@ app.post('/api/register-token', (req, res) => {
   res.json({ success: true });
 });
 
-// 15) إشعار لجميع الأجهزة (للمشرف فقط)
+// 16) إشعار لجميع الأجهزة (للمشرف فقط)
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
   const { title, body } = req.body;
@@ -253,15 +253,15 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   res.json({ success: true });
 });
 
-// 16) إصدار أحدث نسخة للتطبيق
+// 17) إصدار أحدث نسخة للتطبيق
 app.get('/api/latest-version', (req, res) => {
   res.json({
-    latest:    '1.0.0',  
+    latest:    '1.0.0',
     updateUrl: 'https://play.google.com/store/apps/details?id=com.example.app'
   });
 });
 
-// 17) SPA fallback (يجب أن يكون آخر شيء)
+// 18) SPA fallback (يجب أن يكون آخر شيء)
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
