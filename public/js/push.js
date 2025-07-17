@@ -84,8 +84,29 @@ if (window.currentUser) {
 
 // 4. تعريف initPush لتجنب الخطأ
 window.initPush = async function () {
-  console.log('initPush called');
+  console.log('🚀 initPush called');
   if (typeof window.initNotifications === 'function') {
+    // 1) انتظر انتهاء تسجيل الـ SW وتهيئة Firebase وطلب الإذن
     await window.initNotifications();
+
+    // 2) **هنا**: جلب سجل الإشعارات من الخادم وحفظها محلياً
+    try {
+      const res = await fetch(`${API_BASE}/notifications`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+        }
+      });
+      if (res.ok) {
+        const { notifications } = await res.json();
+        // خزِّنها في localStorage حتى يستخدمها notifications.js
+        localStorage.setItem('notificationsLog', JSON.stringify(notifications));
+        // حدّث الواجهة
+        window.renderNotifications();
+        window.updateBellCount();
+      }
+    } catch (err) {
+      console.warn('⚠️ failed to fetch notifications log:', err);
+    }
   }
 };
