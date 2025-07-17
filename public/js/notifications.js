@@ -48,7 +48,7 @@
 
   // مسح سجل الإشعارات (للمشرف فقط)
   clearBtn.addEventListener('click', () => {
-    if (window.currentUser !== SUPERVISOR) return;
+    // if (window.currentUser !== SUPERVISOR) return;
     if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
     localStorage.removeItem(STORAGE_KEY);
     renderNotifications();
