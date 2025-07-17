@@ -1,3 +1,5 @@
+// server.js
+
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
 
@@ -30,13 +32,14 @@ try {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
+
 // 4) دالة لإرسال إشعار FCM
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
     notification: { title, body },
     android: {
-      // تنتهي الرسالة بعد 3600 ثانية (1 ساعة)
+      // تنتهي الرسالة بعد 48 ساعة
       ttl: '172800s',
       priority: 'high',
       notification: {
@@ -45,7 +48,7 @@ async function sendPushTo(token, title, body, data = {}) {
         vibrate_timings:   [100, 200, 100]
       }
     },
-    data  // بيانات إضافية إن وجدت
+    data
   };
 
   try {
@@ -88,7 +91,7 @@ async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
     client_email: sheetCreds.client_email,
-    private_key: sheetCreds.private_key.replace(/\\n/g, '\n')
+    private_key:  sheetCreds.private_key.replace(/\\n/g, '\n')
   });
   await doc.loadInfo();
   return doc;
@@ -233,6 +236,26 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   const list = Array.from(tokens.keys());
   await Promise.allSettled(list.map(t => sendPushTo(t, title, body)));
   res.json({ success: true });
+});
+
+// —————————————————————————————————
+// **التعديلات لإشعارات موحدة على الخادم**
+// نجمع سجل الإشعارات في الذاكرة (مثال تعليمي — استخدمي DB في الإنتاج)
+const userNotifications = {};  
+// POST لحفظ إشعار جديد
+app.post('/api/notifications', authenticate, (req, res) => {
+  const { title, body, time } = req.body;
+  if (!title || !body || !time) return res.status(400).json({ error: 'Missing fields' });
+  const code = req.user.code;
+  userNotifications[code] = userNotifications[code] || [];
+  userNotifications[code].unshift({ title, body, time });
+  if (userNotifications[code].length > 50) userNotifications[code].pop();
+  res.json({ success: true });
+});
+// GET لجلب سجل الإشعارات
+app.get('/api/notifications', authenticate, (req, res) => {
+  const code = req.user.code;
+  res.json({ notifications: userNotifications[code] || [] });
 });
 
 // 16) SPA fallback (يجب أن يكون آخر شيء)
