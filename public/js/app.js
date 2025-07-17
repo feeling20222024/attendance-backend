@@ -175,13 +175,22 @@ async function fetchAndRender() {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${jwtToken}`
   };
+
+  // نرسل الطلبات مع فحص حالة 401
   const [aRes, hwRes, meRes] = await Promise.all([
     fetch(`${API_BASE}/attendance`, { headers }),
     fetch(`${API_BASE}/hwafez`,      { headers }),
     fetch(`${API_BASE}/me`,          { headers })
   ]);
-  if (!aRes.ok || !hwRes.ok || !meRes.ok) throw new Error('Unauthorized');
 
+  // إذا كانت أي استجابة 401 → تسجيل الخروج
+  if ([aRes, hwRes, meRes].some(r => r.status === 401)) {
+    console.warn('❌ Session expired or unauthorized → logging out');
+    logout();
+    return;
+  }
+
+  // ثمّ نتابع كالمعتاد
   const aJson  = await aRes.json();
   const hwJson = await hwRes.json();
   const meJson = await meRes.json();
