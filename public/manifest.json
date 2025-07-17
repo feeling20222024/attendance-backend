@@ -4,6 +4,6 @@
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#2563EB",
-  "background_color": "#ffffff",
-  "gcm_sender_id": "103953800507"
+  "background_color": "#ffffff"
+  // لا تدرج مفتاح `icons`
 }
