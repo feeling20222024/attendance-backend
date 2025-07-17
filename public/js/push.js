@@ -116,6 +116,7 @@ window.initPush = async function () {
     await window.initNotifications();
 
     // 2) جلب سجل الإشعارات من الخادم
+    /*
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
         headers: {
@@ -134,3 +135,5 @@ window.initPush = async function () {
     }
   }
 };
+/*
+
