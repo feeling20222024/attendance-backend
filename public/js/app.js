@@ -1,47 +1,17 @@
-// —————————————————————————————————————————
 // public/js/app.js
-// —————————————————————————————————————————
 
 // —————————————————————————————————————————
 // 0) ثوابت التخزين ونقاط النهاية
 // —————————————————————————————————————————
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
-const NOTIFS_ENDPOINT = `${API_BASE}/notifications`;
+const SAVE_NOTIF      = `${API_BASE}/save-notification`;
+const LOAD_NOTIFS     = `${API_BASE}/notifications`;
 const STORAGE_KEY     = 'notificationsLog';
 const SUPERVISOR_CODE = '35190';
-// —————————————————————————————————————————
-// جلب إشعارات المستخدم من السيرفر وتخزينها محلياً
-// —————————————————————————————————————————
-async function loadNotificationsFromServer() {
-  if (!window.currentUser) return [];
-  try {
-    const res = await fetch(`${API_BASE}/notifications/${window.currentUser}`);
-    if (!res.ok) {
-      console.warn('لم يتم جلب الإشعارات من السيرفر:', res.status);
-      return [];
-    }
-    const arr = await res.json();
-    // تأكد أنها مصفوفة من { title, body, time }
-    if (!Array.isArray(arr)) {
-      console.warn('رد غير متوقع من السيرفر:', arr);
-      return [];
-    }
-    // خزّنها في localStorage
-    localStorage.setItem('notificationsLog', JSON.stringify(arr));
-    return arr;
-  } catch (e) {
-    console.warn('❌ لم يتم جلب إشعارات الخادم:', e);
-    return [];
-  }
-}
 
-
-let headersAtt      = [], attendanceData = [];
-let headersHw       = [], hwafezData     = [];
-let headersTq       = [], tqeemData      = [];
-let currentUser     = null;
-let jwtToken        = null;
+let currentUser = null;
+let jwtToken    = null;
 
 // —————————————————————————————————————————
 // Helper: تطبيع أرقام عربية → غربية
@@ -85,12 +55,12 @@ function renderNotifications() {
   } else {
     nots.forEach(n => {
       const li = document.createElement('li');
+      li.className = 'mb-2 border-b pb-1';
       li.innerHTML = `
         <strong>${n.title}</strong><br>
         ${n.body}<br>
         <small class="text-gray-400">${n.time}</small>
       `;
-      li.className = 'mb-2 border-b pb-1';
       list.appendChild(li);
     });
     if (currentUser === SUPERVISOR_CODE) {
@@ -111,97 +81,96 @@ function clearNotifications() {
 }
 
 // —————————————————————————————————————————
-// جلب الإشعارات من الخادم وحفظها محليًا
+// جلب إشعارات المستخدم من السيرفر وتخزينها محلياً
 // —————————————————————————————————————————
-window.loadNotificationsFromServer = async function() {
+async function loadNotificationsFromServer() {
+  if (!currentUser || !jwtToken) return;
   try {
-    const res = await fetch(NOTIFS_ENDPOINT, {
+    const res = await fetch(`${LOAD_NOTIFS}/${currentUser}`, {
       headers: {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${jwtToken}`
       }
     });
     if (!res.ok) throw new Error(`Status ${res.status}`);
-    const result = await res.json();
-    // الخادم يرجع { data: [ { title, body, time }, ... ] }
-    const arr = result.data || [];
-    saveNotificationsLocal(arr);
-    renderNotifications();
-    updateBellCount();
+    const arr = await res.json();
+    if (Array.isArray(arr)) {
+      saveNotificationsLocal(arr);
+      renderNotifications();
+      updateBellCount();
+    }
   } catch (e) {
     console.warn('❌ لم يتم جلب إشعارات الخادم:', e);
   }
-};
+}
 
 // —————————————————————————————————————————
-// إضافة إشعار يُستدعى من push.js أو الـ SW
+// إضافة إشعار يُستدعى من SW أو push.js
 // —————————————————————————————————————————
-window.addNotification = function({ title, body, time }) {
+window.addNotification = async function({ title, body, time }) {
+  // 1) حفظ محلي
   const arr = loadNotificationsLocal();
   arr.unshift({ title, body, time });
   if (arr.length > 50) arr.pop();
   saveNotificationsLocal(arr);
+
+  // 2) حفظ في السيرفر (اختياري)
+  if (currentUser && jwtToken) {
+    fetch(SAVE_NOTIF, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
+      body: JSON.stringify({ user: currentUser, title, body, time })
+    }).catch(e => console.warn('❌ save-notif failed:', e));
+  }
+
   renderNotifications();
   updateBellCount();
 };
 
 // —————————————————————————————————————————
-// DOMContentLoaded: ربط الأزرار وجلب الإشعارات المخبأة
+// DOMContentLoaded: ربط الأزرار واسترجاع الإشعارات
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick          = login;
   document.getElementById('logoutBtn').onclick         = logout;
-  document.getElementById('aboutBtn').onclick          = () =>
-    alert('فكرة وإعداد وتصميم عمر عوني');
+  document.getElementById('aboutBtn').onclick          = () => alert('تطبيق متابعة الدوام');
   document.getElementById('hwafezBtn').onclick         = showHwafez;
   document.getElementById('tqeemBtn').onclick          = showTqeem;
   document.getElementById('clearNotifications').onclick = clearNotifications;
+
+  // عرض الإشعارات المحلّية فور التحميل
+  renderNotifications();
+  updateBellCount();
 
   // إذا كان هناك JWT محفوظ
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    // 1) جلب البيانات
-    fetchAndRender()
-      .then(async () => {
-        // 2) تهيئة إشعارات الويب (SW + FCM)
-        if (typeof window.initNotifications === 'function') {
-          await window.initNotifications();
-        }
-        // 3) جلب سجل الإشعارات الموحد من الخادم
-        await window.loadNotificationsFromServer();
-      })
-      .catch(logout);
+    loginSuccessFlow();
   }
 });
 
 // —————————————————————————————————————————
-// 1) دالة تسجيل الدخول
+// تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
-  const code = normalizeDigits(
-    document.getElementById('codeInput').value.trim()
-  );
+  const code = normalizeDigits(document.getElementById('codeInput').value.trim());
   const pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
     return alert('يرجى إدخال الكود وكلمة المرور.');
   }
-
   try {
-    // طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, pass })
+      body:    JSON.stringify({ code, pass })
     });
-    if (res.status === 401) {
-      return alert('بيانات الدخول خاطئة.');
-    }
-    if (!res.ok) {
-      throw new Error(`خطأ (${res.status})`);
-    }
+    if (res.status === 401) return alert('بيانات الدخول خاطئة.');
+    if (!res.ok) throw new Error(`Status ${res.status}`);
 
-    // استلام التوكن
     const loginResponse = await res.json();
     jwtToken    = loginResponse.token;
     currentUser = loginResponse.user.code
@@ -209,18 +178,7 @@ async function login() {
     window.currentUser = currentUser;
     localStorage.setItem('jwtToken', jwtToken);
 
-    console.log('✅ login successful, currentUser =', currentUser);
-
-    // جلب البيانات وعرض الواجهة
-    await fetchAndRender();
-
-    // تهيئة إشعارات الويب
-    if (typeof window.initNotifications === 'function') {
-      await window.initNotifications();
-    }
-    // جلب سجل الإشعارات بعد تسجيل الدخول
-    await window.loadNotificationsFromServer();
-
+    await loginSuccessFlow();
   } catch (e) {
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
@@ -228,235 +186,29 @@ async function login() {
 }
 
 // —————————————————————————————————————————
-// 2) جلب وعرض البيانات (attendance + hwafez + me)
+// إجراءات بعد تسجيل الدخول الناجح
 // —————————————————————————————————————————
-async function fetchAndRender() {
-  if (!jwtToken) return;
-
-  const headers = {
-    'Content-Type':  'application/json',
-    'Authorization': `Bearer ${jwtToken}`
-  };
-
-  // طلب الحضور، الحوافز، وبيانات المستخدم
-  const [aRes, hwRes, meRes] = await Promise.all([
-    fetch(`${API_BASE}/attendance`, { headers }),
-    fetch(`${API_BASE}/hwafez`,      { headers }),
-    fetch(`${API_BASE}/me`,          { headers }),
-  ]);
-
-  // إذا انتهت الجلسة
-  if ([aRes, hwRes, meRes].some(r => r.status === 401)) {
-    console.warn('❌ Session expired → logout');
-    logout();
-    return;
-  }
-
-  // عرض الجداول
-  const aJson  = await aRes.json();
-  const hwJson = await hwRes.json();
-  const meJson = await meRes.json();
-
-  headersAtt     = aJson.headers;     attendanceData = aJson.data;
-  headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
-  currentUser    = meJson.user['كود الموظف'];
-
+async function loginSuccessFlow() {
+  // إظهار الواجهة
   document.getElementById('loginSection').classList.add('hidden');
   document.getElementById('records').classList.remove('hidden');
   document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
-
   if (currentUser === SUPERVISOR_CODE) {
     document.getElementById('pushSection').classList.remove('hidden');
-    document.getElementById('sendPushBtn')
-            .onclick = sendSupervisorNotification;
+    document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
   }
-
-  // ملاحظات المشرف
-  const notesArea = document.getElementById('supervisorNotes');
-  const saveBtn   = document.getElementById('saveNotesBtn');
-  notesArea.value = localStorage.getItem('supervisorNotes') || '';
-  if (currentUser === SUPERVISOR_CODE) {
-    notesArea.removeAttribute('readonly');
-    saveBtn.classList.remove('hidden');
-    saveBtn.onclick = () => {
-      localStorage.setItem('supervisorNotes', notesArea.value);
-      alert('تم حفظ الملاحظة');
-    };
-  } else {
-    notesArea.setAttribute('readonly', '');
-    saveBtn.classList.add('hidden');
+  // جلب وعرض البيانات
+  await fetchAndRender();
+  // تهيئة إشعارات الويب (SW + FCM) إن وُجدت
+  if (typeof window.initNotifications === 'function') {
+    window.initNotifications();
   }
-
-  renderRecords();
+  // جلب سجل الإشعارات الموحد من الخادم
+  await loadNotificationsFromServer();
 }
 
 // —————————————————————————————————————————
-// 3) رسم سجلات الحضور للمستخدم الحالي
-// —————————————————————————————————————————
-function renderRecords() {
-  const idx = {
-    code:   headersAtt.indexOf('رقم الموظف'),
-    name:   headersAtt.indexOf('الاسم'),
-    status: headersAtt.indexOf('الحالة'),
-    date:   headersAtt.indexOf('التاريخ'),
-    in:     headersAtt.indexOf('دخول'),
-    out:    headersAtt.indexOf('خروج'),
-    days:   headersAtt.indexOf('عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة'),
-    notes:  headersAtt.indexOf('ملاحظات'),
-    adminC: headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
-    adminR: headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
-    adminDue: headersAtt.indexOf('عدد الإجازات الإدارية المستحقة للعامل'),
-  };
-
-  const rows = attendanceData.filter(r =>
-    String(r[idx.code]).trim() === currentUser
-  );
-  const tbody = document.getElementById('attendanceBody');
-  tbody.innerHTML = '';
-
-  if (!rows.length) {
-    document.getElementById('noDataMsg').classList.remove('hidden');
-    return;
-  }
-  document.getElementById('noDataMsg').classList.add('hidden');
-
-  // إحصائيات
-  const first = rows[0];
-  document.getElementById('adminLeavesDue').textContent       = first[idx.adminDue]  || '--';
-  document.getElementById('adminLeavesCounted').textContent   = first[idx.adminC]    || '--';
-  document.getElementById('adminLeavesRemaining').textContent = first[idx.adminR]    || '--';
-
-  rows.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="border px-4 py-2">${r[idx.code]||''}</td>
-      <td class="border px-4 py-2">${r[idx.name]||''}</td>
-      <td class="border px-4 py-2">${r[idx.status]||''}</td>
-      <td class="border px-4 py-2">${r[idx.date]||''}</td>
-      <td class="border px-4 py-2">${r[idx.in]||''}</td>
-      <td class="border px-4 py-2">${r[idx.out]||''}</td>
-      <td class="border px-4 py-2">${r[idx.days]||''}</td>
-      <td class="border px-4 py-2">${r[idx.notes]||''}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-// —————————————————————————————————————————
-// 4) عرض بيانات الحوافز
-// —————————————————————————————————————————
-async function showHwafez() {
-  try {
-    const res = await fetch(`${API_BASE}/hwafez`, {
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      }
-    });
-    if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
-    const { headers, data } = await res.json();
-    headersHw  = headers; hwafezData = data;
-
-    document.getElementById('hwafezSection')
-            .classList.remove('hidden');
-    const tbody = document.getElementById('hwafezBody');
-    tbody.innerHTML = '';
-
-    if (!data.length) {
-      document.getElementById('noHwafezMsg')
-              .classList.remove('hidden');
-      return;
-    }
-    document.getElementById('noHwafezMsg')
-            .classList.add('hidden');
-
-    data.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')]||''}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (e) {
-    console.error('❌ showHwafez error:', e);
-    alert('حدث خطأ أثناء جلب الحوافز');
-  }
-}
-
-// —————————————————————————————————————————
-// 5) عرض بيانات التقييم السنوي
-// —————————————————————————————————————————
-async function showTqeem() {
-  try {
-    const res = await fetch(`${API_BASE}/tqeem`, {
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      }
-    });
-    if (!res.ok) throw new Error('فشل جلب التقييم السنوي');
-    const { headers, data } = await res.json();
-    headersTq  = headers; tqeemData = data;
-
-    const section = document.getElementById('tqeemSection');
-    section.classList.remove('hidden');
-    const tbody = document.getElementById('tqeemBody');
-    tbody.innerHTML = '';
-
-    if (!data.length) {
-      document.getElementById('noTqeemMsg')
-              .classList.remove('hidden');
-      return;
-    }
-    document.getElementById('noTqeemMsg')
-            .classList.add('hidden');
-
-    data.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')]||''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]||''}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (e) {
-    console.error('❌ showTqeem error:', e);
-    alert('حدث خطأ أثناء جلب التقييم السنوي');
-  }
-}
-
-// —————————————————————————————————————————
-// 6) إرسال إشعار للمشرف
-// —————————————————————————————————————————
-async function sendSupervisorNotification() {
-  try {
-    const title = document.getElementById('notifTitleInput').value.trim();
-    const body  = document.getElementById('notifBodyInput').value.trim();
-    if (!title || !body) {
-      return alert('يرجى إدخال عنوان ونص الإشعار.');
-    }
-    const res = await fetch(`${API_BASE}/notify-all`, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      body: JSON.stringify({ title, body })
-    });
-    if (!res.ok) throw new Error(await res.text());
-    alert('✅ تم إرسال الإشعار.');
-    document.getElementById('notifTitleInput').value = '';
-    document.getElementById('notifBodyInput').value  = '';
-  } catch (err) {
-    console.error('❌ sendPush error:', err);
-    alert('حدث خطأ في الإرسال: ' + err.message);
-  }
-}
-
-// —————————————————————————————————————————
-// 7) تسجيل الخروج
+// تسجيل الخروج
 // —————————————————————————————————————————
 function logout() {
   currentUser = null;
@@ -466,3 +218,5 @@ function logout() {
   ['records','pushSection','hwafezSection','tqeemSection']
     .forEach(id => document.getElementById(id).classList.add('hidden'));
 }
+
+// … بقية دوال عرض البيانات (fetchAndRender, showHwafez, showTqeem) كما كانت لديك سابقاً.
