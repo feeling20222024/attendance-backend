@@ -1,7 +1,6 @@
 // —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
-
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
@@ -82,23 +81,19 @@ async function login() {
     loginResponse = await res.json();
     jwtToken = loginResponse.token;
     localStorage.setItem('jwtToken', jwtToken);
+
     // 3) currentUser وتهيئة الإشعارات
-currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
-window.currentUser = currentUser;
-console.log('✅ login successful, currentUser =', currentUser);
+    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+    window.currentUser = currentUser;
+    console.log('✅ login successful, currentUser =', currentUser);
 
-// ✅ تهيئة واجهة سجل الإشعارات بعد تسجيل الدخول
-if (typeof window.initNotifications === 'function') {
-  window.initNotifications();
-}
-
-// 4) تهيئة Push
-console.log('🚀 calling initPush()…');
-if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-  await initNativePush();
-} else {
-  await initPush();
-}
+    // 4) تهيئة Push
+    console.log('🚀 calling initPush()…');
+    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+      await initNativePush();
+    } else {
+      await initPush();
+    }
 
     // 5) تهيئة لوحة الإشعارات
     if (typeof window.initNotifications === 'function') {
@@ -299,31 +294,32 @@ async function showTqeem() {
         'Authorization': `Bearer ${jwtToken}`
       }
     });
-    if (!res.ok) {
-      throw new Error(`فشل جلب بيانات التقييم السنوي (status: ${res.status})`);
-    }
-    const {
-      headers,
-      data
-    } = await res.json();
-    headersTq = headers;
-    tqeemData = data;
-    const section = document.getElementById('tqeemSection');
-    section.classList.remove('hidden');
-    const tbody = document.getElementById('tqeemBody');
-    tbody.innerHTML = '';
-    const noMsg = document.getElementById('noTqeemMsg');
-    if (data.length === 0) {
-      noMsg.classList.remove('hidden');
-      section.scrollIntoView({
-        behavior: 'smooth'
-      });
+
+    const contentType = res.headers.get('content-type') || '';
+    // إذا أتى الرد HTML بدلاً من JSON
+    if (!res.ok || !contentType.includes('application/json')) {
+      console.warn('🚧 showTqeem: expected JSON, got', contentType);
+      alert('البيانات غير متوفرة حالياً وسيتم إضافتها قريباً.');
       return;
     }
-    noMsg.classList.add('hidden');
+
+    const { headers, data } = await res.json();
+    headersTq = headers;
+    tqeemData = data;
+
+    // إظهار القسم وتفريغ الجدول
+    document.getElementById('tqeemSection').classList.remove('hidden');
+    const tbody = document.getElementById('tqeemBody');
+    tbody.innerHTML = '';
+
+    if (data.length === 0) {
+      document.getElementById('noTqeemMsg').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('noTqeemMsg').classList.add('hidden');
+
     data.forEach(r => {
       const tr = document.createElement('tr');
-      tr.className = 'divide-y divide-gray-100';
       tr.innerHTML = `
         <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')] || ''}</td>
         <td class="border px-4 py-2">${r[headers.indexOf('الاسم')] || ''}</td>
@@ -338,10 +334,11 @@ async function showTqeem() {
       `;
       tbody.appendChild(tr);
     });
-    section.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
-    });
+
+    // تمرير الشاشة للقسم
+    document.getElementById('tqeemSection')
+            .scrollIntoView({ behavior: 'smooth' });
+
   } catch (e) {
     console.error('❌ showTqeem error:', e);
     alert('حدث خطأ غير متوقع أثناء جلب بيانات التقييم السنوي');
