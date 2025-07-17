@@ -1,15 +1,35 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>تطبيق متابعة الدوام</title>
-  <link rel="manifest" href="/manifest.json" />
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
- <!-- Tailwind + ستايلات عامة -->
+
+  <!-- CSP مخفّفة -->
+  <meta http-equiv="Content-Security-Policy"
+        content="
+          default-src 'self' data:;
+          script-src  'self' 'unsafe-inline' 'unsafe-eval'
+                       https://www.gstatic.com
+                       https://cdn.tailwindcss.com;
+          style-src   'self' 'unsafe-inline'
+                       https://cdn.tailwindcss.com;
+          connect-src 'self'
+                       https://dwam-app-by-omar.onrender.com
+                       https://www.googleapis.com
+                       https://fcm.googleapis.com
+                       https://firebaseinstallations.googleapis.com
+                       https://fcmregistrations.googleapis.com;
+        ">
+
+  <!-- Tailwind + ستايلات عامة -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/css/style.css" />
 
@@ -265,35 +285,31 @@
    </div>
   </section>
   </main>
-  
- <!-- تسجيل Service Worker -->
-    <!-- تسجيل Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/firebase-messaging-sw.js')
-        .then(reg => console.log('✅ FCM SW registered:', reg.scope))
-        .catch(err => console.error('❌ SW reg failed', err));
-    }
-  </script>
-
-  <!-- قبل آخر </body> -->
-<!-- 1) notifications.js: يعرّف renderNotifications و addNotification -->
-<script type="module" src="/js/notifications.js"></script>
-<script type="module" src="/js/push.js"></script>
-
-
-<!-- 2) push.js: يعرّف initNotifications و initPush و يخزّن initPush في window -->
 <script>
-// لا حاجة للاستيراد هنا لأن push.js يكتب initNotifications على window
-if (typeof window.initNotifications === 'function') {
-  window.initNotifications();
-}
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('/firebase-messaging-sw.js')
+      .then(reg => console.log('✅ FCM SW registered:', reg.scope))
+      .catch(err => console.error('❌ SW registration failed', err));
+  }
 </script>
 
-<!-- 3) app.js: يستخدم window.initPush داخل دالة login -->
-<script type="module" src="/js/app.js" defer></script>
-<script nomodule src="/js/app.legacy.js" defer></script>
-  
+<!-- 1) تحميل notifications.js بدون defer -->
+<script src="js/notifications.js"></script>
+
+<!-- 2) تنفيذ initNotifications بعد التأكد من جاهزية DOM والعناصر -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
+  });
+</script>
+
+<!-- 3) سكربتات Push و App -->
+<script type="module" src="js/push.js" defer></script>
+<script nomodule src="js/app.legacy.js" defer></script>
+<script type="module" src="js/app.js" defer></script>
+
 </body>
 </html>
