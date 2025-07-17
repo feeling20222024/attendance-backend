@@ -2,33 +2,6 @@
 const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT = `${API_BASE}/login`;
 const SUPERVISOR_CODE= '35190';
-
-// 0) تعريف إصدار التطبيق المحلي ودوال المقارنة
-const LOCAL_APP_VERSION = '1.0.6';  // غيّرها إلى نسختك الحالية
-
-function compareVersions(v1, v2) {
-  const a1 = v1.split('.').map(Number);
-  const a2 = v2.split('.').map(Number);
-  for (let i = 0; i < Math.max(a1.length, a2.length); i++) {
-    const n1 = a1[i]||0, n2 = a2[i]||0;
-    if (n1 !== n2) return n1 - n2;
-  }
-  return 0;
-}
-
-async function checkAppVersion() {
-  try {
-    const res = await fetch(`${API_BASE}/version`, { headers: {'Content-Type':'application/json'} });
-    if (!res.ok) return;
-    const { version: serverVersion } = await res.json();
-    if (compareVersions(LOCAL_APP_VERSION, serverVersion) < 0) {
-      alert(`📢 تم إصدار نسخة جديدة (${serverVersion}) من التطبيق. الرجاء التحديث.`);
-    }
-  } catch (err) {
-    console.warn('فشل التحقق من الإصدار:', err);
-  }
-}
-
 let headersAtt      = [], attendanceData = [];
 let headersHw       = [], hwafezData     = [];
 let headersTq       = [], tqeemData      = [];
@@ -126,7 +99,7 @@ async function login() {
 
     // 6) جلب وعرض البيانات
     await fetchAndRender();
-    await checkAppVersion();
+
 
   } catch (e) {
     console.error('❌ login error:', e);
