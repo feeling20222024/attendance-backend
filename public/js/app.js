@@ -12,6 +12,9 @@ const SUPERVISOR_CODE = '35190';
 
 let currentUser = null;
 let jwtToken    = null;
+let headersAtt      = [], attendanceData = [];
+let headersHw       = [], hwafezData     = [];
+let headersTq       = [], tqeemData      = [];
 
 // —————————————————————————————————————————
 // Helper: تطبيع أرقام عربية → غربية
@@ -219,4 +222,156 @@ function logout() {
     .forEach(id => document.getElementById(id).classList.add('hidden'));
 }
 
-// … بقية دوال عرض البيانات (fetchAndRender, showHwafez, showTqeem) كما كانت لديك سابقاً.
+// —————————————————————————————————————————
+// 3) جلب وعرض البيانات (attendance + hwafez + me)
+// —————————————————————————————————————————
+async function fetchAndRender() {
+  if (!jwtToken) return;
+  const headers = {
+    'Content-Type':  'application/json',
+    'Authorization': `Bearer ${jwtToken}`
+  };
+  const [aRes, hwRes, meRes] = await Promise.all([
+    fetch(`${API_BASE}/attendance`, { headers }),
+    fetch(`${API_BASE}/hwafez`,      { headers }),
+    fetch(`${API_BASE}/me`,          { headers })
+  ]);
+  if (!aRes.ok || !hwRes.ok || !meRes.ok) throw new Error('Unauthorized');
+
+  const aJson  = await aRes.json();
+  const hwJson = await hwRes.json();
+  const meJson = await meRes.json();
+
+  headersAtt     = aJson.headers;     attendanceData = aJson.data;
+  headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
+  currentUser    = meJson.user['كود الموظف'];
+
+  renderRecords();
+}
+
+// —————————————————————————————————————————
+// 4) رسم سجلات الحضور للمستخدم الحالي
+// —————————————————————————————————————————
+function renderRecords() {
+  // إحصائيات أول صف
+  const idx = {
+    code:     headersAtt.indexOf('رقم الموظف'),
+    name:     headersAtt.indexOf('الاسم'),
+    status:   headersAtt.indexOf('الحالة'),
+    date:     headersAtt.indexOf('التاريخ'),
+    in:       headersAtt.indexOf('دخول'),
+    out:      headersAtt.indexOf('خروج'),
+    sFrom:    headersAtt.indexOf('ساعية (من الساعة)'),
+    sTo:      headersAtt.indexOf('ساعية (إلى الساعة)'),
+    mFrom:    headersAtt.indexOf('مهمة (من الساعة)'),
+    mTo:      headersAtt.indexOf('مهمة (إلى الساعة)'),
+    days:     headersAtt.indexOf('عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة'),
+    notes:    headersAtt.indexOf('ملاحظات')
+  };
+  const rows = attendanceData.filter(r =>
+    String(r[idx.code]).trim() === currentUser
+  );
+  document.getElementById('records').scrollIntoView();
+  const tbody = document.getElementById('attendanceBody');
+  tbody.innerHTML = '';
+
+  if (!rows.length) {
+    document.getElementById('noDataMsg').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('noDataMsg').classList.add('hidden');
+
+  // إحصائيات من أول صف
+  const first = rows[0];
+  ['adminLeavesDue','adminLeavesCounted','adminLeavesRemaining'].forEach(id => {
+    document.getElementById(id).textContent =
+      first[ headersAtt.indexOf(id) ] || '--';
+  });
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="border px-4 py-2">${r[idx.code]||''}</td>
+      <td class="border px-4 py-2">${r[idx.name]||''}</td>
+      <td class="border px-4 py-2">${r[idx.status]||''}</td>
+      <td class="border px-4 py-2">${r[idx.date]||''}</td>
+      <td class="border px-4 py-2">${r[idx.in]||''}</td>
+      <td class="border px-4 py-2">${r[idx.out]||''}</td>
+      <td class="border px-4 py-2">${r[idx.sFrom]||''}</td>
+      <td class="border px-4 py-2">${r[idx.sTo]||''}</td>
+      <td class="border px-4 py-2">${r[idx.mFrom]||''}</td>
+      <td class="border px-4 py-2">${r[idx.mTo]||''}</td>
+      <td class="border px-4 py-2">${r[idx.days]||''}</td>
+      <td class="border px-4 py-2">${r[idx.notes]||''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// —————————————————————————————————————————
+// 5) عرض بيانات الحوافز
+// —————————————————————————————————————————
+async function showHwafez() {
+  const headers = {
+    'Content-Type':  'application/json',
+    'Authorization': `Bearer ${jwtToken}`
+  };
+  try {
+    const res = await fetch(`${API_BASE}/hwafez`, { headers });
+    if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
+    const { headers: h, data } = await res.json();
+    headersHw  = h; hwafezData = data;
+
+    const tbody = document.getElementById('hwafezBody');
+    tbody.innerHTML = '';
+    if (!data.length) {
+      document.getElementById('noHwafezMsg').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('noHwafezMsg').classList.add('hidden');
+
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = h.map(col => `<td class="border px-4 py-2">${r[h.indexOf(col)]||''}</td>`).join('');
+      tbody.appendChild(tr);
+    });
+    document.getElementById('hwafezSection').classList.remove('hidden');
+  } catch (e) {
+    console.error('❌ showHwafez error:', e);
+    alert('حدث خطأ أثناء جلب بيانات الحوافز');
+  }
+}
+
+// —————————————————————————————————————————
+// 6) عرض بيانات التقييم السنوي
+// —————————————————————————————————————————
+async function showTqeem() {
+  const headers = {
+    'Content-Type':  'application/json',
+    'Authorization': `Bearer ${jwtToken}`
+  };
+  try {
+    const res = await fetch(`${API_BASE}/tqeem`, { headers });
+    if (!res.ok) throw new Error('فشل جلب بيانات التقييم السنوي');
+    const { headers: h, data } = await res.json();
+    headersTq   = h; tqeemData  = data;
+
+    const tbody = document.getElementById('tqeemBody');
+    tbody.innerHTML = '';
+    if (!data.length) {
+      document.getElementById('noTqeemMsg').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('noTqeemMsg').classList.add('hidden');
+
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = h.map(col => `<td class="border px-4 py-2">${r[h.indexOf(col)]||''}</td>`).join('');
+      tbody.appendChild(tr);
+    });
+    document.getElementById('tqeemSection').classList.remove('hidden');
+  } catch (e) {
+    console.error('❌ showTqeem error:', e);
+    alert('حدث خطأ أثناء جلب بيانات التقييم السنوي');
+  }
+}
