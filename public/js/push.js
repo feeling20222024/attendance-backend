@@ -115,7 +115,7 @@ window.initPush = async function () {
     // 1) تهيئة SW وFirebase
     await window.initNotifications();
 
-    // 2) جلب سجل الإشعارات من الخادم
+     // 2) جلب سجل الإشعارات من الخادم (معلق مؤقتاً)
     /*
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
@@ -133,7 +133,6 @@ window.initPush = async function () {
     } catch (err) {
       console.warn('⚠️ failed to fetch notifications log:', err);
     }
+    */
   }
 };
-/*
-
