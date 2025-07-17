@@ -270,20 +270,17 @@ app.post('/api/notifications', authenticate, async (req, res) => {
   }
 });
 
-// 16) جلب إشعارات المستخدم
-app.get('/api/notifications', authenticate, async (req, res) => {
-  try {
-    const snap = await db.collection('notifications')
-      .where('user', '==', req.user.code)
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
-    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    res.json({ data });
-  } catch (e) {
-    console.error('❌ Firestore read failed:', e);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
-  }
+// Node.js + Express مثال
+app.get('/api/notifications/:user', async (req, res) => {
+  const user = req.params.user;
+  // جِلب آخر 50 إشعار من قاعدة البيانات
+  const notifications = await db
+    .collection('notifications')
+    .find({ user })
+    .sort({ time: -1 })
+    .limit(50)
+    .toArray();
+  res.json(notifications);
 });
 
 
