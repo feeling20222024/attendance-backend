@@ -1,8 +1,9 @@
 {
-  "gcm_sender_id": "103953800507",    // هذا رقم Google الصلب
   "name": "تطبيق متابعة الدوام",
   "short_name": "متابعة الدوام",
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "icons": [ /* ... */ ]
+  "theme_color": "#2563EB",
+  "background_color": "#ffffff"
+  // لا تدرج مفتاح `icons`
 }
