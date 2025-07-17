@@ -442,10 +442,12 @@ async function sendSupervisorNotification() {
 // —————————————————————————————————————————
 function logout() {
   currentUser = null;
-  jwtToken     = null;
+  jwtToken    = null;
   localStorage.removeItem('jwtToken');
-  ['records','pushSection','hwafezSection'].forEach(id =>
+  // إخفاء الأقسام المختلفة وعودة شاشة الدخول
+  document.getElementById('loginSection').classList.remove('hidden');
+  ['records','pushSection','hwafezSection','tqeemSection'].forEach(id =>
     document.getElementById(id).classList.add('hidden')
   );
-  document.getElementById('loginSection').classList.remove('hidden');
 }
+
