@@ -58,17 +58,18 @@ window.initNotifications = async function () {
       serviceWorkerRegistration: registration
     });
 
-    if (token && window.currentUser) {
-      await fetch(`${API_BASE}/register-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: window.currentUser, token })
-      });
-      console.log('✅ تم إرسال FCM Token إلى الخادم');
-    }
-  } catch (err) {
-    console.error('❌ أثناء طلب FCM Token:', err);
-  }
+  // داخل addNotification بعد localStorage.setItem(...)
+if (window.currentUser) {
+  fetch(`${API_BASE}/notifications`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+    },
+    body: JSON.stringify({ title, body, time })
+  }).catch(console.warn);
+}
+
 
   messaging.onMessage(payload => {
     const { title, body } = payload.notification || {};
