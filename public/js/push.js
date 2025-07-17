@@ -1,4 +1,6 @@
-// 1. إعدادات
+// push.js
+
+// 1. ثوابت الإعداد
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 
 const firebaseConfig = {
@@ -12,7 +14,7 @@ const firebaseConfig = {
 
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
-// 2. دالة addNotification - ✅ بعد التصحيح
+// 2. دالة إضافة إشعار إلى السجل المحلي
 window.addNotification = ({ title, body, time }) => {
   const saved = JSON.parse(localStorage.getItem('notificationsLog') || '[]');
   saved.unshift({ title, body, time });
@@ -29,31 +31,29 @@ window.addNotification = ({ title, body, time }) => {
   console.log('📩 إشعار مضاف:', { title, body, time });
 };
 
-
-// 3. تهيئة إشعارات الويب
+// 3. دالة تهيئة إشعارات الويب
 window.initNotifications = async function () {
   try {
-    // 1) سجّل الـ SW وانتظر حتى يكون جاهزاً
+    // 3.1 تسجيل Service Worker والانتظار حتى يصبح active
     console.log('🚀 Registering Firebase SW…');
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    // هذه الخطوة تضمن أن الـ SW أصبح “active”
     await navigator.serviceWorker.ready;
     console.log('✅ SW for Firebase active:', registration.scope);
 
-    // 2) هيّئ Firebase إذا لم يكن مهيّئاً
+    // 3.2 تهيئة Firebase (مرة واحدة)
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
     const messaging = firebase.messaging();
 
-    // 3) اطلب إذن الإشعارات
+    // 3.3 طلب إذن الإشعارات
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       console.warn('🔕 إذن الإشعارات لم يُمنح');
       return;
     }
 
-    // 4) احصل على التوكن باستخدام registration الجاهز
+    // 3.4 الحصول على FCM token
     console.log('🚀 Getting FCM token…');
     const token = await messaging.getToken({
       vapidKey: VAPID_PUBLIC_KEY,
@@ -61,7 +61,7 @@ window.initNotifications = async function () {
     });
     console.log('✅ FCM token:', token);
 
-    // 5) أرسل التوكن إلى الخادم إذا كان المستخدم معرّف
+    // 3.5 إرسال التوكن إلى الخادم
     if (token && window.currentUser) {
       await fetch(`${API_BASE}/register-token`, {
         method: 'POST',
@@ -71,15 +71,14 @@ window.initNotifications = async function () {
       console.log('✅ Token registered on server');
     }
 
-    // 6) استمع للرسائل الواردة عندما تكون الصفحة في الـ foreground
+    // 3.6 استقبال الرسائل أثناء وجود الصفحة مفتوحة
     messaging.onMessage(payload => {
       const { title, body } = payload.notification || {};
       if (title && body) {
-        // عرض تنبيه نظامي
         new Notification(title, { body });
-        // إضافة للسجل والعداد
         window.addNotification({
-          title, body,
+          title,
+          body,
           time: new Date().toLocaleString()
         });
       }
@@ -90,21 +89,9 @@ window.initNotifications = async function () {
   }
 };
 
-
-  messaging.onMessage(payload => {
-    const { title, body } = payload.notification || {};
-    if (title && body) {
-      if (Notification.permission === 'granted') {
-        new Notification(title, { body });
-      }
-      window.addNotification({ title, body, time: new Date().toLocaleString() });
-    }
-  });
-};
-
-// 4. تعريف initPush لتجنب الخطأ
+// 4. تعريف initPush كغلاف لـ initNotifications
 window.initPush = async function () {
-  console.log('initPush called');
+  console.log('🚀 initPush called');
   if (typeof window.initNotifications === 'function') {
     await window.initNotifications();
   }
