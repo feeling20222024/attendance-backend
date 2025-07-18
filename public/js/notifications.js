@@ -19,18 +19,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// —————————————————————————————————————————
-// الشفرة الخاصة بإدارة سجل الإشعارات محليًا
-// —————————————————————————————————————————
 (function(){
   const STORAGE_KEY = 'notificationsLog';
 
   function loadNotifications() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch {
-      return [];
-    }
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
   }
 
   function updateBellCount() {
@@ -50,7 +44,6 @@ const messaging = firebase.messaging();
     if (saved.length > 50) saved.pop();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
     updateBellCount();
-    // إذا كانت اللوحة مفتوحة، أعد رسمها
     const panel = document.getElementById('notificationsPanel');
     if (panel?.style.display === 'block') renderNotificationsPanel();
   }
@@ -83,31 +76,27 @@ const messaging = firebase.messaging();
     updateBellCount();
   }
 
-  // ★ إتاحة دوال السجل للعالم الخارجي (Capacitor/native) ★
+  // ★ إتاحة دوال السجل للعالم الخارجي ★
   window.addNotification = ({ title, body }) => addNotificationToLog(title, body);
 
-  // —————————————————————————————————————————
-  // DOMContentLoaded: ربط الأحداث وتسجيل onMessage
-  // —————————————————————————————————————————
   document.addEventListener('DOMContentLoaded', () => {
-    // 1) زر الجرس
-    document
-      .getElementById('notifBell')
+    // 1) ربط زر الجرس
+    document.getElementById('notifBell')
       .addEventListener('click', () => {
         const panel = document.getElementById('notificationsPanel');
         panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         if (panel.style.display === 'block') renderNotificationsPanel();
       });
 
-    // 2) زر مسح السجل
-    document
-      .getElementById('clearNotifications')
+    // 2) ربط زر المسح
+    document.getElementById('clearNotifications')
       .addEventListener('click', clearNotifications);
 
-    // 3) تهيئة العداد في البداية
+    // 3) تهيئة العداد واللوحة مباشرة عند التحميل
     updateBellCount();
+    renderNotificationsPanel();
 
-    // 4) تسجيل listener وحيد للـ Firebase onMessage
+    // 4) تسجيل listener وحيد للرسائل الواردة
     messaging.onMessage(payload => {
       const { title, body } = payload.notification || {};
       if (title && body) addNotificationToLog(title, body);
