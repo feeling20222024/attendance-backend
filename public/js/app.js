@@ -184,25 +184,26 @@ function renderRecords() {
     adminDue: headersAtt.indexOf('عدد الإجازات الإدارية المستحقة للعامل'),
   };
 
-// 1) كل صفوف المستخدم (لا نلمسها للإحصائيات)
+  // 1) كل الصفوف الخاصة بالمستخدم (بلا تصفية)
   const allRows = attendanceData.filter(r =>
- String(r[idx.code]).trim() === currentUser
+    String(r[idx.code]).trim() === currentUser
   );
 
-  // 2) نستخدمها كأصل للإحصائيات
-  const first = allRows[0];
-  document.getElementById('adminLeavesDue').textContent       = first[idx.adminDue]  || '--';
-  document.getElementById('adminLeavesCounted').textContent   = first[idx.adminC]    || '--';
-  document.getElementById('adminLeavesRemaining').textContent = first[idx.adminR]    || '--';
+  // 2) إذا لدينا أي صفوف، نستخدم أول صف للإحصائيات
+  if (allRows.length) {
+    const firstRow = allRows[0];
+    document.getElementById('adminLeavesDue').textContent       = firstRow[idx.adminDue]   || '--';
+    document.getElementById('adminLeavesCounted').textContent   = firstRow[idx.adminC]     || '--';
+    document.getElementById('adminLeavesRemaining').textContent = firstRow[idx.adminR]     || '--';
+  }
 
-  // 3) للجدول نعرض فقط الصفوف التي تحتوي على تاريخ
+  // 3) للعرض في الجدول، نُصفي أي صف لا يحتوي على تاريخ
   const rows = allRows.filter(r =>
-  String(r[idx.date]).trim() !== ''
+    String(r[idx.date]).trim() !== ''
   );
 
-   const tbody = document.getElementById('attendanceBody');
-   tbody.innerHTML = '';
-
+  const tbody = document.getElementById('attendanceBody');
+  tbody.innerHTML = '';
 
   if (!rows.length) {
     document.getElementById('noDataMsg').classList.remove('hidden');
@@ -210,27 +211,22 @@ function renderRecords() {
   }
   document.getElementById('noDataMsg').classList.add('hidden');
 
-  // إحصائيات
-  const first = rows[0];
-  document.getElementById('adminLeavesDue').textContent       = first[idx.adminDue]  || '--';
-  document.getElementById('adminLeavesCounted').textContent   = first[idx.adminC]    || '--';
-  document.getElementById('adminLeavesRemaining').textContent = first[idx.adminR]    || '--';
-
+  // 4) بناء صفوف الجدول
   rows.forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="border px-4 py-2">${r[idx.code]||''}</td>
-      <td class="border px-4 py-2">${r[idx.name]||''}</td>
-      <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()]||''}</td>
-      <td class="border px-4 py-2">${r[idx.date]||''}</td>
-      <td class="border px-4 py-2">${r[idx.in]||''}</td>
-      <td class="border px-4 py-2">${r[idx.out]||''}</td>
-      <td class="border px-4 py-2">${r[idx.sFrom]||''}</td>
-      <td class="border px-4 py-2">${r[idx.sTo]||''}</td>
-      <td class="border px-4 py-2">${r[idx.mFrom]||''}</td>
-      <td class="border px-4 py-2">${r[idx.mTo]||''}</td>
-      <td class="border px-4 py-2">${r[idx.days]||''}</td>
-      <td class="border px-4 py-2">${r[idx.notes]||''}</td>
+      <td class="border px-4 py-2">${r[idx.code]  || ''}</td>
+      <td class="border px-4 py-2">${r[idx.name]  || ''}</td>
+      <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()] || ''}</td>
+      <td class="border px-4 py-2">${r[idx.date]  || ''}</td>
+      <td class="border px-4 py-2">${r[idx.in]    || ''}</td>
+      <td class="border px-4 py-2">${r[idx.out]   || ''}</td>
+      <td class="border px-4 py-2">${r[idx.sFrom] || ''}</td>
+      <td class="border px-4 py-2">${r[idx.sTo]   || ''}</td>
+      <td class="border px-4 py-2">${r[idx.mFrom] || ''}</td>
+      <td class="border px-4 py-2">${r[idx.mTo]   || ''}</td>
+      <td class="border px-4 py-2">${r[idx.days]  || ''}</td>
+      <td class="border px-4 py-2">${r[idx.notes] || ''}</td>
     `;
     tbody.appendChild(tr);
   });
