@@ -170,6 +170,7 @@ function renderRecords() {
     code:     headersAtt.indexOf('رقم الموظف'),
     name:     headersAtt.indexOf('الاسم'),
     status:   headersAtt.indexOf('الحالة'),
+    day:      headersAtt.indexOf('اليوم'),
     date:     headersAtt.indexOf('التاريخ'),
     in:       headersAtt.indexOf('دخول'),
     out:      headersAtt.indexOf('خروج'),
@@ -218,6 +219,7 @@ function renderRecords() {
       <td class="border px-4 py-2">${r[idx.code]  || ''}</td>
       <td class="border px-4 py-2">${r[idx.name]  || ''}</td>
       <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()] || ''}</td>
+      <td class="border px-4 py-2">${r[idx.day]  || ''}</td>
       <td class="border px-4 py-2">${r[idx.date]  || ''}</td>
       <td class="border px-4 py-2">${r[idx.in]    || ''}</td>
       <td class="border px-4 py-2">${r[idx.out]   || ''}</td>
