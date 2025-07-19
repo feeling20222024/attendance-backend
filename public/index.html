@@ -1,312 +1,1 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8" />
-  <link rel="manifest" href="/manifest.json" />
-
-  <!-- Firebase compat -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
-
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تطبيق متابعة الدوام</title>
-
-  <!-- CSP مخفّفة -->
-  <meta http-equiv="Content-Security-Policy"
-        content="
-          default-src 'self' data:;
-          script-src  'self' 'unsafe-inline' 'unsafe-eval'
-                       https://www.gstatic.com
-                       https://cdn.tailwindcss.com;
-          style-src   'self' 'unsafe-inline'
-                       https://cdn.tailwindcss.com;
-          connect-src 'self'
-                       https://dwam-app-by-omar.onrender.com
-                       https://www.googleapis.com
-                       https://fcm.googleapis.com
-                       https://firebaseinstallations.googleapis.com
-                       https://fcmregistrations.googleapis.com;
-        ">
-
-  <!-- Tailwind + ستايلات عامة -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/style.css" />
-
-  <style>
-    /* dropdown notifications */
-    #notificationsPanel {
-      position: absolute; top: 3.5rem; right: 1rem;
-      width: 300px; max-height: 400px; overflow-y: auto;
-      background: #fff; border: 1px solid #ccc;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      padding: 0.5rem; display: none; z-index: 1000;
-    }
-    #notifBell {
-      position: absolute; top: 1rem; right: 1rem;
-      cursor: pointer; font-size: 1.5rem;
-    }
-    #notifBell .badge {
-      font-size: 0.75rem; background: red; color: white;
-      border-radius: 50%; padding: 0 5px;
-      vertical-align: top; margin-left: 4px;
-    }
-    #clearNotifications {
-      display: none; margin: 0.5rem auto 0;
-      background: #f44336; color: white; border: none;
-      padding: 0.25rem 0.5rem; cursor: pointer;
-    }
-  </style>
-</head>
-
-<body class="bg-gray-100 min-h-screen flex flex-col">
-  <!-- Header مع أيقونة الجرس والعداد -->
-  <header class="relative bg-blue-600 text-white">
-  <div class="container mx-auto px-4 py-4 text-center">
-    <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
-  </div>
-  <div id="notifBell" style="position:absolute; top:1rem; right:1rem; cursor:pointer;">
-    🔔<span id="notifCount" class="badge" style="
-        font-size:0.75rem;
-        background:red;
-        color:white;
-        border-radius:50%;
-        padding:0 5px;
-        vertical-align:top;
-        margin-left:2px;
-      ">0</span>
-  </div>
-</header>
-
-<!-- لوحة الإشعارات المنسدلة -->
-<div id="notificationsPanel" style="
-     display:none;
-     position:absolute;
-     top:4rem; /* تحت الهيدر */
-     right:1rem;
-     width:300px;
-     max-height:400px;
-     overflow-y:auto;
-     background:#fff;
-     border:1px solid #ccc;
-     box-shadow:0 2px 6px rgba(0,0,0,0.2);
-     padding:0.5rem;
-     z-index:1000;
-">
-  <h3>📩 سجل الإشعارات</h3>
-  <ul id="notificationsLog" class="list-none p-0 m-0"></ul>
-  <button id="clearNotifications" style="
-      display:none;
-      margin-top:0.5rem;
-      background:#f44336;
-      color:white;
-      border:none;
-      padding:0.25rem 0.5rem;
-      cursor:pointer;
-    ">🗑️ مسح الإشعارات</button>
-</div>
-
-  <!-- Main -->
-  <main class="flex-grow container mx-auto px-4 py-8">
-
-    <!-- Login Form -->
-    <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
-      <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2>
-      <input id="codeInput" type="text" placeholder="كود الموظف"
-             class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
-      <input id="passwordInput" type="password" placeholder="كلمة المرور"
-             class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
-      <button id="loginBtn"
-              class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
-        دخول
-      </button>
-    </section>
-
-    <!-- Records Section -->
-    <section id="records" class="hidden">
-
-      <!-- Supervisor Push -->
-      <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
-        <h3 class="text-xl font-semibold mb-4 text-gray-700">إرسال إشعار للمستخدمين</h3>
-        <input id="notifTitleInput" type="text" placeholder="عنوان الإشعار"
-               class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400" />
-        <textarea id="notifBodyInput" rows="3" placeholder="نص الإشعار"
-                  class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400"></textarea>
-        <button id="sendPushBtn"
-                class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition">
-          إرسال الإشعار
-        </button>
-      </div>
-
-      <!-- Supervisor Notes -->
-      <div class="mb-6 max-w-md mx-auto">
-        <h3 class="text-xl font-bold mb-2 text-gray-700">تنبيهات مراقب الدوام</h3>
-        <textarea id="supervisorNotes" rows="3"
-                  class="w-full border border-gray-300 rounded p-2 bg-gray-50 focus:ring-2 focus:ring-green-400"
-                  readonly></textarea>
-        <button id="saveNotesBtn" class="hidden mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
-          حفظ الملاحظة
-        </button>
-      </div>
-
-      <!-- Welcome -->
-      <div class="mb-6 text-center">
-        <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
-      </div>
-
-      <!-- Controls -->
-      <div class="flex flex-wrap gap-4 justify-center mb-6">
-        <button id="aboutBtn" class="text-blue-500 hover:underline">حول التطبيق</button>
-        <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
-          علامات الحوافز
-        </button>
-       <button id="tqeemBtn"
-        class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
-          التقييم السنوي
-        </button>
-        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
-          خروج
-        </button>
-      </div>
-
-      <!-- Leave Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 max-w-4xl mx-auto">
-        <div class="bg-white p-4 rounded shadow border">
-          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المستحقة</p>
-          <span id="adminLeavesDue" class="text-2xl font-medium">--</span>
-        </div>
-        <div class="bg-white p-4 rounded shadow border">
-          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المحتسبة</p>
-          <span id="adminLeavesCounted" class="text-2xl font-medium">--</span>
-        </div>
-        <div class="bg-white p-4 rounded shadow border">
-          <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المتبقية</p>
-          <span id="adminLeavesRemaining" class="text-2xl font-medium">--</span>
-        </div>
-      </div>
-
-      <!-- No Data Msg -->
-      <p id="noDataMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
-
-      <!-- Attendance Table -->
-      <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4 max-w-4xl mx-auto mb-8">
-        <table class="table-fixed w-full text-center divide-y divide-gray-200">
-          <colgroup>
-            <col class="w-20"> <!-- كود -->
-            <col class="w-32"> <!-- اسم -->
-            <col class="w-32"> <!-- حالة -->
-            <col class="w-28"> <!-- اليوم -->
-            <col class="w-28"> <!-- تاريخ -->
-            <col class="w-20"> <!-- دخول -->
-            <col class="w-20"> <!-- خروج -->
-            <col class="w-24"> <!-- ساعية من -->
-            <col class="w-24"> <!-- ساعية إلى -->
-            <col class="w-24"> <!-- مهمة من -->
-            <col class="w-24"> <!-- مهمة إلى -->
-            <col class="w-32"> <!-- عدد الأيام -->
-            <col class="w-40"> <!-- ملاحظات -->
-          </colgroup>
-          <thead class="bg-gray-50 text-gray-700 text-sm">
-            <tr>
-              <th class="border px-4 py-2">رقم الموظف</th>
-              <th class="border px-4 py-2">الاسم</th>
-              <th class="border px-4 py-2">الحالة</th>
-              <th class="border px-4 py-2">اليوم</th>
-              <th class="border px-4 py-2">التاريخ</th>
-              <th class="border px-4 py-2">دخول</th>
-              <th class="border px-4 py-2">خروج</th>
-              <th class="border px-4 py-2">ساعية (من الساعة)</th>
-              <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
-              <th class="border px-4 py-2">مهمة (من الساعة)</th>
-              <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
-              <th class="border px-4 py-2">عدد الأيام</th>
-              <th class="border px-4 py-2">ملاحظات</th>
-            </tr>
-          </thead>
-          <tbody id="attendanceBody" class="divide-y divide-gray-100">
-            <!-- يُحقَن هنا -->
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Hwafez Table -->
-      <div id="hwafezSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto">
-        <h3 class="text-xl font-bold mb-4 text-gray-700">علامات الحوافز</h3>
-        <p id="noHwafezMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
-        <div class="overflow-x-auto">
-          <table class="table-auto w-full text-center divide-y divide-gray-200">
-            <thead class="bg-gray-50 text-gray-700 text-sm">
-              <tr>
-                <th class="border px-4 py-2">رقم الموظف</th>
-                <th class="border px-4 py-2">الاسم</th>
-                <th class="border px-4 py-2">حجم العمل</th>
-                <th class="border px-4 py-2">اتقان العمل وفعاليته</th>
-                <th class="border px-4 py-2">المهارات القيادية</th>
-                <th class="border px-4 py-2">مهارة الإدارة الذاتية</th>
-                <th class="border px-4 py-2">مهارات التواصل والتفاعل</th>
-                <th class="border px-4 py-2">المبادرة والتطوير الذاتي</th>
-                <th class="border px-4 py-2">الإستقلال والموثوقية</th>
-                <th class="border px-4 py-2">الإلتزام والمسؤولية</th>
-                <th class="border px-4 py-2">نسبة الدوام الفعلي للعامل</th>
-                <th class="border px-4 py-2">السوية الوظيفية</th>
-                <th class="border px-4 py-2">مستوى التأهيل</th>
-                <th class="border px-4 py-2">سنوات الخبرة</th>
-              </tr>
-            </thead>
-            <tbody id="hwafezBody" class="divide-y divide-gray-100">
-              <!-- يُحقَن هنا -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-      
-       <!-- أسفل قسم hwafezSection مباشرة في نفس الـ <section id="records"> -->
- <!-- أسفل قسم hwafezSection مباشرة في نفس الـ <section id="records"> -->
-  <div id="tqeemSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto">
-  <h3 class="text-xl font-bold mb-4 text-gray-700">التقييم السنوي</h3>
-  <p id="noTqeemMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
-  <div class="overflow-x-auto">
-    <table id="tqeemTable" class="table-auto w-full text-center divide-y divide-gray-200">
-      <thead class="bg-gray-50 text-gray-700 text-sm">
-        <tr>
-          <th class="border px-4 py-2">رقم الموظف</th>
-          <th class="border px-4 py-2">الاسم</th>
-          <th class="border px-4 py-2">حجم العمل</th>
-          <th class="border px-4 py-2">اتقان العمل وفعاليته</th>
-          <th class="border px-4 py-2">المهارات القيادية</th>
-          <th class="border px-4 py-2">مهارة الإدارة الذاتية</th>
-          <th class="border px-4 py-2">مهارات التواصل والتفاعل</th>
-          <th class="border px-4 py-2">المبادرة والتطوير الذاتي</th>
-          <th class="border px-4 py-2">الاستقلال والموثوقية</th>
-          <th class="border px-4 py-2">الالتزام والمسؤولية</th>
-        </tr>
-      </thead>
-      <tbody id="tqeemBody" class="divide-y divide-gray-100">
-        <!-- injection -->
-      </tbody>
-    </table>
-   </div>
-   </div>
-  </section>
-  </main>
-  <!-- Scripts -->
-
-
-<script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(r => console.log('✅ SW registered:', r.scope))
-        .catch(e => console.warn('❌ SW register failed', e));
-    }
-  </script>
-<!-- notifications.js فيه تعريف initNotifications و renderNotifications … -->
-<script src="/js/notifications.js"></script>
-
-<!-- ثم push.js الذي يستدعي initPush و initNotifications -->
-<script type="module" src="/js/push.js"></script>
-
-<!-- ثم app.js الذي يستدعي initPush داخل login() -->
-<script type="module" src="/js/app.js"></script>
-
-</body>
-</html>
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"/><link rel="manifest" href="/manifest.json"/><!-- Firebase compat --><script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script><meta http-equiv="X-UA-Compatible" content="IE=edge"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>تطبيق متابعة الدوام</title><meta http-equiv="Content-Security-Policy" content="default-src 'self' data:;script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com;style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;connect-src 'self' https://dwam-app-by-omar.onrender.com https://www.googleapis.com https://fcm.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com;"/><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="/css/style.css"/><style>#notificationsPanel{position:absolute;top:3.5rem;right:1rem;width:300px;max-height:400px;overflow-y:auto;background:#fff;border:1px solid #ccc;box-shadow:0 2px 6px rgba(0,0,0,0.2);padding:.5rem;display:none;z-index:1000}#notifBell{position:absolute;top:1rem;right:1rem;cursor:pointer;font-size:1.5rem}#notifBell .badge{font-size:.75rem;background:red;color:#fff;border-radius:50%;padding:0 5px;vertical-align:top;margin-left:4px}#clearNotifications{display:none;margin:.5rem auto 0;background:#f44336;color:#fff;border:none;padding:.25rem .5rem;cursor:pointer}</style></head><body class="bg-gray-100 min-h-screen flex flex-col"><header class="relative bg-blue-600 text-white"><div class="container mx-auto px-4 py-4 text-center"><h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1></div><div id="notifBell">🔔<span id="notifCount" class="badge">0</span></div></header><div id="notificationsPanel"><h3>📩 سجل الإشعارات</h3><ul id="notificationsLog"></ul><button id="clearNotifications">🗑️ مسح الإشعارات</button></div><main class="flex-grow container mx-auto px-4 py-8"><section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8"><h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2><input id="codeInput" type="text" placeholder="كود الموظف" class="w-full mb-3 border px-3 py-2 rounded"/><input id="passwordInput" type="password" placeholder="كلمة المرور" class="w-full mb-3 border px-3 py-2 rounded"/><button id="loginBtn" class="w-full bg-blue-600 text-white py-2 rounded">دخول</button></section><section id="records" class="hidden"><div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto"><h3 class="text-xl font-semibold mb-4 text-gray-700">إرسال إشعار للمستخدمين</h3><input id="notifTitleInput" type="text" placeholder="عنوان الإشعار" class="w-full mb-2 border px-3 py-2 rounded"/><textarea id="notifBodyInput" rows="3" placeholder="نص الإشعار" class="w-full mb-2 border px-3 py-2 rounded"></textarea><button id="sendPushBtn" class="w-full bg-purple-600 text-white py-2 rounded">إرسال الإشعار</button></div><div class="mb-6 max-w-md mx-auto"><h3 class="text-xl font-bold mb-2 text-gray-700">تنبيهات مراقب الدوام</h3><textarea id="supervisorNotes" rows="3" class="w-full border rounded p-2 bg-gray-50" readonly></textarea><button id="saveNotesBtn" class="hidden mt-2 px-4 py-2 bg-green-600 text-white rounded">حفظ الملاحظة</button></div><div class="mb-6 text-center"><h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2></div><div class="flex flex-wrap gap-4 justify-center mb-6"><button id="aboutBtn" class="text-blue-500 hover:underline">حول التطبيق</button><button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded">علامات الحوافز</button><button id="tqeemBtn" class="bg-yellow-500 text-white px-4 py-2 rounded">التقييم السنوي</button><button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded">خروج</button></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 max-w-4xl mx-auto"><div class="bg-white p-4 rounded shadow border"><p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المستحقة</p><span id="adminLeavesDue" class="text-2xl font-medium">--</span></div><div class="bg-white p-4 rounded shadow border"><p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المحتسبة</p><span id="adminLeavesCounted" class="text-2xl font-medium">--</span></div><div class="bg-white p-4 rounded shadow border"><p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المتبقية</p><span id="adminLeavesRemaining" class="text-2xl font-medium">--</span></div></div><p id="noDataMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p><div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4 max-w-4xl mx-auto mb-8"><table class="table-fixed w-full text-center divide-y divide-gray-200"><colgroup><col class="w-20"><col class="w-32"><col class="w-32"><col class="w-28"><col class="w-28"><col class="w-20"><col class="w-20"><col class="w-24"><col class="w-24"><col class="w-24"><col class="w-32"><col class="w-40"></colgroup><thead class="bg-gray-50 text-gray-700 text-sm"><tr><th class="border px-4 py-2">رقم الموظف</th><th class="border px-4 py-2">الاسم</th><th class="border px-4 py-2">الحالة</th><th class="border px-4 py-2">اليوم</th><th class="border px-4 py-2">التاريخ</th><th class="border px-4 py-2">دخول</th><th class="border px-4 py-2">خروج</th><th class="border px-4 py-2">ساعية (من)</th><th class="border px-4 py-2">ساعية (إلى)</th><th class="border px-4 py-2">مهمة (من)</th><th class="border px-4 py-2">مهمة (إلى)</th><th class="border px-4 py-2">عدد الأيام</th><th class="border px-4 py-2">ملاحظات</th></tr></thead><tbody id="attendanceBody" class="divide-y divide-gray-100"></tbody></table></div><div id="hwafezSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto"><h3 class="text-xl font-bold mb-4 text-gray-700">علامات الحوافز</h3><p id="noHwafezMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p><div class="overflow-x-auto"><table class="table-auto w-full text-center divide-y divide-gray-200"><thead class="bg-gray-50 text-gray-700 text-sm"><tr><th class="border px-4 py-2">رقم الموظف</th><th class="border px-4 py-2">الاسم</th><th class="border px-4 py-2">حجم العمل</th><th class="border px-4 py-2">اتقان العمل</th><th class="border px-4 py-2">المهارات القيادية</th><th class="border px-4 py-2">الإدارة الذاتية</th><th class="border px-4 py-2">التواصل</th><th class="border px-4 py-2">المبادرة</th><th class="border px-4 py-2">الاستقلال</th><th class="border px-4 py-2">الالتزام</th><th class="border px-4 py-2">نسبة الدوام</th><th class="border px-4 py-2">السوية</th><th class="border px-4 py-2">التأهيل</th><th class="border px-4 py-2">سنوات الخبرة</th></tr></thead><tbody id="hwafezBody" class="divide-y divide-gray-100"></tbody></table></div></div><div id="tqeemSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto"><h3 class="text-xl font-bold mb-4 text-gray-700">التقييم السنوي</h3><p id="noTqeemMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p><div class="overflow-x-auto"><table id="tqeemTable" class="table-auto w-full text-center divide-y divide-gray-200"><thead class="bg-gray-50 text-gray-700 text-sm"><tr><th class="border px-4 py-2">#كود</th><th class="border px-4 py-2">الاسم</th><th class="border px-4 py-2">حجم العمل</th><th class="border px-4 py-2">اتقان العمل</th><th class="border px-4 py-2">المهارات</th><th class="border px-4 py-2">الإدارة الذاتية</th><th class="border px-4 py-2">التواصل</th><th class="border px-4 py-2">المبادرة</th><th class="border px-4 py-2">الاستقلال</th><th class="border px-4 py-2">الالتزام</th></tr></thead><tbody id="tqeemBody" class="divide-y divide-gray-100"></tbody></table></div></div></section></main><script>if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js');</script><script src="/js/notifications.js"></script><script type="module" src="/js/push.js"></script><script type="module" src="/js/app.js"></script></body></html>
