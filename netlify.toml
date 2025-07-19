@@ -1,7 +1,7 @@
 # netlify.toml
 
 [build]
-  publish = "public"   # مسار مجلد الخرج لديك
+  publish = "public"       # غيّرها إلى مجلد الخرج عندك (مثلاً "dist" أو "build")
   command = "npm run build"
 
 [[plugins]]
@@ -18,6 +18,6 @@
   [plugins.inputs]
     # امتدادات الملفات التي تريد ضغطها
     extensions = ["html", "css", "js"]
-    # فعِّل كلا الطريقتين Brotli و Gzip
+    # فعِّل ضغط Brotli و Gzip
     brotli = true
     gzip   = true
