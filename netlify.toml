@@ -1,9 +1,23 @@
+# netlify.toml
+
+[build]
+  publish = "public"   # مسار مجلد الخرج لديك
+  command = "npm run build"
+
+[[plugins]]
+  package = "netlify-plugin-minify-html"
+
+[[plugins]]
+  package = "netlify-plugin-minify-css"
+
+[[plugins]]
+  package = "netlify-plugin-minify-js"
+
 [[plugins]]
   package = "netlify-plugin-compress"
-
-[plugins.inputs]
-  # امتدادات الملفات التي تريد ضغطها
-  extensions = ["html","css","js"]
-  # استخدم كلا الطريقتين Brotli و Gzip
-  brotli = true
-  gzip   = true
+  [plugins.inputs]
+    # امتدادات الملفات التي تريد ضغطها
+    extensions = ["html", "css", "js"]
+    # فعِّل كلا الطريقتين Brotli و Gzip
+    brotli = true
+    gzip   = true
