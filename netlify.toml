@@ -1,0 +1,9 @@
+[[plugins]]
+  package = "netlify-plugin-compress"
+
+[plugins.inputs]
+  # امتدادات الملفات التي تريد ضغطها
+  extensions = ["html","css","js"]
+  # استخدم كلا الطريقتين Brotli و Gzip
+  brotli = true
+  gzip   = true
