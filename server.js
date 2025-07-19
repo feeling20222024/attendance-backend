@@ -1,1 +1,292 @@
-const _0xe409fe=_0x501a;(function(_0x1ada00,_0x57bd1d){const _0x606be2=_0x501a,_0x500c74=_0x1ada00();while(!![]){try{const _0x32154a=parseInt(_0x606be2(0x184))/0x1+-parseInt(_0x606be2(0x169))/0x2*(parseInt(_0x606be2(0x185))/0x3)+parseInt(_0x606be2(0x196))/0x4+-parseInt(_0x606be2(0x19a))/0x5*(-parseInt(_0x606be2(0x1b0))/0x6)+-parseInt(_0x606be2(0x188))/0x7*(parseInt(_0x606be2(0x19e))/0x8)+parseInt(_0x606be2(0x1b3))/0x9*(parseInt(_0x606be2(0x18d))/0xa)+-parseInt(_0x606be2(0x1a7))/0xb;if(_0x32154a===_0x57bd1d)break;else _0x500c74['push'](_0x500c74['shift']());}catch(_0x57e27b){_0x500c74['push'](_0x500c74['shift']());}}}(_0x7b23,0xdbfd6),require(_0xe409fe(0x173))[_0xe409fe(0x18f)]());const APP_VERSION=process['env'][_0xe409fe(0x16f)]||'1.0.7',express=require('express'),cors=require('cors'),path=require('path'),jwt=require(_0xe409fe(0x1af)),{GoogleSpreadsheet}=require(_0xe409fe(0x189)),admin=require(_0xe409fe(0x1bb));function normalizeDigits(_0x633bc7){const _0x51953d=_0xe409fe;if(!_0x633bc7)return _0x633bc7;return _0x633bc7[_0x51953d(0x182)](/[\u0660-\u0669\u06F0-\u06F9]/g,_0xb2dea8=>{const _0x10d37c=_0xb2dea8['charCodeAt'](0x0);if(_0x10d37c>=0x660&&_0x10d37c<=0x669)return String(_0x10d37c-0x660);if(_0x10d37c>=0x6f0&&_0x10d37c<=0x6f9)return String(_0x10d37c-0x6f0);return _0xb2dea8;});}let serviceAccount;try{serviceAccount=JSON[_0xe409fe(0x1b7)](process[_0xe409fe(0x181)][_0xe409fe(0x17a)]);}catch{console['error']('❌\x20خطأ:\x20FIREBASE_SERVICE_ACCOUNT\x20غير\x20صالح.'),process['exit'](0x1);}admin[_0xe409fe(0x1aa)]({'credential':admin['credential'][_0xe409fe(0x1b2)](serviceAccount)});async function sendPushTo(_0x157d3d,_0x5d1dd2,_0x1ca31b,_0x596a17={}){const _0x145367=_0xe409fe,_0x3b4638={'token':_0x157d3d,'notification':{'title':_0x5d1dd2,'body':_0x1ca31b},'android':{'ttl':_0x145367(0x1b8),'priority':_0x145367(0x1ae),'notification':{'android_channel_id':'default','sound':_0x145367(0x18c),'vibrate_timings':[0x64,0xc8,0x64]}},'data':_0x596a17};try{const _0x24ee8c=await admin[_0x145367(0x16b)]()[_0x145367(0x194)](_0x3b4638);console[_0x145367(0x193)]('✅\x20تم\x20الإرسال\x20إلى\x20'+_0x157d3d+':\x20'+_0x24ee8c);}catch(_0x1c9908){console[_0x145367(0x167)](_0x145367(0x1a4)+_0x157d3d+':',_0x1c9908);}}const app=express();app['use'](cors()),app['use'](express[_0xe409fe(0x174)]()),app[_0xe409fe(0x18b)](express[_0xe409fe(0x1a2)](path[_0xe409fe(0x1ba)](__dirname,'public')));const {JWT_SECRET,SUPERVISOR_CODE,GOOGLE_SHEET_ID:SHEET_ID,GOOGLE_SERVICE_KEY}=process[_0xe409fe(0x181)];function _0x7b23(){const _0x2f582f=['startsWith','trim','2957086zfKOym','sign','headerValues','initializeApp','slice','Bearer\x20','Sheet\x20\x22','high','jsonwebtoken','44508PgZiFj','listen','cert','2124qwKCkO','Forbidden','رقم\x20الموظف','find','parse','172800s','Invalid\x20token','join','firebase-admin','code','tqeem','private_key','error','loadHeaderRow','11402IuSQjy','❌\x20بعض\x20متغيرات\x20البيئة\x20مفقودة.','messaging','user\x20and\x20token\x20required','unshift','allSettled','APP_VERSION','/api/login','user','useServiceAccountAuth','dotenv','json','Login\x20failed','sendFile','getRows','message','post','FIREBASE_SERVICE_ACCOUNT','كود\x20الموظف','/api/notify-all','keys','code\x20and\x20pass\x20required','Users','/api/attendance','env','replace','verify','1468031OQtGlB','927ovRPug','index.html','PORT','6300049VgyoiK','google-spreadsheet','🚀\x20الخادم\x20يعمل\x20على\x20','use','default','7880nZQtTE','status','config','12h','Attendance','exit','log','send','get','2508636UbTphs','headers','map','sheetsByTitle','1045DIvRTR','public','filter','pop','8hudhVI','body','indexOf','/api/tqeem','static','/api/notifications','❌\x20فشل\x20الإرسال\x20إلى\x20'];_0x7b23=function(){return _0x2f582f;};return _0x7b23();}(!JWT_SECRET||!SUPERVISOR_CODE||!SHEET_ID||!GOOGLE_SERVICE_KEY)&&(console[_0xe409fe(0x167)](_0xe409fe(0x16a)),process['exit'](0x1));let sheetCreds;try{sheetCreds=JSON[_0xe409fe(0x1b7)](GOOGLE_SERVICE_KEY);}catch{console[_0xe409fe(0x167)]('❌\x20GOOGLE_SERVICE_KEY\x20ليس\x20JSON\x20صالح.'),process[_0xe409fe(0x192)](0x1);}async function accessSheet(){const _0x410b75=_0xe409fe,_0x1d71c2=new GoogleSpreadsheet(SHEET_ID);return await _0x1d71c2[_0x410b75(0x172)]({'client_email':sheetCreds['client_email'],'private_key':sheetCreds[_0x410b75(0x166)][_0x410b75(0x182)](/\\n/g,'\x0a')}),await _0x1d71c2['loadInfo'](),_0x1d71c2;}async function readSheet(_0x13d577){const _0x57bff4=_0xe409fe,_0x1cf719=await accessSheet(),_0x1ec72a=_0x1cf719[_0x57bff4(0x199)][_0x13d577];if(!_0x1ec72a)throw new Error(_0x57bff4(0x1ad)+_0x13d577+'\x22\x20غير\x20موجود');await _0x1ec72a[_0x57bff4(0x168)]();const _0x45b8f5=_0x1ec72a[_0x57bff4(0x1a9)],_0x1869f7=await _0x1ec72a[_0x57bff4(0x177)](),_0x4be55d=_0x1869f7['map'](_0xebbc15=>_0x45b8f5[_0x57bff4(0x198)](_0x35cb91=>_0xebbc15[_0x35cb91]??''));return{'headers':_0x45b8f5,'data':_0x4be55d};}function authenticate(_0x147111,_0x5666a8,_0x496868){const _0x320ac1=_0xe409fe,_0x2306d7=_0x147111[_0x320ac1(0x197)]['authorization'];if(!_0x2306d7||!_0x2306d7[_0x320ac1(0x1a5)](_0x320ac1(0x1ac)))return _0x5666a8['status'](0x191)[_0x320ac1(0x174)]({'error':'Unauthorized'});try{_0x147111[_0x320ac1(0x171)]=jwt[_0x320ac1(0x183)](_0x2306d7[_0x320ac1(0x1ab)](0x7),JWT_SECRET),_0x496868();}catch{return _0x5666a8[_0x320ac1(0x18e)](0x191)[_0x320ac1(0x174)]({'error':_0x320ac1(0x1b9)});}}app[_0xe409fe(0x179)](_0xe409fe(0x170),async(_0x2fa1d6,_0x1b0469)=>{const _0x508023=_0xe409fe;let {code:_0x5ab4bd,pass:_0x27f525}=_0x2fa1d6['body'];if(!_0x5ab4bd||!_0x27f525)return _0x1b0469[_0x508023(0x18e)](0x190)[_0x508023(0x174)]({'error':_0x508023(0x17e)});_0x5ab4bd=normalizeDigits(String(_0x5ab4bd)[_0x508023(0x1a6)]()),_0x27f525=normalizeDigits(String(_0x27f525)[_0x508023(0x1a6)]());try{const {headers:_0x17bc4c,data:_0x19a327}=await readSheet(_0x508023(0x17f)),_0x3d12c6=_0x17bc4c[_0x508023(0x1a0)](_0x508023(0x17b)),_0x5ab4bb=_0x17bc4c[_0x508023(0x1a0)]('كلمة\x20المرور'),_0x11daa3=_0x17bc4c[_0x508023(0x1a0)]('الاسم'),_0x48284c=_0x19a327[_0x508023(0x1b6)](_0x2c5868=>{const _0x5aae79=_0x508023,_0x503fc3=normalizeDigits(String(_0x2c5868[_0x3d12c6]??'')[_0x5aae79(0x1a6)]()),_0x6da017=normalizeDigits(String(_0x2c5868[_0x5ab4bb]??'')[_0x5aae79(0x1a6)]());return _0x503fc3===_0x5ab4bd&&_0x6da017===_0x27f525;});if(!_0x48284c)return _0x1b0469['status'](0x191)['json']({'error':'Invalid\x20credentials'});const _0x328591={'code':_0x5ab4bd,'name':_0x48284c[_0x11daa3]},_0x5d4c51=jwt[_0x508023(0x1a8)](_0x328591,JWT_SECRET,{'expiresIn':_0x508023(0x190)});_0x1b0469[_0x508023(0x174)]({'token':_0x5d4c51,'user':_0x328591});}catch(_0x457a57){console[_0x508023(0x167)](_0x457a57),_0x1b0469[_0x508023(0x18e)](0x1f4)[_0x508023(0x174)]({'error':_0x508023(0x175)});}}),app[_0xe409fe(0x195)]('/api/me',authenticate,async(_0x8b59be,_0x8ca8b5)=>{const _0x1db1b4=_0xe409fe;try{const {headers:_0x1742ce,data:_0x3df55e}=await readSheet(_0x1db1b4(0x17f)),_0x4cd846=_0x1742ce[_0x1db1b4(0x1a0)](_0x1db1b4(0x17b)),_0x485826=normalizeDigits(String(_0x8b59be[_0x1db1b4(0x171)][_0x1db1b4(0x1bc)])[_0x1db1b4(0x1a6)]()),_0x17b50b=_0x3df55e[_0x1db1b4(0x1b6)](_0x5b535c=>normalizeDigits(String(_0x5b535c[_0x4cd846]??'')[_0x1db1b4(0x1a6)]())===_0x485826);if(!_0x17b50b)return _0x8ca8b5[_0x1db1b4(0x18e)](0x194)[_0x1db1b4(0x174)]({'error':'User\x20not\x20found'});const _0x295b0d={};_0x1742ce['forEach']((_0x41c34e,_0x58f8a3)=>_0x295b0d[_0x41c34e]=_0x17b50b[_0x58f8a3]??''),_0x8ca8b5['json']({'user':_0x295b0d});}catch(_0x5c3a68){console[_0x1db1b4(0x167)](_0x5c3a68),_0x8ca8b5[_0x1db1b4(0x18e)](0x1f4)[_0x1db1b4(0x174)]({'error':_0x5c3a68['message']});}}),app[_0xe409fe(0x195)](_0xe409fe(0x180),authenticate,async(_0x5d220d,_0x452e99)=>{const _0x38324b=_0xe409fe;try{const {headers:_0x110bf1,data:_0x1f377f}=await readSheet(_0x38324b(0x191)),_0x3e20da=_0x110bf1[_0x38324b(0x1a0)](_0x38324b(0x1b5)),_0x1bb7d1=normalizeDigits(String(_0x5d220d[_0x38324b(0x171)]['code'])[_0x38324b(0x1a6)]()),_0x35946f=_0x1f377f[_0x38324b(0x19c)](_0x19da40=>normalizeDigits(String(_0x19da40[_0x3e20da]??'')['trim']())===_0x1bb7d1);_0x452e99[_0x38324b(0x174)]({'headers':_0x110bf1,'data':_0x35946f});}catch(_0x190044){console[_0x38324b(0x167)](_0x190044),_0x452e99[_0x38324b(0x18e)](0x1f4)['json']({'error':_0x190044[_0x38324b(0x178)]});}}),app[_0xe409fe(0x195)]('/api/hwafez',authenticate,async(_0x28d7af,_0x2a3c38)=>{const _0x48d9c0=_0xe409fe;try{const {headers:_0x1f60b1,data:_0x588d92}=await readSheet('hwafez'),_0x5d1b54=_0x1f60b1[_0x48d9c0(0x1a0)](_0x48d9c0(0x1b5)),_0x5180db=normalizeDigits(String(_0x28d7af[_0x48d9c0(0x171)][_0x48d9c0(0x1bc)])[_0x48d9c0(0x1a6)]()),_0x566b44=_0x588d92[_0x48d9c0(0x19c)](_0x30a4ec=>normalizeDigits(String(_0x30a4ec[_0x5d1b54]??'')[_0x48d9c0(0x1a6)]())===_0x5180db);_0x2a3c38[_0x48d9c0(0x174)]({'headers':_0x1f60b1,'data':_0x566b44});}catch(_0x50629b){console['error'](_0x50629b),_0x2a3c38[_0x48d9c0(0x18e)](0x1f4)[_0x48d9c0(0x174)]({'error':_0x50629b[_0x48d9c0(0x178)]});}}),app['get'](_0xe409fe(0x1a1),authenticate,async(_0xad1516,_0x2809a4)=>{const _0x112aae=_0xe409fe;try{const {headers:_0x12c2b1,data:_0x11a0b3}=await readSheet(_0x112aae(0x165)),_0x394933=_0x12c2b1['indexOf'](_0x112aae(0x1b5)),_0x2cfd97=normalizeDigits(String(_0xad1516[_0x112aae(0x171)]['code'])['trim']()),_0x2aaf2d=_0x11a0b3[_0x112aae(0x19c)](_0x44017a=>normalizeDigits(String(_0x44017a[_0x394933]??'')[_0x112aae(0x1a6)]())===_0x2cfd97);_0x2809a4['json']({'headers':_0x12c2b1,'data':_0x2aaf2d});}catch(_0x48529c){console['error'](_0x48529c),_0x2809a4[_0x112aae(0x18e)](0x1f4)['json']({'error':_0x48529c['message']});}});const tokens=new Map();function _0x501a(_0x3ce069,_0x527260){const _0x7b23ae=_0x7b23();return _0x501a=function(_0x501aa6,_0x56f34e){_0x501aa6=_0x501aa6-0x165;let _0x618dd4=_0x7b23ae[_0x501aa6];return _0x618dd4;},_0x501a(_0x3ce069,_0x527260);}app[_0xe409fe(0x179)]('/api/register-token',(_0xfbc998,_0x2ce8e5)=>{const _0x236dd7=_0xe409fe,{user:_0x5d4d3b,token:_0x1b7219}=_0xfbc998[_0x236dd7(0x19f)];if(!_0x5d4d3b||!_0x1b7219)return _0x2ce8e5['status'](0x190)['json']({'error':_0x236dd7(0x16c)});tokens['set'](_0x1b7219,_0x5d4d3b),_0x2ce8e5[_0x236dd7(0x174)]({'success':!![]});}),app[_0xe409fe(0x179)](_0xe409fe(0x17c),authenticate,async(_0x1aa9c6,_0x3c9b54)=>{const _0x3e2ca4=_0xe409fe;if(_0x1aa9c6[_0x3e2ca4(0x171)][_0x3e2ca4(0x1bc)]!==SUPERVISOR_CODE)return _0x3c9b54[_0x3e2ca4(0x18e)](0x193)[_0x3e2ca4(0x174)]({'error':_0x3e2ca4(0x1b4)});const {title:_0x452039,body:_0x31a48c}=_0x1aa9c6[_0x3e2ca4(0x19f)],_0x4e9222=Array['from'](tokens[_0x3e2ca4(0x17d)]());await Promise[_0x3e2ca4(0x16e)](_0x4e9222['map'](_0x5e2aed=>sendPushTo(_0x5e2aed,_0x452039,_0x31a48c))),_0x3c9b54[_0x3e2ca4(0x174)]({'success':!![]});});const userNotifications={};app[_0xe409fe(0x179)](_0xe409fe(0x1a3),authenticate,(_0x2abf20,_0x28c218)=>{const _0x3f6be2=_0xe409fe,{title:_0x461602,body:_0x3ea8fa,time:_0x3e4df6}=_0x2abf20[_0x3f6be2(0x19f)];if(!_0x461602||!_0x3ea8fa||!_0x3e4df6)return _0x28c218[_0x3f6be2(0x18e)](0x190)[_0x3f6be2(0x174)]({'error':'Missing\x20fields'});const _0x399a92=_0x2abf20[_0x3f6be2(0x171)][_0x3f6be2(0x1bc)];userNotifications[_0x399a92]=userNotifications[_0x399a92]||[],userNotifications[_0x399a92][_0x3f6be2(0x16d)]({'title':_0x461602,'body':_0x3ea8fa,'time':_0x3e4df6});if(userNotifications[_0x399a92]['length']>0x32)userNotifications[_0x399a92][_0x3f6be2(0x19d)]();_0x28c218['json']({'success':!![]});}),app[_0xe409fe(0x195)](_0xe409fe(0x1a3),authenticate,(_0x3dbcc6,_0x575bd9)=>{const _0x2b76ff=_0xe409fe,_0xf68a44=_0x3dbcc6[_0x2b76ff(0x171)][_0x2b76ff(0x1bc)];_0x575bd9['json']({'notifications':userNotifications[_0xf68a44]||[]});}),app[_0xe409fe(0x195)]('/api/version',(_0x4c1103,_0x567cad)=>{_0x567cad['json']({'version':APP_VERSION});}),app[_0xe409fe(0x195)](/.*/,(_0x54c2c4,_0x5dcb1b)=>_0x5dcb1b[_0xe409fe(0x176)](path[_0xe409fe(0x1ba)](__dirname,_0xe409fe(0x19b),_0xe409fe(0x186))));const PORT=process[_0xe409fe(0x181)][_0xe409fe(0x187)]||0xbb8;app[_0xe409fe(0x1b1)](PORT,()=>console[_0xe409fe(0x193)](_0xe409fe(0x18a)+PORT));
+// server.js
+
+// 1) تحميل متغيّرات البيئة
+require('dotenv').config();
+const APP_VERSION = process.env.APP_VERSION || '1.0.7';
+const express               = require('express');
+const cors                  = require('cors');
+const path                  = require('path');
+const jwt                   = require('jsonwebtoken');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const admin                 = require('firebase-admin');
+
+
+// 2) دالة لتحويل الأرقام العربية/الفارسية إلى لاتينية
+function normalizeDigits(str) {
+  if (!str) return str;
+  return str.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, ch => {
+    const code = ch.charCodeAt(0);
+    if (code >= 0x0660 && code <= 0x0669) return String(code - 0x0660);
+    if (code >= 0x06F0 && code <= 0x06F9) return String(code - 0x06F0);
+    return ch;
+  });
+}
+
+// 3) تهيئة Firebase Admin
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch {
+  console.error('❌ خطأ: FIREBASE_SERVICE_ACCOUNT غير صالح.');
+  process.exit(1);
+}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+// 4) دالة لإرسال إشعار FCM
+async function sendPushTo(token, title, body, data = {}) {
+  const message = {
+    token,
+    notification: { title, body },
+    android: {
+      // تنتهي الرسالة بعد 48 ساعة
+      ttl: '172800s',
+      priority: 'high',
+      notification: {
+        android_channel_id: 'default',
+        sound:             'default',
+        vibrate_timings:   [100, 200, 100]
+      }
+    },
+    data
+  };
+
+  try {
+    const resp = await admin.messaging().send(message);
+    console.log(`✅ تم الإرسال إلى ${token}: ${resp}`);
+  } catch (err) {
+    console.error(`❌ فشل الإرسال إلى ${token}:`, err);
+  }
+}
+
+// 5) تهيئة Express
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 6) قراءة متغيّرات البيئة الأساسية
+const {
+  JWT_SECRET,
+  SUPERVISOR_CODE,
+  GOOGLE_SHEET_ID: SHEET_ID,
+  GOOGLE_SERVICE_KEY
+} = process.env;
+
+if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY) {
+  console.error('❌ بعض متغيرات البيئة مفقودة.');
+  process.exit(1);
+}
+
+let sheetCreds;
+try {
+  sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY);
+} catch {
+  console.error('❌ GOOGLE_SERVICE_KEY ليس JSON صالح.');
+  process.exit(1);
+}
+
+// 7) دوال الوصول إلى Google Sheets
+async function accessSheet() {
+  const doc = new GoogleSpreadsheet(SHEET_ID);
+  await doc.useServiceAccountAuth({
+    client_email: sheetCreds.client_email,
+    private_key:  sheetCreds.private_key.replace(/\\n/g, '\n')
+  });
+  await doc.loadInfo();
+  return doc;
+}
+
+async function readSheet(title) {
+  const doc   = await accessSheet();
+  const sheet = doc.sheetsByTitle[title];
+  if (!sheet) throw new Error(`Sheet "${title}" غير موجود`);
+  await sheet.loadHeaderRow();
+  const headers = sheet.headerValues;
+  const rows    = await sheet.getRows();
+  const data    = rows.map(r => headers.map(h => r[h] ?? ''));
+  return { headers, data };
+}
+
+// 8) Middleware للتحقّق من JWT
+function authenticate(req, res, next) {
+  const h = req.headers.authorization;
+  if (!h || !h.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  try {
+    req.user = jwt.verify(h.slice(7), JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+// 9) تسجيل الدخول
+app.post('/api/login', async (req, res) => {
+  let { code, pass } = req.body;
+  if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
+
+  code = normalizeDigits(String(code).trim());
+  pass = normalizeDigits(String(pass).trim());
+
+  try {
+    const { headers, data } = await readSheet('Users');
+    const iC = headers.indexOf('كود الموظف');
+    const iP = headers.indexOf('كلمة المرور');
+    const iN = headers.indexOf('الاسم');
+
+    const row = data.find(r => {
+      const cellCode = normalizeDigits(String(r[iC] ?? '').trim());
+      const cellPass = normalizeDigits(String(r[iP] ?? '').trim());
+      return cellCode === code && cellPass === pass;
+    });
+    if (!row) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const payload = { code, name: row[iN] };
+    const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    res.json({ token, user: payload });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// 10) معلومات المستخدم الحالي
+app.get('/api/me', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('Users');
+    const idxCode = headers.indexOf('كود الموظف');
+    const target  = normalizeDigits(String(req.user.code).trim());
+    const row     = data.find(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
+    if (!row) return res.status(404).json({ error: 'User not found' });
+
+    const single = {};
+    headers.forEach((h,i) => single[h] = row[i] ?? '');
+    res.json({ user: single });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 11) الحضور
+app.get('/api/attendance', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('Attendance');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 12) الحوافز
+app.get('/api/hwafez', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('hwafez');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 13) التقييم السنوي
+app.get('/api/tqeem', authenticate, async (req, res) => {
+  try {
+    const { headers, data } = await readSheet('tqeem');
+    const idx    = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+    res.json({ headers, data: filtered });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 14) تسجيل توكن FCM
+const tokens = new Map();
+app.post('/api/register-token', (req, res) => {
+  const { user, token } = req.body;
+  if (!user || !token) return res.status(400).json({ error: 'user and token required' });
+  tokens.set(token, user);
+  res.json({ success: true });
+});
+
+// 15) إشعار لجميع الأجهزة (للمشرف فقط)
+app.post('/api/notify-all', authenticate, async (req, res) => {
+  if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
+  const { title, body } = req.body;
+  const list = Array.from(tokens.keys());
+  await Promise.allSettled(list.map(t => sendPushTo(t, title, body)));
+  res.json({ success: true });
+});
+
+// —————————————————————————————————
+// **التعديلات لإشعارات موحدة على الخادم**
+// نجمع سجل الإشعارات في الذاكرة (مثال تعليمي — استخدمي DB في الإنتاج)
+const userNotifications = {};  
+// POST لحفظ إشعار جديد
+app.post('/api/notifications', authenticate, (req, res) => {
+  const { title, body, time } = req.body;
+  if (!title || !body || !time) return res.status(400).json({ error: 'Missing fields' });
+  const code = req.user.code;
+  userNotifications[code] = userNotifications[code] || [];
+  userNotifications[code].unshift({ title, body, time });
+  if (userNotifications[code].length > 50) userNotifications[code].pop();
+  res.json({ success: true });
+});
+// GET لجلب سجل الإشعارات
+app.get('/api/notifications', authenticate, (req, res) => {
+  const code = req.user.code;
+  res.json({ notifications: userNotifications[code] || [] });
+});
+
+// نقطة النهاية للإصدار
+app.get('/api/version', (req, res) => {
+  res.json({ version: APP_VERSION });
+});
+
+
+// 16) SPA fallback (يجب أن يكون آخر شيء)
+app.get(/.*/, (_, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'index.html'))
+);
+app.get('/api/supervisor-note', async (req, res) => {
+  try {
+    const sheetName = 'Attendance'; // ← اسم صفحة الجدول
+    const range = `${sheetName}!A2`; // ← ملاحظة واحدة في G2 (غير مرتبطة بالموظف)
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: range,
+    });
+
+    const note = response.data.values?.[0]?.[0] || '';
+    res.json({ note });
+  } catch (err) {
+    console.error('خطأ في تحميل ملاحظة المراقب:', err);
+    res.status(500).json({ error: 'خطأ في الخادم' });
+  }
+});
+
+
+// بدء الخادم
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 الخادم يعمل على ${PORT}`));
