@@ -305,12 +305,8 @@ async function showTqeem() {
         'Authorization': `Bearer ${jwtToken}`
       }
     });
-
-    const contentType = res.headers.get('content-type') || '';
-    // إذا أتى الرد HTML بدلاً من JSON
-    if (!res.ok || !contentType.includes('application/json')) {
-      console.warn('🚧 showTqeem: expected JSON, got', contentType);
-      alert('البيانات غير متوفرة حالياً وسيتم إضافتها قريباً.');
+    if (!res.ok || !res.headers.get('content-type').includes('application/json')) {
+      alert('البيانات غير متوفرة حالياً.');
       return;
     }
 
@@ -318,41 +314,42 @@ async function showTqeem() {
     headersTq = headers;
     tqeemData = data;
 
-    // إظهار القسم وتفريغ الجدول
-    document.getElementById('tqeemSection').classList.remove('hidden');
+    // 1) رفع الإخفاء
+    const section = document.getElementById('tqeemSection');
+    section.classList.remove('hidden');
+
+    // 2) تفريغ الجدول
     const tbody = document.getElementById('tqeemBody');
     tbody.innerHTML = '';
 
-    if (data.length === 0) {
-      document.getElementById('noTqeemMsg').classList.remove('hidden');
-      return;
-    }
-    document.getElementById('noTqeemMsg').classList.add('hidden');
+    // 3) عرض رسالة إن خلت البيانات
+    document.getElementById('noTqeemMsg')
+      .classList.toggle('hidden', data.length > 0);
 
+    // 4) بناء الصفوف
     data.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]       || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')]   || ''}</td>
         <td class="border px-4 py-2">${r[headers.indexOf('اتقان العمل وفعاليته')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('المهارات القيادية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('المهارات القيادية')]  || ''}</td>
         <td class="border px-4 py-2">${r[headers.indexOf('مهارة الإدارة الذاتية')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('مهارات التواصل والتفاعل')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('المبادرة والتطوير الذاتي')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الاستقلال والموثوقية')] || ''}</td>
-        <td class="border px-4 py-2">${r[headers.indexOf('الالتزام والمسؤولية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('مهارات التواصل والتفاعل')]|| ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('المبادرة والتطوير الذاتي')]  || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاستقلال والموثوقية')]   || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الالتزام والمسؤولية')]   || ''}</td>
       `;
       tbody.appendChild(tr);
     });
 
-    // تمرير الشاشة للقسم
-    document.getElementById('tqeemSection')
-            .scrollIntoView({ behavior: 'smooth' });
+    // 5) التمرير أوتوماتيكيًا إلى القسم
+    section.scrollIntoView({ behavior: 'smooth' });
 
   } catch (e) {
     console.error('❌ showTqeem error:', e);
-    alert('حدث خطأ غير متوقع أثناء جلب بيانات التقييم السنوي');
+    alert('حدث خطأ أثناء جلب بيانات التقييم السنوي.');
   }
 }
 // —————————————————————————————————————————
