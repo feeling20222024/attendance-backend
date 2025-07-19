@@ -184,12 +184,25 @@ function renderRecords() {
     adminDue: headersAtt.indexOf('عدد الإجازات الإدارية المستحقة للعامل'),
   };
 
-   let rows = attendanceData
-   .filter(r => String(r[idx.code]).trim() === currentUser)
-   .filter(r => String(r[idx.date]).trim() !== '');
+// 1) كل صفوف المستخدم (لا نلمسها للإحصائيات)
+  const allRows = attendanceData.filter(r =>
+ String(r[idx.code]).trim() === currentUser
+  );
 
-  const tbody = document.getElementById('attendanceBody');
-  tbody.innerHTML = '';
+  // 2) نستخدمها كأصل للإحصائيات
+  const first = allRows[0];
+  document.getElementById('adminLeavesDue').textContent       = first[idx.adminDue]  || '--';
+  document.getElementById('adminLeavesCounted').textContent   = first[idx.adminC]    || '--';
+  document.getElementById('adminLeavesRemaining').textContent = first[idx.adminR]    || '--';
+
+  // 3) للجدول نعرض فقط الصفوف التي تحتوي على تاريخ
+  const rows = allRows.filter(r =>
+  String(r[idx.date]).trim() !== ''
+  );
+
+   const tbody = document.getElementById('attendanceBody');
+   tbody.innerHTML = '';
+
 
   if (!rows.length) {
     document.getElementById('noDataMsg').classList.remove('hidden');
