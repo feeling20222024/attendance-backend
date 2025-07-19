@@ -184,9 +184,10 @@ function renderRecords() {
     adminDue: headersAtt.indexOf('عدد الإجازات الإدارية المستحقة للعامل'),
   };
 
-  const rows = attendanceData.filter(r =>
-    String(r[idx.code]).trim() === currentUser
-  );
+   let rows = attendanceData
+   .filter(r => String(r[idx.code]).trim() === currentUser)
+   .filter(r => String(r[idx.date]).trim() !== '');
+
   const tbody = document.getElementById('attendanceBody');
   tbody.innerHTML = '';
 
