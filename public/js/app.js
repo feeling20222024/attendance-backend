@@ -43,14 +43,6 @@ function normalizeDigits(str) {
         window.initNotifications();
       }
 
-      // ✅ بعد تحميل البيانات، نعرض ملاحظة المشرف
-      fetchSupervisorNote();
-
-    }).catch(logout);
-   
-  }     // ← هذا يغلق الـ if
-});     // ← وهذا يغلق الـ addEventListener
-  
 // —————————————————————————————————————————
 // ——————————————————————————————
 // 2) دالة تسجيل الدخول
