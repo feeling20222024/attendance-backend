@@ -133,29 +133,30 @@ async function fetchAndRender() {
   headersAtt     = aJson.headers;     attendanceData = aJson.data;
   headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
   currentUser    = meJson.user['كود الموظف'];
-// ✅ عرض الملاحظات الخاصة
-const privateNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات خاصة بالعامل");
-if (privateNoteIndex !== -1 && attendanceData.length > 0) {
-  const privateNote = attendanceData[0][privateNoteIndex] || '';
-  const noteBox = document.getElementById('supervisorNotes');
-  if (noteBox) {
-    noteBox.textContent = privateNote.trim();
+
+  // ✅ عرض الملاحظات الخاصة
+  const privateNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات خاصة بالعامل");
+  if (privateNoteIndex !== -1 && attendanceData.length > 0) {
+    const privateNote = attendanceData[0][privateNoteIndex] || '';
+    const noteBox = document.getElementById('supervisorNotes');
+    if (noteBox) {
+      noteBox.textContent = privateNote.trim();
+    }
   }
-}
 
+  // ✅ عرض الملاحظات العامة من العمود "تنبيهات وملاحظات عامة لجميع العاملين"
+  const publicNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة لجميع العاملين");
+  if (publicNoteIndex !== -1) {
+    const generalRow = attendanceData.find(row => !row[headersAtt.indexOf("كود الموظف")]);
+    const generalNote = generalRow?.[publicNoteIndex]?.trim();
 
-// ✅ عرض الملاحظات العامة من العمود "تنبيهات وملاحظات عامة لجميع العاملين"
-const publicNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة لجميع العاملين");
-if (publicNoteIndex !== -1) {
-  const generalRow = attendanceData.find(row => !row[headersAtt.indexOf("كود الموظف")]);
-  const generalNote = generalRow?.[publicNoteIndex]?.trim();
-
-const generalBox = document.getElementById('generalNoteBox');
-const generalText = document.getElementById('generalNoteText');
-if (generalNote && generalBox && generalText) {
-  generalText.textContent = generalNote;
-  generalBox.classList.remove('hidden');
-}
+    const generalBox = document.getElementById('generalNoteBox');
+    const generalText = document.getElementById('generalNoteText');
+    if (generalNote && generalBox && generalText) {
+      generalText.textContent = generalNote;
+      generalBox.classList.remove('hidden');
+    }
+  }
 
   // إظهار الواجهة بعد تسجيل الدخول
   document.getElementById('loginSection').classList.add('hidden');
@@ -168,9 +169,8 @@ if (generalNote && generalBox && generalText) {
     document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
   }
 
-  
   renderRecords();
-}
+} // ← تم إغلاق الدالة الآن
 
 // —————————————————————————————————————————
 // 4) رسم سجلات الحضور للمستخدم الحالي
