@@ -42,7 +42,9 @@ function normalizeDigits(str) {
       if (typeof window.initNotifications === 'function') {
         window.initNotifications();
       }
-
+}).catch(logout);
+  }
+}); 
 // —————————————————————————————————————————
 // ——————————————————————————————
 // 2) دالة تسجيل الدخول
