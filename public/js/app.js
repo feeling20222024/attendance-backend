@@ -46,6 +46,7 @@ function normalizeDigits(str) {
       fetchSupervisorNote();
 
     }).catch(logout);
+    });
   
 // —————————————————————————————————————————
 // ——————————————————————————————
