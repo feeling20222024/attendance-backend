@@ -150,13 +150,19 @@ async function fetchAndRender() {
     generalBox.classList.remove('hidden');
   }
 
-  // ————————— عرض الملاحظة الخاصة —————————
-  const privateNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات خاصة بالعامل");
-  if (privateNoteIndex !== -1 && attendanceData.length > 0) {
-    const privateNote = attendanceData[0][privateNoteIndex] || '';
-    const noteBox = document.getElementById('supervisorNotes');
-    noteBox.textContent = privateNote.trim();
-  }
+
+ // ————————— عرض الملاحظة الثابتة للجميع —————————
+const noteColumn = "تنبيهات وملاحظات عامة";
+const colIdx = headersAtt.indexOf(noteColumn);
+if (colIdx !== -1 && attendanceData.length > 0) {
+  // نفترض أنك وضعت ملاحظتك في الصف الأول من الورقة
+  const sharedNote = attendanceData[0][colIdx] || '';
+  const noteBox = document.getElementById('supervisorNotes');
+  noteBox.textContent = sharedNote.trim();
+  // تأكد من أن القسم ظاهر
+  document.getElementById('supervisorNotesSection').classList.remove('hidden');
+}
+
 
   // ————————— إظهار واجهة المستخدم —————————
   document.getElementById('loginSection').classList.add('hidden');
