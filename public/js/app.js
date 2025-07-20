@@ -1,4 +1,3 @@
-
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT = `${API_BASE}/login`;
@@ -42,9 +41,12 @@ function normalizeDigits(str) {
       if (typeof window.initNotifications === 'function') {
         window.initNotifications();
       }
-}).catch(logout);
-  }
-}); 
+
+      // ✅ بعد تحميل البيانات، نعرض ملاحظة المشرف
+      fetchSupervisorNote();
+
+    }).catch(logout);
+  
 // —————————————————————————————————————————
 // ——————————————————————————————
 // 2) دالة تسجيل الدخول
@@ -142,8 +144,21 @@ async function fetchAndRender() {
     document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
   }
 
-// إعادة تحميل ملاحظة المشرف من الخادم
-await fetchSupervisorNote();
+  // ملاحظات المشرف
+  const notesArea = document.getElementById('supervisorNotes');
+  const saveBtn   = document.getElementById('saveNotesBtn');
+  notesArea.value = localStorage.getItem('supervisorNotes') || '';
+  if (currentUser === SUPERVISOR_CODE) {
+    notesArea.removeAttribute('readonly');
+    saveBtn.classList.remove('hidden');
+    saveBtn.onclick = () => {
+      localStorage.setItem('supervisorNotes', notesArea.value);
+      alert('تم حفظ الملاحظة');
+    };
+  } else {
+    notesArea.setAttribute('readonly', '');
+    saveBtn.classList.add('hidden');
+  }
 
   renderRecords();
 }
