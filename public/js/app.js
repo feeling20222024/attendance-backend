@@ -46,6 +46,9 @@ function normalizeDigits(str) {
       fetchSupervisorNote();
 
     }).catch(logout);
+   
+  }     // ← هذا يغلق الـ if
+});     // ← وهذا يغلق الـ addEventListener
   
 // —————————————————————————————————————————
 // ——————————————————————————————
