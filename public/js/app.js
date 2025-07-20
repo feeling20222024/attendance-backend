@@ -145,18 +145,28 @@ async function fetchAndRender() {
   }
 
   // ✅ عرض الملاحظات العامة من العمود "تنبيهات وملاحظات عامة لجميع العاملين"
-  const publicNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة لجميع العاملين");
-  if (publicNoteIndex !== -1) {
-    const generalRow = attendanceData.find(row => !row[headersAtt.indexOf("كود الموظف")]);
-    const generalNote = generalRow?.[publicNoteIndex]?.trim();
+const publicNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة لجميع العاملين");
+if (publicNoteIndex !== -1) {
+  const codeIndex = headersAtt.indexOf("كود الموظف");
+  console.log('🔎 headersAtt:', headersAtt);
+  console.log('🔎 attendanceData:', attendanceData);
 
-    const generalBox = document.getElementById('generalNoteBox');
-    const generalText = document.getElementById('generalNoteText');
-    if (generalNote && generalBox && generalText) {
-      generalText.textContent = generalNote;
-      generalBox.classList.remove('hidden');
-    }
+  const generalRow = attendanceData.find(row => !row[codeIndex] || row[codeIndex].trim() === "");
+  const generalNote = generalRow?.[publicNoteIndex]?.trim();
+
+  const generalBox = document.getElementById('generalNoteBox');
+  const generalText = document.getElementById('generalNoteText');
+
+  console.log('📣 generalNote:', generalNote);
+
+  if (generalNote && generalBox && generalText) {
+    generalText.textContent = generalNote;
+    generalBox.classList.remove('hidden');
+  } else {
+    console.warn('⚠️ لم يتم العثور على ملاحظة عامة أو العنصر مفقود في DOM');
   }
+}
+
 
   // إظهار الواجهة بعد تسجيل الدخول
   document.getElementById('loginSection').classList.add('hidden');
