@@ -274,7 +274,7 @@ app.get('/api/supervisor-note', async (req, res) => {
   try {
     const sheetName = 'Attendance';
     // ← هنا نُصحّح النطاق ليكون G2 وليس A2
-    const range = `${sheetName}!G2`;
+    const range = `${sheetName}!A2`;
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
       range,
