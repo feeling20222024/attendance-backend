@@ -1,1 +1,383 @@
-function _0x24fd(_0x31155f,_0x244add){const _0x22dea7=_0x22de();return _0x24fd=function(_0x24fd0b,_0x503fce){_0x24fd0b=_0x24fd0b-0xd5;let _0x38fcf8=_0x22dea7[_0x24fd0b];return _0x38fcf8;},_0x24fd(_0x31155f,_0x244add);}const _0x6adbae=_0x24fd;(function(_0x422a53,_0x31db2f){const _0x343ca2=_0x24fd,_0x184bb0=_0x422a53();while(!![]){try{const _0x4c5d70=-parseInt(_0x343ca2(0x10c))/0x1*(parseInt(_0x343ca2(0x136))/0x2)+-parseInt(_0x343ca2(0x125))/0x3*(parseInt(_0x343ca2(0x12d))/0x4)+-parseInt(_0x343ca2(0x100))/0x5*(parseInt(_0x343ca2(0x13b))/0x6)+-parseInt(_0x343ca2(0xe6))/0x7+parseInt(_0x343ca2(0xdc))/0x8+parseInt(_0x343ca2(0x128))/0x9+parseInt(_0x343ca2(0x151))/0xa;if(_0x4c5d70===_0x31db2f)break;else _0x184bb0['push'](_0x184bb0['shift']());}catch(_0x3e3367){_0x184bb0['push'](_0x184bb0['shift']());}}}(_0x22de,0x770a3));const API_BASE=_0x6adbae(0x106),LOGIN_ENDPOINT=API_BASE+_0x6adbae(0x13c),SUPERVISOR_CODE=_0x6adbae(0xf7);let headersAtt=[],attendanceData=[],headersHw=[],hwafezData=[],headersTq=[],tqeemData=[],currentUser=null,jwtToken=null;const caseMapping={'1':'غياب\x20غير\x20مبرر\x20(بدون\x20إذن\x20رسمي)','2':'تأخر\x20أكثر\x20من\x20ساعة\x20أو\x20عدم\x20مهر\x20البصمة\x20صباحاً','3':_0x6adbae(0x120),'4':'عدد\x20مرات\x20التأخر\x20أقل\x20من\x20ساعة\x20(حسم\x20يوم\x20كل\x203\x20تأخيرات)','5':_0x6adbae(0x148)};function normalizeDigits(_0x1a8b5f){const _0x214a41=_0x6adbae;return _0x1a8b5f['replace'](/[٠-٩]/g,_0x50dabd=>_0x214a41(0x108)['indexOf'](_0x50dabd));}document[_0x6adbae(0x116)](_0x6adbae(0x165),()=>{const _0x2322a3=_0x6adbae;document[_0x2322a3(0xdb)](_0x2322a3(0x12a))['onclick']=login,document[_0x2322a3(0xdb)](_0x2322a3(0x11c))[_0x2322a3(0x167)]=logout,document[_0x2322a3(0xdb)](_0x2322a3(0xfb))[_0x2322a3(0x167)]=()=>alert(_0x2322a3(0x144)),document[_0x2322a3(0xdb)](_0x2322a3(0x11e))[_0x2322a3(0x167)]=showHwafez,document[_0x2322a3(0xdb)](_0x2322a3(0x152))[_0x2322a3(0x167)]=showTqeem;const _0x4b7d37=localStorage[_0x2322a3(0x11f)](_0x2322a3(0xdf));_0x4b7d37&&(jwtToken=_0x4b7d37,fetchAndRender()[_0x2322a3(0xe5)](()=>{const _0x3b8dbd=_0x2322a3;typeof window[_0x3b8dbd(0x164)]==='function'&&window[_0x3b8dbd(0x164)](),fetchSupervisorNote();})['catch'](logout));});function _0x22de(){const _0x3ba4f6=['add','readonly','فشل\x20جلب\x20بيانات\x20الحوافز','19646170iUwPAn','tqeemBtn','stringify','scrollIntoView','name','mTo','headers','loginSection','notifBodyInput','adminDue','حدث\x20خطأ\x20أثناء\x20جلب\x20بيانات\x20الحوافز','trim','المهارات\x20القيادية','tqeemBody','التاريخ','setItem','بيانات\x20الدخول\x20خاطئة','مهارات\x20التواصل\x20والتفاعل','supervisorNotes','initNotifications','DOMContentLoaded','/me','onclick','سنوات\x20الخبرة','حجم\x20العمل','sFrom','text','includes','مهمة\x20(إلى\x20الساعة)','forEach','json','code','getElementById','5917312mxvBsP','البيانات\x20غير\x20متوفرة\x20حالياً.','error','jwtToken','noTqeemMsg','appendChild','ملاحظات','welcomeMsg','❌\x20showHwafez\x20error:','then','4511402dnpTCy','adminLeavesRemaining','ساعية\x20(إلى\x20الساعة)','POST','adminC','attendanceBody','\x0a\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>','الالتزام\x20والمسؤولية','token','message','removeItem','✅\x20login\x20successful,\x20currentUser\x20=','saveNotesBtn','classList','❌\x20showTqeem\x20error:','createElement','sTo','35190','</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>','currentUser','setAttribute','aboutBtn','length','✅\x20تم\x20إرسال\x20الإشعار\x20لجميع\x20المستخدمين.','out','toggle','3718525ZWiZhU','remove','</td>\x0a\x20\x20\x20\x20\x20\x20','الاستقلال\x20والموثوقية','smooth','رقم\x20الموظف','https://dwam-app-by-omar.onrender.com/api','indexOf','٠١٢٣٤٥٦٧٨٩','web','كود\x20الموظف','❌\x20خطأ\x20في\x20إرسال\x20الإشعار:\x20','1vfyaNu','مهارة\x20الإدارة\x20الذاتية','عدد\x20الإجازات\x20الإدارية\x20المتبقية\x20للعامل','Bearer\x20','innerHTML','days','المبادرة\x20والتطوير\x20الذاتي','user','getPlatform','تم\x20حفظ\x20الملاحظة','addEventListener','/hwafez','/notify-all','</td>\x0a\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>','دخول','application/json','logoutBtn','🚀\x20calling\x20initPush()…','hwafezBtn','getItem','خروج\x20مبكر\x20(أو\x20عدم\x20مهر\x20البصمة\x20مساءً)','خطأ\x20بالخادم\x20عند\x20تسجيل\x20الدخول\x20(','hidden','مستوى\x20التأهيل','الإستقلال\x20والموثوقية','22497rMlyjx','date','notifTitleInput','4081626HTBpYa','all','loginBtn','الإلتزام\x20والمسؤولية','adminR','512cUhCBk','حدث\x20خطأ\x20أثناء\x20تسجيل\x20الدخول:\x20','data','الحالة','اليوم','content-type','filter','codeInput','noHwafezMsg','644290DpFgNT','value','hwafezSection','mFrom','tqeemSection','6myunfI','/login','❌\x20sendSupervisorNotification\x20error:','خروج','اتقان\x20العمل\x20وفعاليته','الاسم','passwordInput','sendPushBtn','pushSection','فكرة\x20وإعداد\x20وتصميم\x20عمر\x20عونـي\x20الماضي\x20\x20\x20دائرة\x20الموارد\x20البشرية\x20–\x20فرع\x20اتصالات\x20دمشق','عدد\x20الأيام\x20المحتسبة\x20بتقرير\x20الساعيات\x20أو\x20التأخر\x20أقل\x20من\x20ساعة','status','log','تجميع\x20ساعيات\x20(كل\x20ثماني\x20ساعات\x20يتم\x20احتساب\x20يوم)','textContent','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>','/attendance','Unauthorized','السويّة\x20الوظيفيّة'];_0x22de=function(){return _0x3ba4f6;};return _0x22de();}async function login(){const _0xa700a9=_0x6adbae,_0x5074d2=normalizeDigits(document[_0xa700a9(0xdb)](_0xa700a9(0x134))[_0xa700a9(0x137)]['trim']()),_0x4815c3=document[_0xa700a9(0xdb)](_0xa700a9(0x141))[_0xa700a9(0x137)][_0xa700a9(0x15c)]();if(!_0x5074d2||!_0x4815c3)return alert('يرجى\x20إدخال\x20الكود\x20وكلمة\x20المرور.');let _0x2f0faf;try{const _0x57f113=await fetch(LOGIN_ENDPOINT,{'method':_0xa700a9(0xe9),'headers':{'Content-Type':_0xa700a9(0x11b)},'body':JSON[_0xa700a9(0x153)]({'code':_0x5074d2,'pass':_0x4815c3})});if(_0x57f113['status']===0x191)return alert(_0xa700a9(0x161));if(!_0x57f113['ok'])throw new Error(_0xa700a9(0x121)+_0x57f113[_0xa700a9(0x146)]+')');_0x2f0faf=await _0x57f113['json'](),jwtToken=_0x2f0faf[_0xa700a9(0xee)],localStorage[_0xa700a9(0x160)](_0xa700a9(0xdf),jwtToken),currentUser=_0x2f0faf['user'][_0xa700a9(0xda)]??_0x2f0faf[_0xa700a9(0x113)][_0xa700a9(0x10a)],window[_0xa700a9(0xf9)]=currentUser,console[_0xa700a9(0x147)](_0xa700a9(0xf1),currentUser),console[_0xa700a9(0x147)](_0xa700a9(0x11d)),window['Capacitor']&&Capacitor[_0xa700a9(0x114)]()!==_0xa700a9(0x109)?await initNativePush():await initPush(),typeof window[_0xa700a9(0x164)]==='function'&&window[_0xa700a9(0x164)](),await fetchAndRender();}catch(_0x58e301){console['error']('❌\x20login\x20error:',_0x58e301),alert(_0xa700a9(0x12e)+_0x58e301[_0xa700a9(0xef)]);}}async function fetchAndRender(){const _0x2ca9dc=_0x6adbae;if(!jwtToken)return;const _0x4d9048={'Content-Type':_0x2ca9dc(0x11b),'Authorization':_0x2ca9dc(0x10f)+jwtToken},[_0x16da39,_0x39e874,_0x5698c8]=await Promise[_0x2ca9dc(0x129)]([fetch(API_BASE+_0x2ca9dc(0x14b),{'headers':_0x4d9048}),fetch(API_BASE+_0x2ca9dc(0x117),{'headers':_0x4d9048}),fetch(API_BASE+_0x2ca9dc(0x166),{'headers':_0x4d9048})]);if(!_0x16da39['ok']||!_0x39e874['ok']||!_0x5698c8['ok'])throw new Error(_0x2ca9dc(0x14c));const _0x3ed5a8=await _0x16da39['json'](),_0x42cb34=await _0x39e874[_0x2ca9dc(0xd9)](),_0xe54fd9=await _0x5698c8['json']();headersAtt=_0x3ed5a8[_0x2ca9dc(0x157)],attendanceData=_0x3ed5a8[_0x2ca9dc(0x12f)],headersHw=_0x42cb34[_0x2ca9dc(0x157)],hwafezData=_0x42cb34[_0x2ca9dc(0x12f)],currentUser=_0xe54fd9[_0x2ca9dc(0x113)]['كود\x20الموظف'],document[_0x2ca9dc(0xdb)](_0x2ca9dc(0x158))['classList'][_0x2ca9dc(0x14e)](_0x2ca9dc(0x122)),document[_0x2ca9dc(0xdb)]('records')[_0x2ca9dc(0xf3)]['remove'](_0x2ca9dc(0x122)),document[_0x2ca9dc(0xdb)](_0x2ca9dc(0xe3))['textContent']='مرحباً\x20'+currentUser;currentUser===SUPERVISOR_CODE&&(document['getElementById'](_0x2ca9dc(0x143))[_0x2ca9dc(0xf3)][_0x2ca9dc(0x101)]('hidden'),document[_0x2ca9dc(0xdb)](_0x2ca9dc(0x142))['onclick']=sendSupervisorNotification);const _0x666904=document['getElementById']('supervisorNotes'),_0x5a0e73=document[_0x2ca9dc(0xdb)](_0x2ca9dc(0xf2));_0x666904[_0x2ca9dc(0x137)]=localStorage[_0x2ca9dc(0x11f)](_0x2ca9dc(0x163))||'',currentUser===SUPERVISOR_CODE?(_0x666904['removeAttribute'](_0x2ca9dc(0x14f)),_0x5a0e73[_0x2ca9dc(0xf3)]['remove']('hidden'),_0x5a0e73[_0x2ca9dc(0x167)]=()=>{const _0x1dd60a=_0x2ca9dc;localStorage[_0x1dd60a(0x160)](_0x1dd60a(0x163),_0x666904[_0x1dd60a(0x137)]),alert(_0x1dd60a(0x115));}):(_0x666904[_0x2ca9dc(0xfa)]('readonly',''),_0x5a0e73['classList']['add'](_0x2ca9dc(0x122))),renderRecords();}function renderRecords(){const _0x961931=_0x6adbae,_0x47a9e8={'code':headersAtt[_0x961931(0x107)](_0x961931(0x105)),'name':headersAtt[_0x961931(0x107)](_0x961931(0x140)),'status':headersAtt[_0x961931(0x107)](_0x961931(0x130)),'day':headersAtt[_0x961931(0x107)](_0x961931(0x131)),'date':headersAtt[_0x961931(0x107)](_0x961931(0x15f)),'in':headersAtt[_0x961931(0x107)](_0x961931(0x11a)),'out':headersAtt[_0x961931(0x107)](_0x961931(0x13e)),'sFrom':headersAtt['indexOf']('ساعية\x20(من\x20الساعة)'),'sTo':headersAtt[_0x961931(0x107)](_0x961931(0xe8)),'mFrom':headersAtt[_0x961931(0x107)]('مهمة\x20(من\x20الساعة)'),'mTo':headersAtt['indexOf'](_0x961931(0xd7)),'days':headersAtt[_0x961931(0x107)](_0x961931(0x145)),'notes':headersAtt[_0x961931(0x107)](_0x961931(0xe2)),'adminC':headersAtt[_0x961931(0x107)]('عدد\x20الإجازات\x20الإدارية\x20المحتسبة\x20للعامل'),'adminR':headersAtt[_0x961931(0x107)](_0x961931(0x10e)),'adminDue':headersAtt[_0x961931(0x107)]('عدد\x20الإجازات\x20الإدارية\x20المستحقة\x20للعامل')},_0x4932a0=attendanceData['filter'](_0x2d2912=>String(_0x2d2912[_0x47a9e8[_0x961931(0xda)]])[_0x961931(0x15c)]()===currentUser);if(_0x4932a0[_0x961931(0xfc)]){const _0x3b4d0a=_0x4932a0[0x0];document[_0x961931(0xdb)]('adminLeavesDue')['textContent']=_0x3b4d0a[_0x47a9e8[_0x961931(0x15a)]]||'--',document[_0x961931(0xdb)]('adminLeavesCounted')[_0x961931(0x149)]=_0x3b4d0a[_0x47a9e8[_0x961931(0xea)]]||'--',document[_0x961931(0xdb)](_0x961931(0xe7))[_0x961931(0x149)]=_0x3b4d0a[_0x47a9e8[_0x961931(0x12c)]]||'--';}const _0x19c8fc=_0x4932a0[_0x961931(0x133)](_0x2e5534=>String(_0x2e5534[_0x47a9e8[_0x961931(0x126)]])[_0x961931(0x15c)]()!==''),_0xd8fa77=document[_0x961931(0xdb)](_0x961931(0xeb));_0xd8fa77['innerHTML']='';if(!_0x19c8fc['length']){document[_0x961931(0xdb)]('noDataMsg')[_0x961931(0xf3)][_0x961931(0x101)](_0x961931(0x122));return;}document[_0x961931(0xdb)]('noDataMsg')[_0x961931(0xf3)][_0x961931(0x14e)](_0x961931(0x122)),_0x19c8fc[_0x961931(0xd8)](_0x2108fa=>{const _0x1e8403=_0x961931,_0x11fc24=document[_0x1e8403(0xf5)]('tr');_0x11fc24[_0x1e8403(0x110)]=_0x1e8403(0xec)+(_0x2108fa[_0x47a9e8[_0x1e8403(0xda)]]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x2108fa[_0x47a9e8[_0x1e8403(0x155)]]||'')+_0x1e8403(0x119)+(caseMapping[String(_0x2108fa[_0x47a9e8[_0x1e8403(0x146)]])['trim']()]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x2108fa[_0x47a9e8['day']]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x2108fa[_0x47a9e8[_0x1e8403(0x126)]]||'')+_0x1e8403(0x119)+(_0x2108fa[_0x47a9e8['in']]||'')+_0x1e8403(0x119)+(_0x2108fa[_0x47a9e8[_0x1e8403(0xfe)]]||'')+_0x1e8403(0x119)+(_0x2108fa[_0x47a9e8[_0x1e8403(0x16a)]]||'')+_0x1e8403(0x119)+(_0x2108fa[_0x47a9e8[_0x1e8403(0xf6)]]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x2108fa[_0x47a9e8[_0x1e8403(0x139)]]||'')+_0x1e8403(0x119)+(_0x2108fa[_0x47a9e8[_0x1e8403(0x156)]]||'')+_0x1e8403(0x119)+(_0x2108fa[_0x47a9e8[_0x1e8403(0x111)]]||'')+_0x1e8403(0x119)+(_0x2108fa[_0x47a9e8['notes']]||'')+'</td>\x0a\x20\x20\x20\x20',_0xd8fa77[_0x1e8403(0xe1)](_0x11fc24);});}async function showHwafez(){const _0x50292d=_0x6adbae;try{const _0x2da5d2=await fetch(API_BASE+'/hwafez',{'headers':{'Content-Type':_0x50292d(0x11b),'Authorization':_0x50292d(0x10f)+jwtToken}});if(!_0x2da5d2['ok'])throw new Error(_0x50292d(0x150));const {headers:_0x4cba7e,data:_0x5e4563}=await _0x2da5d2['json']();headersHw=_0x4cba7e,hwafezData=_0x5e4563,document[_0x50292d(0xdb)]('hwafezSection')[_0x50292d(0xf3)][_0x50292d(0x101)](_0x50292d(0x122));const _0x491cd3=document[_0x50292d(0xdb)]('hwafezBody');_0x491cd3['innerHTML']='';if(_0x5e4563[_0x50292d(0xfc)]===0x0){document['getElementById'](_0x50292d(0x135))[_0x50292d(0xf3)]['remove'](_0x50292d(0x122));return;}document[_0x50292d(0xdb)](_0x50292d(0x135))['classList'][_0x50292d(0x14e)]('hidden'),_0x5e4563['forEach'](_0xc9274f=>{const _0x178cf1=_0x50292d,_0x1a96b7=document[_0x178cf1(0xf5)]('tr');_0x1a96b7['innerHTML']='\x0a\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0xc9274f[_0x4cba7e[_0x178cf1(0x107)](_0x178cf1(0x105))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e[_0x178cf1(0x107)](_0x178cf1(0x140))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e['indexOf'](_0x178cf1(0x169))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e['indexOf'](_0x178cf1(0x13f))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e[_0x178cf1(0x107)](_0x178cf1(0x15d))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e['indexOf'](_0x178cf1(0x10d))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e['indexOf'](_0x178cf1(0x162))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e['indexOf'](_0x178cf1(0x112))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e[_0x178cf1(0x107)](_0x178cf1(0x124))]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0xc9274f[_0x4cba7e[_0x178cf1(0x107)](_0x178cf1(0x12b))]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0xc9274f[_0x4cba7e['indexOf']('نسبة\x20الدوام\x20الفعلي')]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e[_0x178cf1(0x107)](_0x178cf1(0x14d))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e['indexOf'](_0x178cf1(0x123))]||'')+_0x178cf1(0xf8)+(_0xc9274f[_0x4cba7e[_0x178cf1(0x107)](_0x178cf1(0x168))]||'')+_0x178cf1(0x102),_0x491cd3['appendChild'](_0x1a96b7);}),document[_0x50292d(0xdb)]('hwafezSection')[_0x50292d(0x154)]({'behavior':_0x50292d(0x104)});}catch(_0x237fc8){console['error'](_0x50292d(0xe4),_0x237fc8),alert(_0x50292d(0x15b));}}async function showTqeem(){const _0x8d0f77=_0x6adbae;try{const _0x4e3efd=await fetch(API_BASE+'/tqeem',{'headers':{'Content-Type':'application/json','Authorization':_0x8d0f77(0x10f)+jwtToken}});if(!_0x4e3efd['ok']||!_0x4e3efd[_0x8d0f77(0x157)]['get'](_0x8d0f77(0x132))[_0x8d0f77(0xd6)](_0x8d0f77(0x11b))){alert(_0x8d0f77(0xdd));return;}const {headers:_0x4d70f6,data:_0x2b8608}=await _0x4e3efd[_0x8d0f77(0xd9)]();headersTq=_0x4d70f6,tqeemData=_0x2b8608;const _0x2bdaf6=document['getElementById'](_0x8d0f77(0x13a));_0x2bdaf6[_0x8d0f77(0xf3)][_0x8d0f77(0x101)](_0x8d0f77(0x122));const _0xc20870=document[_0x8d0f77(0xdb)](_0x8d0f77(0x15e));_0xc20870[_0x8d0f77(0x110)]='',document['getElementById'](_0x8d0f77(0xe0))[_0x8d0f77(0xf3)][_0x8d0f77(0xff)](_0x8d0f77(0x122),_0x2b8608['length']>0x0),_0x2b8608[_0x8d0f77(0xd8)](_0x1198d0=>{const _0xb21c7b=_0x8d0f77,_0x4e20e4=document['createElement']('tr');_0x4e20e4[_0xb21c7b(0x110)]=_0xb21c7b(0x14a)+(_0x1198d0[_0x4d70f6['indexOf'](_0xb21c7b(0x105))]||'')+_0xb21c7b(0xf8)+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)]('الاسم')]||'')+_0xb21c7b(0xf8)+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)](_0xb21c7b(0x169))]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)]('اتقان\x20العمل\x20وفعاليته')]||'')+_0xb21c7b(0xf8)+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)](_0xb21c7b(0x15d))]||'')+_0xb21c7b(0xf8)+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)](_0xb21c7b(0x10d))]||'')+_0xb21c7b(0xf8)+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)](_0xb21c7b(0x162))]||'')+_0xb21c7b(0xf8)+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)]('المبادرة\x20والتطوير\x20الذاتي')]||'')+'</td>\x0a\x20\x20\x20\x20\x20\x20\x20\x20<td\x20class=\x22border\x20px-4\x20py-2\x22>'+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)](_0xb21c7b(0x103))]||'')+_0xb21c7b(0xf8)+(_0x1198d0[_0x4d70f6[_0xb21c7b(0x107)](_0xb21c7b(0xed))]||'')+_0xb21c7b(0x102),_0xc20870[_0xb21c7b(0xe1)](_0x4e20e4);}),_0x2bdaf6['scrollIntoView']({'behavior':_0x8d0f77(0x104)});}catch(_0x440519){console[_0x8d0f77(0xde)](_0x8d0f77(0xf4),_0x440519),alert('حدث\x20خطأ\x20أثناء\x20جلب\x20بيانات\x20التقييم\x20السنوي.');}}async function sendSupervisorNotification(){const _0x5e221f=_0x6adbae;try{const _0x4e4518=document[_0x5e221f(0xdb)](_0x5e221f(0x127))['value'][_0x5e221f(0x15c)](),_0x4a811f=document['getElementById'](_0x5e221f(0x159))['value'][_0x5e221f(0x15c)]();if(!_0x4e4518||!_0x4a811f){alert('يرجى\x20إدخال\x20عنوان\x20ونص\x20الإشعار.');return;}const _0x14af5a=await fetch(API_BASE+_0x5e221f(0x118),{'method':'POST','headers':{'Content-Type':_0x5e221f(0x11b),'Authorization':_0x5e221f(0x10f)+jwtToken},'body':JSON[_0x5e221f(0x153)]({'title':_0x4e4518,'body':_0x4a811f})});if(!_0x14af5a['ok'])throw new Error(await _0x14af5a[_0x5e221f(0xd5)]());alert(_0x5e221f(0xfd)),document[_0x5e221f(0xdb)](_0x5e221f(0x127))[_0x5e221f(0x137)]='',document[_0x5e221f(0xdb)](_0x5e221f(0x159))[_0x5e221f(0x137)]='';}catch(_0x2451cb){console[_0x5e221f(0xde)](_0x5e221f(0x13d),_0x2451cb),alert(_0x5e221f(0x10b)+_0x2451cb['message']);}}function logout(){const _0x1c9917=_0x6adbae;currentUser=null,jwtToken=null,localStorage[_0x1c9917(0xf0)](_0x1c9917(0xdf)),['records',_0x1c9917(0x143),_0x1c9917(0x138)][_0x1c9917(0xd8)](_0x5e741d=>document['getElementById'](_0x5e741d)['classList']['add']('hidden')),document[_0x1c9917(0xdb)](_0x1c9917(0x158))[_0x1c9917(0xf3)]['remove'](_0x1c9917(0x122));}
+// 1) إعداد نقاط النهاية والمتغيرات العامة
+const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT = `${API_BASE}/login`;
+const SUPERVISOR_CODE= '35190';
+let headersAtt      = [], attendanceData = [];
+let headersHw       = [], hwafezData     = [];
+let headersTq       = [], tqeemData      = [];
+let currentUser     = null;
+let jwtToken        = null;
+
+const caseMapping = {
+  '1': "غياب غير مبرر (بدون إذن رسمي)",
+  '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
+  '3': "خروج مبكر (أو عدم مهر البصمة مساءً)",
+  '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
+  '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
+};
+
+// —————————————————————————————————————————
+// Helper: تطبيع أرقام عربية → غربية
+// —————————————————————————————————————————
+function normalizeDigits(str) {
+  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
+
+// —————————————————————————————————————————
+// DOMContentLoaded: ربط الأزرار
+// —————————————————————————————————————————
+  document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loginBtn').onclick  = login;
+  document.getElementById('logoutBtn').onclick = logout;
+  document.getElementById('aboutBtn').onclick  = () =>
+    alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
+  document.getElementById('hwafezBtn').onclick = showHwafez;
+  document.getElementById('tqeemBtn').onclick  = showTqeem;
+
+  const saved = localStorage.getItem('jwtToken');
+  if (saved) {
+    jwtToken = saved;
+    fetchAndRender().then(() => {
+      if (typeof window.initNotifications === 'function') {
+        window.initNotifications();
+      }
+
+      // ✅ بعد تحميل البيانات، نعرض ملاحظة المشرف
+      fetchSupervisorNote();
+
+    }).catch(logout);
+  
+// —————————————————————————————————————————
+// ——————————————————————————————
+// 2) دالة تسجيل الدخول
+// —————————————————————————————————————————
+async function login() {
+  const code = normalizeDigits(
+    document.getElementById('codeInput').value.trim()
+  );
+  const pass = document.getElementById('passwordInput').value.trim();
+  if (!code || !pass) {
+    return alert('يرجى إدخال الكود وكلمة المرور.');
+  }
+
+  let loginResponse;
+  try {
+    // 1) طلب المصادقة
+    const res = await fetch(LOGIN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, pass })
+    });
+    if (res.status === 401) {
+      return alert('بيانات الدخول خاطئة');
+    }
+    if (!res.ok) {
+      throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
+    }
+
+    // 2) استلام التوكن
+    loginResponse = await res.json();
+    jwtToken = loginResponse.token;
+    localStorage.setItem('jwtToken', jwtToken);
+
+    // 3) currentUser وتهيئة الإشعارات
+    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+    window.currentUser = currentUser;
+    console.log('✅ login successful, currentUser =', currentUser);
+
+    // 4) تهيئة Push
+    console.log('🚀 calling initPush()…');
+    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+      await initNativePush();
+    } else {
+      await initPush();
+    }
+
+    // 5) تهيئة لوحة الإشعارات
+    if (typeof window.initNotifications === 'function') {
+      window.initNotifications();
+    }
+
+    // 6) جلب وعرض البيانات
+    await fetchAndRender();
+
+
+  } catch (e) {
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
+}
+
+// —————————————————————————————————————————
+// 3) جلب وعرض البيانات (attendance + hwafez + me)
+// —————————————————————————————————————————
+async function fetchAndRender() {
+  if (!jwtToken) return;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${jwtToken}`
+  };
+  const [aRes, hwRes, meRes] = await Promise.all([
+    fetch(`${API_BASE}/attendance`, { headers }),
+    fetch(`${API_BASE}/hwafez`,      { headers }),
+    fetch(`${API_BASE}/me`,          { headers })
+  ]);
+  if (!aRes.ok || !hwRes.ok || !meRes.ok) throw new Error('Unauthorized');
+
+  const aJson  = await aRes.json();
+  const hwJson = await hwRes.json();
+  const meJson = await meRes.json();
+
+  headersAtt     = aJson.headers;     attendanceData = aJson.data;
+  headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
+  currentUser    = meJson.user['كود الموظف'];
+
+  // إظهار الواجهة بعد تسجيل الدخول
+  document.getElementById('loginSection').classList.add('hidden');
+  document.getElementById('records').classList.remove('hidden');
+  document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
+
+  // إذا كان المشرف
+  if (currentUser === SUPERVISOR_CODE) {
+    document.getElementById('pushSection').classList.remove('hidden');
+    document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
+  }
+
+// إعادة تحميل ملاحظة المشرف من الخادم
+await fetchSupervisorNote();
+
+  renderRecords();
+}
+
+// —————————————————————————————————————————
+// 4) رسم سجلات الحضور للمستخدم الحالي
+// —————————————————————————————————————————
+function renderRecords() {
+  const idx = {
+    code:     headersAtt.indexOf('رقم الموظف'),
+    name:     headersAtt.indexOf('الاسم'),
+    status:   headersAtt.indexOf('الحالة'),
+    day:      headersAtt.indexOf('اليوم'),
+    date:     headersAtt.indexOf('التاريخ'),
+    in:       headersAtt.indexOf('دخول'),
+    out:      headersAtt.indexOf('خروج'),
+    sFrom:    headersAtt.indexOf('ساعية (من الساعة)'),
+    sTo:      headersAtt.indexOf('ساعية (إلى الساعة)'),
+    mFrom:    headersAtt.indexOf('مهمة (من الساعة)'),
+    mTo:      headersAtt.indexOf('مهمة (إلى الساعة)'),
+    days:     headersAtt.indexOf('عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة'),
+    notes:    headersAtt.indexOf('ملاحظات'),
+    adminC:   headersAtt.indexOf('عدد الإجازات الإدارية المحتسبة للعامل'),
+    adminR:   headersAtt.indexOf('عدد الإجازات الإدارية المتبقية للعامل'),
+    adminDue: headersAtt.indexOf('عدد الإجازات الإدارية المستحقة للعامل'),
+  };
+
+  // 1) كل الصفوف الخاصة بالمستخدم (بلا تصفية)
+  const allRows = attendanceData.filter(r =>
+    String(r[idx.code]).trim() === currentUser
+  );
+
+  // 2) إذا لدينا أي صفوف، نستخدم أول صف للإحصائيات
+  if (allRows.length) {
+    const firstRow = allRows[0];
+    document.getElementById('adminLeavesDue').textContent       = firstRow[idx.adminDue]   || '--';
+    document.getElementById('adminLeavesCounted').textContent   = firstRow[idx.adminC]     || '--';
+    document.getElementById('adminLeavesRemaining').textContent = firstRow[idx.adminR]     || '--';
+  }
+
+  // 3) للعرض في الجدول، نُصفي أي صف لا يحتوي على تاريخ
+  const rows = allRows.filter(r =>
+    String(r[idx.date]).trim() !== ''
+  );
+
+  const tbody = document.getElementById('attendanceBody');
+  tbody.innerHTML = '';
+
+  if (!rows.length) {
+    document.getElementById('noDataMsg').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('noDataMsg').classList.add('hidden');
+
+  // 4) بناء صفوف الجدول
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="border px-4 py-2">${r[idx.code]  || ''}</td>
+      <td class="border px-4 py-2">${r[idx.name]  || ''}</td>
+      <td class="border px-4 py-2">${caseMapping[String(r[idx.status]).trim()] || ''}</td>
+      <td class="border px-4 py-2">${r[idx.day]  || ''}</td>
+      <td class="border px-4 py-2">${r[idx.date]  || ''}</td>
+      <td class="border px-4 py-2">${r[idx.in]    || ''}</td>
+      <td class="border px-4 py-2">${r[idx.out]   || ''}</td>
+      <td class="border px-4 py-2">${r[idx.sFrom] || ''}</td>
+      <td class="border px-4 py-2">${r[idx.sTo]   || ''}</td>
+      <td class="border px-4 py-2">${r[idx.mFrom] || ''}</td>
+      <td class="border px-4 py-2">${r[idx.mTo]   || ''}</td>
+      <td class="border px-4 py-2">${r[idx.days]  || ''}</td>
+      <td class="border px-4 py-2">${r[idx.notes] || ''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+
+// —————————————————————————————————————————
+// 5) عرض بيانات الحوافز
+// —————————————————————————————————————————
+async function showHwafez() {
+  try {
+    const res = await fetch(`${API_BASE}/hwafez`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok) throw new Error('فشل جلب بيانات الحوافز');
+    const { headers, data } = await res.json();
+    headersHw  = headers;
+    hwafezData = data;
+
+    // إظهار القسم وتفريغ الجدول
+    document.getElementById('hwafezSection').classList.remove('hidden');
+    const tbody = document.getElementById('hwafezBody');
+    tbody.innerHTML = '';
+
+    // إذا لا توجد بيانات
+    if (data.length === 0) {
+      document.getElementById('noHwafezMsg').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('noHwafezMsg').classList.add('hidden');
+
+    // بناء الصفوف
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('اتقان العمل وفعاليته')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('المهارات القيادية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('مهارة الإدارة الذاتية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('مهارات التواصل والتفاعل')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('المبادرة والتطوير الذاتي')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الإستقلال والموثوقية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الإلتزام والمسؤولية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('نسبة الدوام الفعلي')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('السويّة الوظيفيّة')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('مستوى التأهيل')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('سنوات الخبرة')] || ''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // تمرير الشاشة للقسم
+    document.getElementById('hwafezSection')
+            .scrollIntoView({ behavior: 'smooth' });
+
+  } catch (e) {
+    console.error('❌ showHwafez error:', e);
+    alert('حدث خطأ أثناء جلب بيانات الحوافز');
+  }
+}  // ← غلق showHwafez()
+
+// —————————————————————————————————————————
+// 5.1) عرض بيانات التقييم السنوي
+async function showTqeem() {
+  try {
+    const res = await fetch(`${API_BASE}/tqeem`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok || !res.headers.get('content-type').includes('application/json')) {
+      alert('البيانات غير متوفرة حالياً.');
+      return;
+    }
+
+    const { headers, data } = await res.json();
+    headersTq = headers;
+    tqeemData = data;
+
+    // 1) رفع الإخفاء
+    const section = document.getElementById('tqeemSection');
+    section.classList.remove('hidden');
+
+    // 2) تفريغ الجدول
+    const tbody = document.getElementById('tqeemBody');
+    tbody.innerHTML = '';
+
+    // 3) عرض رسالة إن خلت البيانات
+    document.getElementById('noTqeemMsg')
+      .classList.toggle('hidden', data.length > 0);
+
+    // 4) بناء الصفوف
+    data.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="border px-4 py-2">${r[headers.indexOf('رقم الموظف')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاسم')]       || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('حجم العمل')]   || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('اتقان العمل وفعاليته')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('المهارات القيادية')]  || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('مهارة الإدارة الذاتية')] || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('مهارات التواصل والتفاعل')]|| ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('المبادرة والتطوير الذاتي')]  || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الاستقلال والموثوقية')]   || ''}</td>
+        <td class="border px-4 py-2">${r[headers.indexOf('الالتزام والمسؤولية')]   || ''}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // 5) التمرير أوتوماتيكيًا إلى القسم
+    section.scrollIntoView({ behavior: 'smooth' });
+
+  } catch (e) {
+    console.error('❌ showTqeem error:', e);
+    alert('حدث خطأ أثناء جلب بيانات التقييم السنوي.');
+  }
+}
+// —————————————————————————————————————————
+// 6) إرسال إشعار للمشرف
+// —————————————————————————————————————————
+async function sendSupervisorNotification() {
+  try {
+    const title = document.getElementById('notifTitleInput').value.trim();
+    const body  = document.getElementById('notifBodyInput').value.trim();
+    if (!title || !body) {
+      alert('يرجى إدخال عنوان ونص الإشعار.');
+      return;
+    }
+    const res = await fetch(`${API_BASE}/notify-all`, {
+      method: 'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
+      body: JSON.stringify({ title, body })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    alert('✅ تم إرسال الإشعار لجميع المستخدمين.');
+    document.getElementById('notifTitleInput').value = '';
+    document.getElementById('notifBodyInput').value  = '';
+  } catch (err) {
+    console.error('❌ sendSupervisorNotification error:', err);
+    alert('❌ خطأ في إرسال الإشعار: ' + err.message);
+  }
+}
+
+// —————————————————————————————————————————
+// 7) تسجيل الخروج
+// —————————————————————————————————————————
+function logout() {
+  currentUser = null;
+  jwtToken     = null;
+  localStorage.removeItem('jwtToken');
+  ['records','pushSection','hwafezSection'].forEach(id =>
+    document.getElementById(id).classList.add('hidden')
+  );
+  document.getElementById('loginSection').classList.remove('hidden');
+}
