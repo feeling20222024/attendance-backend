@@ -270,14 +270,14 @@ app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
 // داخل ملف server.js أو app.js الخاص بالخادم
+
 app.get('/api/supervisor-note', async (req, res) => {
   try {
-    const sheetName = 'Attendance';
-    // ← هنا نُصحّح النطاق ليكون G2 وليس A2
-    const range = `${sheetName}!A2`;
+    const sheetName = 'Attendance'; // ← اسم صفحة الجدول
+    const range = `${sheetName}!A2`; // ← ملاحظة واحدة في G2 (غير مرتبطة بالموظف)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range,
+      range: range,
     });
 
     const note = response.data.values?.[0]?.[0] || '';
