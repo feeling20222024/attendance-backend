@@ -189,15 +189,33 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 
 
 // 11) الحضور
+// 11) الحضور — عدّل كما يلي
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
-    const idx    = headers.indexOf('رقم الموظف');
-    const target = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    const idxCode = headers.indexOf('رقم الموظف');
+    const target  = normalizeDigits(String(req.user.code).trim());
+
+    // 1) صفوف الموظف
+    const userRows = data.filter(r =>
+      normalizeDigits(String(r[idxCode] ?? '').trim()) === target
     );
-    res.json({ headers, data: filtered });
+
+    // 2) صفوف الملاحظات العامة (كود الموظف فارغ)
+    const generalRows = data.filter(r =>
+      !(r[idxCode]?.toString().trim())
+    );
+
+    // 3) احسب الملاحظة العامّة (أول صفّ عام، أو '' إذا لم يوجد)
+    const noteCol = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
+    const generalNote = generalRows[0]?.[noteCol]?.trim() || '';
+
+    // 4) أرجع كل شيء
+    res.json({
+      headers,
+      data: userRows,
+      generalNote
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.message });
