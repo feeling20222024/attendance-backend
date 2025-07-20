@@ -148,16 +148,11 @@ async function fetchAndRender() {
 const publicNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة لجميع العاملين");
 if (publicNoteIndex !== -1) {
   const codeIndex = headersAtt.indexOf("كود الموظف");
-  console.log('🔎 headersAtt:', headersAtt);
-  console.log('🔎 attendanceData:', attendanceData);
-
   const generalRow = attendanceData.find(row => !row[codeIndex] || row[codeIndex].trim() === "");
   const generalNote = generalRow?.[publicNoteIndex]?.trim();
 
   const generalBox = document.getElementById('generalNoteBox');
   const generalText = document.getElementById('generalNoteText');
-
-  console.log('📣 generalNote:', generalNote);
 
   if (generalNote && generalBox && generalText) {
     generalText.textContent = generalNote;
@@ -167,19 +162,18 @@ if (publicNoteIndex !== -1) {
   }
 }
 
+// 👇 هذا الجزء خارج if تماماً
+document.getElementById('loginSection').classList.add('hidden');
+document.getElementById('records').classList.remove('hidden');
+document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
 
-  // إظهار الواجهة بعد تسجيل الدخول
-  document.getElementById('loginSection').classList.add('hidden');
-  document.getElementById('records').classList.remove('hidden');
-  document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
+if (currentUser === SUPERVISOR_CODE) {
+  document.getElementById('pushSection').classList.remove('hidden');
+  document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
+}
 
-  // إذا كان المشرف
-  if (currentUser === SUPERVISOR_CODE) {
-    document.getElementById('pushSection').classList.remove('hidden');
-    document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
-  }
+renderRecords();
 
-  renderRecords();
 } // ← تم إغلاق الدالة الآن
 
 // —————————————————————————————————————————
