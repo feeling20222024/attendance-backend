@@ -26,7 +26,7 @@ function normalizeDigits(str) {
 // —————————————————————————————————————————
 // DOMContentLoaded: ربط الأزرار
 // —————————————————————————————————————————
-  document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginBtn').onclick  = login;
   document.getElementById('logoutBtn').onclick = logout;
   document.getElementById('aboutBtn').onclick  = () =>
@@ -37,16 +37,19 @@ function normalizeDigits(str) {
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    fetchAndRender().then(() => {
-      if (typeof window.initNotifications === 'function') {
-        window.initNotifications();
-      }
+    fetchAndRender()
+      .then(() => {
+        if (typeof window.initNotifications === 'function') {
+          window.initNotifications();
+        }
 
-      // ✅ بعد تحميل البيانات، نعرض ملاحظة المشرف
-      fetchSupervisorNote();
+        // ✅ بعد تحميل البيانات، نعرض ملاحظة المشرف
+        fetchSupervisorNote(); // أو علّقه إذا تم حذف هذه الدالة
+      })
+      .catch(logout);
+  }
+});
 
-    }).catch(logout);
-    });
   
 // —————————————————————————————————————————
 // ——————————————————————————————
