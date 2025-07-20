@@ -269,22 +269,6 @@ app.get('/api/version', (req, res) => {
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
-app.get('/api/supervisor-note', async (req, res) => {
-  try {
-    const sheetName = 'Attendance'; // ← اسم صفحة الجدول
-    const range = `${sheetName}!A2`; // ← ملاحظة واحدة في G2 (غير مرتبطة بالموظف)
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.SHEET_ID,
-      range: range,
-    });
-
-    const note = response.data.values?.[0]?.[0] || '';
-    res.json({ note });
-  } catch (err) {
-    console.error('خطأ في تحميل ملاحظة المراقب:', err);
-    res.status(500).json({ error: 'خطأ في الخادم' });
-  }
-});
 
 
 // بدء الخادم
