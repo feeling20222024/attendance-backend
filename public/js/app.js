@@ -134,7 +134,7 @@ async function fetchAndRender() {
   headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
   currentUser    = meJson.user['كود الموظف'];
   // ✅ عرض الملاحظة العامة من العمود "تنبيهات وملاحظات عامة"
-const noteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة");
+const noteIndex = headersAtt.indexOf("تنبيهات وملاحظات خاصة بالعامل");
 if (noteIndex !== -1 && attendanceData.length > 0) {
   const generalNote = attendanceData[0][noteIndex] || '';
   const noteBox = document.getElementById('supervisorNotes');
