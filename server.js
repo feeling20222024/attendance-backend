@@ -155,23 +155,38 @@ app.post('/api/login', async (req, res) => {
 });
 
 // 10) معلومات المستخدم الحالي
-app.get('/api/me', authenticate, async (req, res) => {
+app.get('/api/attendance', authenticate, async (req, res) => {
   try {
-    const { headers, data } = await readSheet('Users');
-    const idxCode = headers.indexOf('كود الموظف');
-    const target  = normalizeDigits(String(req.user.code).trim());
-    const row     = data.find(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
-    if (!row) return res.status(404).json({ error: 'User not found' });
+    const { headers, data } = await readSheet('Attendance');
+    const idx = headers.indexOf('رقم الموظف');
+    const target = normalizeDigits(String(req.user.code).trim());
 
-    const single = {};
-    headers.forEach((h,i) => single[h] = row[i] ?? '');
-    res.json({ user: single });
+    const filteredData = data.filter(r =>
+      normalizeDigits(String(r[idx] ?? '').trim()) === target
+    );
+
+    // ✅ استخراج ملاحظة عامة من العمود "تنبيهات وملاحظات عامة"
+    const noteColumnIndex = headers.indexOf("تنبيهات وملاحظات عامة");
+    let generalNote = '';
+    if (noteColumnIndex !== -1) {
+      const noteRow = data.find(row => row[noteColumnIndex]?.trim());
+      if (noteRow) {
+        generalNote = noteRow[noteColumnIndex].trim();
+      }
+    }
+
+    res.json({
+      headers,
+      data: filteredData,
+      generalNote // ✅ ترسل مع الرد
+    });
 
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 // 11) الحضور
 app.get('/api/attendance', authenticate, async (req, res) => {
