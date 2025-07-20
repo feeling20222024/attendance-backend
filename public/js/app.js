@@ -42,9 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.initNotifications === 'function') {
           window.initNotifications();
         }
-
-        // ✅ بعد تحميل البيانات، نعرض ملاحظة المشرف
-        fetchSupervisorNote(); // أو علّقه إذا تم حذف هذه الدالة
       })
       .catch(logout);
   }
@@ -136,6 +133,15 @@ async function fetchAndRender() {
   headersAtt     = aJson.headers;     attendanceData = aJson.data;
   headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
   currentUser    = meJson.user['كود الموظف'];
+  // ✅ عرض الملاحظة العامة من العمود "تنبيهات وملاحظات عامة"
+const noteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة");
+if (noteIndex !== -1 && attendanceData.length > 0) {
+  const generalNote = attendanceData[0][noteIndex] || '';
+  const noteBox = document.getElementById('supervisorNotes');
+  if (noteBox) {
+    noteBox.textContent = generalNote.trim();
+  }
+}
 
   // إظهار الواجهة بعد تسجيل الدخول
   document.getElementById('loginSection').classList.add('hidden');
@@ -148,22 +154,7 @@ async function fetchAndRender() {
     document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
   }
 
-  // ملاحظات المشرف
-  const notesArea = document.getElementById('supervisorNotes');
-  const saveBtn   = document.getElementById('saveNotesBtn');
-  notesArea.value = localStorage.getItem('supervisorNotes') || '';
-  if (currentUser === SUPERVISOR_CODE) {
-    notesArea.removeAttribute('readonly');
-    saveBtn.classList.remove('hidden');
-    saveBtn.onclick = () => {
-      localStorage.setItem('supervisorNotes', notesArea.value);
-      alert('تم حفظ الملاحظة');
-    };
-  } else {
-    notesArea.setAttribute('readonly', '');
-    saveBtn.classList.add('hidden');
-  }
-
+  
   renderRecords();
 }
 
