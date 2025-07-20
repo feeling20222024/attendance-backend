@@ -1,3 +1,23 @@
+// —————————————————————————————————————————
+// X) جلب وعرض ملاحظة المشرف من الخادم
+// —————————————————————————————————————————
+async function fetchSupervisorNote() {
+  try {
+    const res = await fetch(`${API_BASE}/supervisor-note`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` })
+      }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { note } = await res.json();
+    document.getElementById('supervisorNotes').value = note || 'لا توجد ملاحظات.';
+  } catch (err) {
+    console.error('فشل تحميل ملاحظة المراقب:', err);
+    document.getElementById('supervisorNotes').value = 'حدث خطأ أثناء تحميل الملاحظات.';
+  }
+}
+
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT = `${API_BASE}/login`;
