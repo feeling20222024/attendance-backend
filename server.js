@@ -137,19 +137,17 @@ app.post('/api/login', async (req, res) => {
 });
 
 // 10) جلب بيانات المراقب من Sheet A2
-app.get('/api/supervisor-note', async (req, res) => {
+// قراءة ملاحظة المشرف من Google Sheets عبر readSheet
+app.get('/api/supervisor-note', authenticate, async (req, res) => {
   try {
-    const doc      = await accessSheet();
-    const sheet    = doc.sheetsByTitle['Attendance'];
-    const response = await sheet.spreadsheet.values.get({
-      spreadsheetId: SHEET_ID,
-      range: 'Attendance!A2',
-    });
-    const note = response.data.values?.[0]?.[0] ?? '';
+    // نقرأ صفحة Attendance كاملة
+    const { headers, data } = await readSheet('Attendance');
+    // data[1][0] هو محتوى الخلية A2 (الصف الثاني، العمود الأوّل)
+    const note = (data[1] && data[1][0]) || '';
     res.json({ note });
   } catch (err) {
     console.error('خطأ في تحميل ملاحظة المراقب:', err);
-    res.status(500).json({ error:'خطأ في الخادم' });
+    res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
 
