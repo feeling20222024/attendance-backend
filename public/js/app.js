@@ -3,18 +3,13 @@
 // —————————————————————————————————————————
 async function fetchSupervisorNote() {
   try {
-    const res = await fetch(`${API_BASE}/supervisor-note`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(jwtToken && { 'Authorization': `Bearer ${jwtToken}` })
-      }
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { note } = await res.json();
-    document.getElementById('supervisorNotes').value = note || 'لا توجد ملاحظات.';
+    const res = await fetch('data/note.json');
+    if (!res.ok) throw new Error('HTTP error');
+    const result = await res.json();
+    document.getElementById('supervisorNotes').value = result.note || 'لا توجد ملاحظات حالياً';
   } catch (err) {
     console.error('فشل تحميل ملاحظة المراقب:', err);
-    document.getElementById('supervisorNotes').value = 'حدث خطأ أثناء تحميل الملاحظات.';
+    document.getElementById('supervisorNotes').value = 'تعذر تحميل الملاحظة.';
   }
 }
 
