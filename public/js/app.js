@@ -133,15 +133,30 @@ async function fetchAndRender() {
   headersAtt     = aJson.headers;     attendanceData = aJson.data;
   headersHw      = hwJson.headers;    hwafezData     = hwJson.data;
   currentUser    = meJson.user['كود الموظف'];
-  // ✅ عرض الملاحظة العامة من العمود "تنبيهات وملاحظات عامة"
-const noteIndex = headersAtt.indexOf("تنبيهات وملاحظات خاصة بالعامل");
-if (noteIndex !== -1 && attendanceData.length > 0) {
-  const generalNote = attendanceData[0][noteIndex] || '';
+// ✅ عرض الملاحظات الخاصة
+const privateNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات خاصة بالعامل");
+if (privateNoteIndex !== -1 && attendanceData.length > 0) {
+  const privateNote = attendanceData[0][privateNoteIndex] || '';
   const noteBox = document.getElementById('supervisorNotes');
   if (noteBox) {
-    noteBox.textContent = generalNote.trim();
+    noteBox.textContent = privateNote.trim();
   }
 }
+
+
+// ✅ عرض الملاحظات العامة من العمود "تنبيهات وملاحظات عامة لجميع العاملين"
+const publicNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة لجميع العاملين");
+if (publicNoteIndex !== -1) {
+  const generalRow = attendanceData.find(row => !row[headersAtt.indexOf("كود الموظف")]);
+  const generalNote = generalRow?.[publicNoteIndex]?.trim();
+
+  const generalBox = document.getElementById('generalNoteBox');
+  if (generalNote && generalBox) {
+    generalBox.textContent = generalNote;
+    generalBox.classList.remove('hidden');
+  }
+}
+
 
   // إظهار الواجهة بعد تسجيل الدخول
   document.getElementById('loginSection').classList.add('hidden');
