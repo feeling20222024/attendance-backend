@@ -138,16 +138,16 @@
         </button>
       </div>
 
-      <!-- Supervisor Notes -->
-      <div class="mb-6 max-w-md mx-auto">
-        <h3 class="text-xl font-bold mb-2 text-gray-700">تنبيهات مراقب الدوام</h3>
-        <textarea id="supervisorNotes" rows="3"
-                  class="w-full border border-gray-300 rounded p-2 bg-gray-50 focus:ring-2 focus:ring-green-400"
-                  readonly></textarea>
-        <button id="saveNotesBtn" class="hidden mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
-          حفظ الملاحظة
-        </button>
-      </div>
+     <!-- ملاحظات وتنبيهات عامة -->
+<div id="supervisorNotesSection"
+     class="mb-6 bg-yellow-50 p-4 rounded-lg shadow-md max-w-md mx-auto border border-yellow-300">
+  <h3 class="text-lg font-semibold mb-2 text-yellow-800">
+    📢 تنبيهات وملاحظات عامة
+  </h3>
+  <div id="supervisorNotes"
+       class="text-gray-800 whitespace-pre-line leading-relaxed"></div>
+</div>
+
 
       <!-- Welcome -->
       <div class="mb-6 text-center">
