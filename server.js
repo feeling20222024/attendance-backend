@@ -273,20 +273,27 @@ app.get(/.*/, (_, res) =>
 
 app.get('/api/supervisor-note', async (req, res) => {
   try {
-    const sheetName = 'Attendance'; // ← اسم صفحة الجدول
-    const range = `${sheetName}!A2`; // ← ملاحظة واحدة في G2 (غير مرتبطة بالموظف)
-    const response = await sheets.spreadsheets.values.get({
+    const sheetName = 'Attendance';
+    // عدّلي هذا السطر إذا كانت الملاحظة في G2 وليس A2
+    const range     = `${sheetName}!A2`;  
+    const response  = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: range,
+      range,
     });
 
-    const note = response.data.values?.[0]?.[0] || '';
+    // استخدمي null لتمييز انعدام الملاحظة
+    const note = response.data.values?.[0]?.[0] ?? null;
+
+    // (اختياري) هيدر CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
     res.json({ note });
   } catch (err) {
     console.error('خطأ في تحميل ملاحظة المراقب:', err);
     res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
+
 
 
 // بدء الخادم
