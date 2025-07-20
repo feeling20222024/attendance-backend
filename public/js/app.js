@@ -150,13 +150,12 @@ if (publicNoteIndex !== -1) {
   const generalRow = attendanceData.find(row => !row[headersAtt.indexOf("كود الموظف")]);
   const generalNote = generalRow?.[publicNoteIndex]?.trim();
 
-  const generalBox = document.getElementById('generalNoteBox');
-  if (generalNote && generalBox) {
-    generalBox.textContent = generalNote;
-    generalBox.classList.remove('hidden');
-  }
+const generalBox = document.getElementById('generalNoteBox');
+const generalText = document.getElementById('generalNoteText');
+if (generalNote && generalBox && generalText) {
+  generalText.textContent = generalNote;
+  generalBox.classList.remove('hidden');
 }
-
 
   // إظهار الواجهة بعد تسجيل الدخول
   document.getElementById('loginSection').classList.add('hidden');
