@@ -1,25 +1,26 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8"/>
-  <!-- تضمن أن كل الروابط تبدأ من مسار www/ -->
-  <base href="./"/>
-
-  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
- <title>تطبيق متابعة الدوام</title>
-
-  <!-- 1) Manifest & Firebase -->
+  <meta charset="UTF-8" />
   <link rel="manifest" href="/manifest.json" />
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js" defer></script>
 
-  <!-- 2) CSP مخفّفة -->
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
+
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تطبيق متابعة الدوام</title>
+
+  <!-- CSP مخفّفة -->
   <meta http-equiv="Content-Security-Policy"
         content="
           default-src 'self' data:;
-          script-src  'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com;
-          style-src   'self' 'unsafe-inline';
+          script-src  'self' 'unsafe-inline' 'unsafe-eval'
+                       https://www.gstatic.com
+                       https://cdn.tailwindcss.com;
+          style-src   'self' 'unsafe-inline'
+                       https://cdn.tailwindcss.com;
           connect-src 'self'
                        https://dwam-app-by-omar.onrender.com
                        https://www.googleapis.com
@@ -28,49 +29,87 @@
                        https://fcmregistrations.googleapis.com;
         ">
 
-   <!-- 3) منع وميض العناصر المخفية -->
-   <style>[hidden] { display: none !important; }</style>
+  <!-- Tailwind + ستايلات عامة -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css" />
 
-   <!-- 4) أيقونة التطبيق -->
-   <link rel="icon" href="assets/icon.png" />
-
-    <!-- 5) Tailwind مجمّع محليّاً (يجب أن تُولّد قبل الربط) -->
-    <link rel="stylesheet" href="/css/tailwind.css?v=2" />
-
-
-  <!-- 6) ستايلاتك الخاصة -->
-  <link rel="stylesheet" href="/css/style.css" />   
-
+  <style>
+    /* dropdown notifications */
+    #notificationsPanel {
+      position: absolute; top: 3.5rem; right: 1rem;
+      width: 300px; max-height: 400px; overflow-y: auto;
+      background: #fff; border: 1px solid #ccc;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      padding: 0.5rem; display: none; z-index: 1000;
+    }
+    #notifBell {
+      position: absolute; top: 1rem; right: 1rem;
+      cursor: pointer; font-size: 1.5rem;
+    }
+    #notifBell .badge {
+      font-size: 0.75rem; background: red; color: white;
+      border-radius: 50%; padding: 0 5px;
+      vertical-align: top; margin-left: 4px;
+    }
+    #clearNotifications {
+      display: none; margin: 0.5rem auto 0;
+      background: #f44336; color: white; border: none;
+      padding: 0.25rem 0.5rem; cursor: pointer;
+    }
+  </style>
 </head>
-  <body class="bg-gray-100 min-h-screen flex flex-col">
-<!-- Header -->
-<header class="relative bg-blue-600 text-white">
-  <div class="container mx-auto px-4 py-4 flex justify-center">
+
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <!-- Header مع أيقونة الجرس والعداد -->
+  <header class="relative bg-blue-600 text-white">
+  <div class="container mx-auto px-4 py-4 text-center">
     <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
   </div>
-
-  <!-- جرس الإشعارات -->
-  <div id="notifBell" class="absolute top-8 right-4 cursor-pointer text-2xl z-50">
-    🔔
-    <span id="notifCount"
-          class="badge bg-red-600 text-white rounded-full text-xs px-1 ml-1">0</span>
+  <div id="notifBell" style="position:absolute; top:1rem; right:1rem; cursor:pointer;">
+    🔔<span id="notifCount" class="badge" style="
+        font-size:0.75rem;
+        background:red;
+        color:white;
+        border-radius:50%;
+        padding:0 5px;
+        vertical-align:top;
+        margin-left:2px;
+      ">0</span>
   </div>
 </header>
-  
-<!-- صندوق سجل الإشعارات (خارج الـ<header> حتى لا يقيده حجم الأب) -->
-<div id="notificationsPanel"
-     class="hidden fixed top-[5.5rem] right-4 w-72 max-h-80 overflow-y-auto
-            bg-white border rounded-lg shadow-lg p-4 z-50"
-     style="background-color: rgba(255,255,255,1) !important;">
-  <h3 class="font-semibold mb-3 text-gray-800">📩 سجل الإشعارات</h3>
-  <ul id="notificationsLog" class="list-none p-0 m-0 text-gray-700 text-sm space-y-2"></ul>
-  <button id="clearNotifications"
-          class="hidden mt-4 w-full bg-red-500 text-white py-2 rounded-lg">
-    🗑️ مسح الإشعارات
-  </button>
+
+<!-- لوحة الإشعارات المنسدلة -->
+<div id="notificationsPanel" style="
+     display:none;
+     position:absolute;
+     top:4rem; /* تحت الهيدر */
+     right:1rem;
+     width:300px;
+     max-height:400px;
+     overflow-y:auto;
+     background:#fff;
+     border:1px solid #ccc;
+     box-shadow:0 2px 6px rgba(0,0,0,0.2);
+     padding:0.5rem;
+     z-index:1000;
+">
+  <h3>📩 سجل الإشعارات</h3>
+  <ul id="notificationsLog" class="list-none p-0 m-0"></ul>
+  <button id="clearNotifications" style="
+      display:none;
+      margin-top:0.5rem;
+      background:#f44336;
+      color:white;
+      border:none;
+      padding:0.25rem 0.5rem;
+      cursor:pointer;
+    ">🗑️ مسح الإشعارات</button>
 </div>
 
-    <!-- 1) Login Form -->
+  <!-- Main -->
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+    <!-- Login Form -->
     <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
       <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2>
       <input id="codeInput" type="text" placeholder="كود الموظف"
@@ -82,14 +121,8 @@
         دخول
       </button>
     </section>
-     <!-- زر متطلبات البرنامج (موازٍ لزر دخول) -->
-<div class="max-w-md mx-auto mb-8 flex justify-center">
-  <button id="requirementsBtn"
-          class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 transition">
-    متطلبات البرنامج
-  </button>
-</div>
-    <!-- 2) Records Section (يظهر بعد تسجيل الدخول) -->
+
+    <!-- Records Section -->
     <section id="records" class="hidden">
 
       <!-- Supervisor Push -->
@@ -104,7 +137,8 @@
           إرسال الإشعار
         </button>
       </div>
- <!-- ملاحظات المشرف -->
+
+      <!-- ملاحظات المشرف -->
 <div id="supervisorNotesSection"
      class="mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
   <h3 class="text-xl font-semibold mb-4 text-gray-700">
@@ -116,40 +150,27 @@
             readonly></textarea>
 </div>
 
-
-
-      <!-- ترحيب المستخدم -->
-     <div class="mb-6 text-center">
+      <!-- Welcome -->
+      <div class="mb-6 text-center">
         <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
       </div>
 
-    <!-- الأزرار -->
-<!-- الأزرار الرئيسية في صف واحد -->
-   <main class="flex-grow container mx-auto px-4 py-8 mt-16">
-  <!-- أزرار رئيسيّة -->
-  <div class="flex flex-wrap justify-center gap-4 mb-6">
-    <button id="hwafezBtn"
-            class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition">
-      علامات الحوافز
-    </button>
-    <button id="tqeemBtn"
-          class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition">
+      <!-- Controls -->
+      <div class="flex flex-wrap gap-4 justify-center mb-6">
+        <button id="aboutBtn" class="text-blue-500 hover:underline">حول التطبيق</button>
+        <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
+          علامات الحوافز
+        </button>
+       <button id="tqeemBtn"
+        class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
           التقييم السنوي
         </button>
+        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+          خروج
+        </button>
       </div>
-   <!-- أزرار ثانويّة (موازية للأزرار الرئيسية) -->
-<div class="flex flex-wrap justify-center gap-4 mb-6">
-  <button id="aboutBtn"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
-    حول التطبيق
-  </button>
-  <button id="logoutBtn"
-          class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
-    خروج
-  </button>
-</div>
-   </main>
-      <!-- إحصائيات الإجازات -->
+
+      <!-- Leave Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 max-w-4xl mx-auto">
         <div class="bg-white p-4 rounded shadow border">
           <p class="font-semibold mb-2 text-gray-600">الإجازات الإدارية المستحقة</p>
@@ -165,27 +186,26 @@
         </div>
       </div>
 
-      <!-- رسالة عدم وجود بيانات -->
+      <!-- No Data Msg -->
       <p id="noDataMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
 
-      <!-- جدول الحضور -->
-      <div id="tableWrapper"
-           class="overflow-x-auto bg-white shadow rounded-lg p-4 max-w-4xl mx-auto mb-8">
+      <!-- Attendance Table -->
+      <div id="tableWrapper" class="overflow-x-auto bg-white shadow rounded-lg p-4 max-w-4xl mx-auto mb-8">
         <table class="table-fixed w-full text-center divide-y divide-gray-200">
           <colgroup>
-            <col class="w-20"/><!-- كود -->
-            <col class="w-32"/><!-- اسم -->
-            <col class="w-40"/><!-- حالة -->
+            <col class="w-20"> <!-- كود -->
+            <col class="w-32"> <!-- اسم -->
+            <col class="w-32"> <!-- حالة -->
             <col class="w-28"> <!-- اليوم -->
-            <col class="w-28"/><!-- تاريخ -->
-            <col class="w-20"/><!-- دخول -->
-            <col class="w-20"/><!-- خروج -->
-            <col class="w-24"/><!-- ساعية من -->
-            <col class="w-24"/><!-- ساعية إلى -->
-            <col class="w-24"/><!-- مهمة من -->
-            <col class="w-24"/><!-- مهمة إلى -->
-            <col class="w-32"/><!-- عدد الأيام المحتسبة بتقرير الساعيات أوالتأخر أقل من ساعة -->
-            <col class="w-32"/><!-- ملاحظات -->
+            <col class="w-28"> <!-- تاريخ -->
+            <col class="w-20"> <!-- دخول -->
+            <col class="w-20"> <!-- خروج -->
+            <col class="w-24"> <!-- ساعية من -->
+            <col class="w-24"> <!-- ساعية إلى -->
+            <col class="w-24"> <!-- مهمة من -->
+            <col class="w-24"> <!-- مهمة إلى -->
+            <col class="w-32"> <!-- عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة -->
+            <col class="w-40"> <!-- ملاحظات -->
           </colgroup>
           <thead class="bg-gray-50 text-gray-700 text-sm">
             <tr>
@@ -196,21 +216,21 @@
               <th class="border px-4 py-2">التاريخ</th>
               <th class="border px-4 py-2">دخول</th>
               <th class="border px-4 py-2">خروج</th>
-              <th class="border px-4 py-2">ساعية (من)</th>
-              <th class="border px-4 py-2">ساعية (إلى)</th>
-              <th class="border px-4 py-2">مهمة (من)</th>
-              <th class="border px-4 py-2">مهمة (إلى)</th>
-              <th class="border px-4 py-2">عدد الأيام المحتسبة بتقرير الساعيات أوالتأخر أقل من ساعة</th>
+              <th class="border px-4 py-2">ساعية (من الساعة)</th>
+              <th class="border px-4 py-2">ساعية (إلى الساعة)</th>
+              <th class="border px-4 py-2">مهمة (من الساعة)</th>
+              <th class="border px-4 py-2">مهمة (إلى الساعة)</th>
+              <th class="border px-4 py-2">عدد الأيام المحتسبة بتقرير الساعيات أو التأخر أقل من ساعة</th>
               <th class="border px-4 py-2">ملاحظات</th>
             </tr>
           </thead>
           <tbody id="attendanceBody" class="divide-y divide-gray-100">
-            <!-- injection -->
+            <!-- يُحقَن هنا -->
           </tbody>
         </table>
       </div>
 
-      <!-- جدول علامات الحوافز -->
+      <!-- Hwafez Table -->
       <div id="hwafezSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto">
         <h3 class="text-xl font-bold mb-4 text-gray-700">علامات الحوافز</h3>
         <p id="noHwafezMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
@@ -218,7 +238,7 @@
           <table class="table-auto w-full text-center divide-y divide-gray-200">
             <thead class="bg-gray-50 text-gray-700 text-sm">
               <tr>
-              <th class="border px-4 py-2">رقم الموظف</th>
+                <th class="border px-4 py-2">رقم الموظف</th>
                 <th class="border px-4 py-2">الاسم</th>
                 <th class="border px-4 py-2">حجم العمل</th>
                 <th class="border px-4 py-2">اتقان العمل وفعاليته</th>
@@ -235,12 +255,14 @@
               </tr>
             </thead>
             <tbody id="hwafezBody" class="divide-y divide-gray-100">
-              <!-- injection -->
+              <!-- يُحقَن هنا -->
             </tbody>
           </table>
         </div>
       </div>
+      
        <!-- أسفل قسم hwafezSection مباشرة في نفس الـ <section id="records"> -->
+ <!-- أسفل قسم hwafezSection مباشرة في نفس الـ <section id="records"> -->
   <div id="tqeemSection" class="hidden bg-white p-6 rounded-lg shadow max-w-4xl mx-auto">
   <h3 class="text-xl font-bold mb-4 text-gray-700">التقييم السنوي</h3>
   <p id="noTqeemMsg" class="hidden text-center text-gray-600">لا توجد بيانات.</p>
@@ -266,47 +288,26 @@
     </table>
    </div>
    </div>
-    </section>
+  </section>
   </main>
-  <!-- Modal المتطلبات -->
-<div id="requirementsModal"
-     class="hidden fixed inset-0 flex items-center justify-center z-50"
-     style="background-color: rgba(0, 0, 0, 0.5);">
-  <div class="bg-white p-6 rounded-lg max-w-md mx-4 shadow-lg">
-    <h3 class="text-xl font-bold mb-4">متطلبات البرنامج</h3>
-    <p class="text-gray-700 leading-relaxed">
-      في حال عدم ظهور الإشعارات أو ظهور التطبيق بدون التنسيقات  فيجب تحديث تطبيق 
-      <strong>Android Web View</strong> من متجر googleplay:
-      <br/>
-      <a href="https://play.google.com/store/apps/details?id=com.google.android.webview&pli=1"
-         target="_blank"
-         class="text-blue-600 underline break-all">
-        https://play.google.com/store/apps/details?id=com.google.android.webview&pli=1
-      </a>
-    </p>
-    <div class="mt-6 text-right">
-      <button id="closeRequirements"
-              class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-        إغلاق
-      </button>
-    </div>
-  </div>
-</div>
-    
-  <!-- تسجيل Service Worker -->
-  
-   <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      .then(r => console.log('✅ FCM SW registered:', r.scope))
-      .catch(e => console.warn('⚠️ FCM SW failed:', e));
-  }
-   </script>
-   
-  <!-- سكربتات التطبيق -->
-<script src="js/notifications.js" defer></script>
-<script type="module" src="js/push.js" defer></script>
-<script nomodule src="js/app.legacy.js" defer></script>
-<script type="module" src="js/app.js" defer></script>
-   </body>
-   </html>
+  <!-- Scripts -->
+
+
+<script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(r => console.log('✅ SW registered:', r.scope))
+        .catch(e => console.warn('❌ SW register failed', e));
+    }
+  </script>
+<!-- notifications.js فيه تعريف initNotifications و renderNotifications … -->
+<script src="/js/notifications.js"></script>
+
+<!-- ثم push.js الذي يستدعي initPush و initNotifications -->
+<script type="module" src="/js/push.js"></script>
+
+<!-- ثم app.js الذي يستدعي initPush داخل login() -->
+<script type="module" src="/js/app.js"></script>
+
+</body>
+</html>
