@@ -163,21 +163,29 @@
       <div class="mb-6 text-center">
         <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
       </div>
+<!-- الأزرار الرئيسية في صف واحد -->
+<div class="flex flex-wrap justify-center gap-4 mb-6">
+  <button id="hwafezBtn"
+          class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition">
+    علامات الحوافز
+  </button>
+  <button id="tqeemBtn"
+        class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition">
+    التقييم السنوي
+  </button>
+</div>
+<!-- أزرار ثانويّة (موازية للأزرار الرئيسية) -->
+<div class="flex flex-wrap justify-center gap-4 mb-6">
+  <button id="aboutBtn"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+    حول التطبيق
+  </button>
+  <button id="logoutBtn"
+          class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+    خروج
+  </button>
+</div>
 
-      <!-- Controls -->
-      <div class="flex flex-wrap gap-4 justify-center mb-6">
-        <button id="aboutBtn" class="text-blue-500 hover:underline">حول التطبيق</button>
-        <button id="hwafezBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
-          علامات الحوافز
-        </button>
-       <button id="tqeemBtn"
-        class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
-          التقييم السنوي
-        </button>
-        <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
-          خروج
-        </button>
-      </div>
 
       <!-- Leave Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 max-w-4xl mx-auto">
