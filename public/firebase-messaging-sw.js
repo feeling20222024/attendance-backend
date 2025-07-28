@@ -1,1 +1,33 @@
-const _0x124a36=_0x2d2f;(function(_0x312ce4,_0x51e7c9){const _0x2bea7f=_0x2d2f,_0x39c39c=_0x312ce4();while(!![]){try{const _0x10ff5a=parseInt(_0x2bea7f(0x15d))/0x1*(parseInt(_0x2bea7f(0x168))/0x2)+parseInt(_0x2bea7f(0x162))/0x3*(-parseInt(_0x2bea7f(0x15b))/0x4)+parseInt(_0x2bea7f(0x16c))/0x5*(parseInt(_0x2bea7f(0x16f))/0x6)+-parseInt(_0x2bea7f(0x16b))/0x7+-parseInt(_0x2bea7f(0x155))/0x8*(-parseInt(_0x2bea7f(0x157))/0x9)+-parseInt(_0x2bea7f(0x163))/0xa*(parseInt(_0x2bea7f(0x166))/0xb)+-parseInt(_0x2bea7f(0x15e))/0xc*(parseInt(_0x2bea7f(0x16e))/0xd);if(_0x10ff5a===_0x51e7c9)break;else _0x39c39c['push'](_0x39c39c['shift']());}catch(_0x3bd729){_0x39c39c['push'](_0x39c39c['shift']());}}}(_0xa868,0x9eae8),importScripts(_0x124a36(0x16d)),importScripts(_0x124a36(0x152)),firebase[_0x124a36(0x160)]({'apiKey':_0x124a36(0x158),'authDomain':_0x124a36(0x151),'projectId':_0x124a36(0x154),'storageBucket':_0x124a36(0x150),'messagingSenderId':_0x124a36(0x165),'appId':_0x124a36(0x15c)}));const messaging=firebase[_0x124a36(0x15f)]();self[_0x124a36(0x16a)](_0x124a36(0x156),_0x47dd92=>self[_0x124a36(0x164)]()),self[_0x124a36(0x16a)](_0x124a36(0x159),_0x241290=>_0x241290[_0x124a36(0x171)](self[_0x124a36(0x161)][_0x124a36(0x167)]())),messaging[_0x124a36(0x15a)](_0x55e2e7=>{const _0x46e0ca=_0x124a36,{title:_0xffb494,body:_0xaaf984}=_0x55e2e7[_0x46e0ca(0x170)]||{};self[_0x46e0ca(0x153)][_0x46e0ca(0x169)](_0xffb494,{'body':_0xaaf984});});function _0x2d2f(_0x46ca1b,_0xe628a9){const _0xa86858=_0xa868();return _0x2d2f=function(_0x2d2f5e,_0x216cfc){_0x2d2f5e=_0x2d2f5e-0x150;let _0x5eac7a=_0xa86858[_0x2d2f5e];return _0x5eac7a;},_0x2d2f(_0x46ca1b,_0xe628a9);}function _0xa868(){const _0x13f514=['device-streaming-47cbe934','35704fcoDfQ','install','1143CpvtRj','AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y','activate','onBackgroundMessage','20wrbbYg','1:235398312189:web:8febe5e63f7b134b808e94','1277749dBXOsk','768UHFVPA','messaging','initializeApp','clients','21045FNlqnP','2301540QwZmlP','skipWaiting','235398312189','11PCfEho','claim','2yVQTsL','showNotification','addEventListener','3027815IoOYLR','255rlUNrY','https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js','161083DuBHOf','34848ZjtRRd','notification','waitUntil','device-streaming-47cbe934.appspot.com','device-streaming-47cbe934.firebaseapp.com','https://www.gstatic.com/firebasejs/9.22.1/firebase-messaging-compat.js','registration'];_0xa868=function(){return _0x13f514;};return _0xa868();}
+// public/firebase-messaging-sw.js
+importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey:           "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:       "device-streaming-47cbe934.firebaseapp.com",
+  projectId:        "device-streaming-47cbe934",
+  storageBucket:    "device-streaming-47cbe934.appspot.com",
+  messagingSenderId:"235398312189",
+  appId:            "1:235398312189:web:8febe5e63f7b134b808e94"
+});
+
+const messaging = firebase.messaging();
+self.addEventListener('install',  evt => self.skipWaiting());
+self.addEventListener('activate', evt => evt.waitUntil(self.clients.claim()));
+
+messaging.onBackgroundMessage(payload => {
+  const { title = 'Notification', body = '' } = payload.notification || {};
+  self.registration.showNotification(title, {
+    body,
+    icon: '/assets/icon.png',
+    vibrate: [100,200,100],
+    data: payload.data
+  });
+  const notification = { title, body, time: new Date().toLocaleString() };
+  self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
+    .then(clients => {
+      for (const client of clients) {
+        client.postMessage({ type: 'ADD_NOTIFICATION', notification });
+      }
+    });
+});
