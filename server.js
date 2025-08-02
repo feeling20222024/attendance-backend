@@ -62,7 +62,7 @@ async function sendPushTo(token, title, body, data = {}) {
 const app = express();
 
 const corsOptions = {
-  origin: ['https://dwam-app-by-omar.netlify.app'],  // عدّل حسب نطاق موقعك
+  origin: ['https://dwam-app-by-omar.netlify.app', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
