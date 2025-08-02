@@ -146,39 +146,40 @@ async function fetchAndRender() {
   };
 
   try {
-    const [aRes, hwRes, meRes] = await Promise.all([
+    // جلب البيانات من نقطتي النهاية فقط
+    const [aRes, hwRes] = await Promise.all([
       fetch(`${API_BASE}/attendance`, { headers: headersReq }),
-      fetch(`${API_BASE}/hwafez`,      { headers: headersReq }),
-      fetch(`${API_BASE}/me`,          { headers: headersReq }),
+      fetch(`${API_BASE}/hwafez`,      { headers: headersReq })
     ]);
 
-    if (!aRes.ok || !hwRes.ok || !meRes.ok) {
-      throw new Error('فشل في جلب البيانات، يرجى تسجيل الدخول مجدداً.');
-    }
+    // التحقق من نجاح الاستجابات
+    if (!aRes.ok) throw new Error(`خطأ في جلب الحضور: ${aRes.status}`);
+    if (!hwRes.ok) throw new Error(`خطأ في جلب الحوافز: ${hwRes.status}`);
 
-    // تحقق من نوع المحتوى قبل قراءة JSON
-    function isJsonResponse(res) {
+    // التحقق من كون الرد JSON
+    function assertJson(res, name) {
       const ct = res.headers.get('content-type') || '';
-      return ct.includes('application/json');
+      if (!ct.includes('application/json')) {
+        throw new Error(`نوع المحتوى غير متوقع في ${name}: ${ct}`);
+      }
     }
-    if (!isJsonResponse(aRes) || !isJsonResponse(hwRes) || !isJsonResponse(meRes)) {
-      throw new Error('الاستجابة ليست بصيغة JSON. تحقق من الخادم أو الاتصال.');
-    }
+    assertJson(aRes, 'attendance');
+    assertJson(hwRes, 'hwafez');
 
-    const aJson = await aRes.json();
+    // فك JSON
+    const aJson  = await aRes.json();
     const hwJson = await hwRes.json();
-    const meJson = await meRes.json();
 
-    headersAtt      = aJson.headers;
-    attendanceData  = aJson.data;
+    // تعيين المتغيرات العالمية
+    headersAtt     = aJson.headers;
+    attendanceData = aJson.data;
     const generalNote = aJson.generalNote || '';
-    headersHw       = hwJson.headers;
-    hwafezData      = hwJson.data;
-    currentUser     = meJson.user['كود الموظف'] || meJson.user.code || 'غير معروف';
-    window.currentUser = currentUser;
+    headersHw      = hwJson.headers;
+    hwafezData     = hwJson.data;
 
+    // عرض الملاحظة العامة
     if (generalNote) {
-      const generalBox = document.getElementById('generalNoteBox');
+      const generalBox  = document.getElementById('generalNoteBox');
       const generalText = document.getElementById('generalNoteText');
       if (generalBox && generalText) {
         generalText.textContent = generalNote;
@@ -186,28 +187,25 @@ async function fetchAndRender() {
       }
     }
 
-    const privateNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة");
-    if (privateNoteIndex !== -1 && attendanceData.length > 0) {
-      const privateNote = attendanceData[0][privateNoteIndex] || '';
+    // عرض الملاحظة الثابتة للجميع
+    const idxPriv = headersAtt.indexOf("تنبيهات وملاحظات عامة");
+    if (idxPriv !== -1 && attendanceData.length > 0) {
+      const privateNote = attendanceData[0][idxPriv] || '';
       const noteBox = document.getElementById('supervisorNotes');
-      if (noteBox) {
-        noteBox.textContent = privateNote.trim();
-      }
+      if (noteBox) noteBox.textContent = privateNote.trim();
     }
 
-    const loginSection = document.getElementById('loginSection');
-    const recordsSection = document.getElementById('records');
-    if (loginSection) loginSection.classList.add('hidden');
-    if (recordsSection) recordsSection.classList.remove('hidden');
-
-    const welcomeMsg = document.getElementById('welcomeMsg');
-    if (welcomeMsg) welcomeMsg.textContent = `مرحباً ${currentUser}`;
+    // تحديث الواجهة
+    document.getElementById('loginSection').classList.add('hidden');
+    document.getElementById('records').classList.remove('hidden');
+    document.getElementById('welcomeMsg')
+            .textContent = `مرحباً ${currentUser}`;
 
     if (currentUser === SUPERVISOR_CODE) {
       const pushSection = document.getElementById('pushSection');
-      const sendPushBtn = document.getElementById('sendPushBtn');
+      const sendBtn     = document.getElementById('sendPushBtn');
       if (pushSection) pushSection.classList.remove('hidden');
-      if (sendPushBtn) sendPushBtn.onclick = sendSupervisorNotification;
+      if (sendBtn)     sendBtn.onclick = sendSupervisorNotification;
     }
 
     renderRecords();
@@ -218,6 +216,7 @@ async function fetchAndRender() {
     logout();
   }
 }
+
 
 // —————————————————————————————————————————
 // 4) رسم سجلات الحضور للمستخدم الحالي
