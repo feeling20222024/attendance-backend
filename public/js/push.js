@@ -13,8 +13,14 @@ import {
 // 1) ثوابت الإعداد
 // —————————————————————————————————————————
 const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
-const firebaseConfig = { /* ... */ };
-const VAPID_KEY      = 'BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ';
+const firebaseConfig = {
+  apiKey: "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain: "device-streaming-47cbe934.firebaseapp.com",
+  projectId: "device-streaming-47cbe934",
+  storageBucket: "device-streaming-47cbe934.appspot.com",
+  messagingSenderId: "235398312189",
+  appId: "1:235398312189:web:8febe5e63f7b134b808e94"
+};
 
 // —————————————————————————————————————————
 // 2) تهيئة إشعارات الويب (FCM)
