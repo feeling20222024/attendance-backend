@@ -85,6 +85,20 @@ async function login() {
     currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
     window.currentUser = currentUser;
     console.log('✅ login successful, currentUser =', currentUser);
+    async function registerSWandInitPush() {
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      console.log('✅ Service Worker registered with scope:', reg.scope);
+      await window.initPush();  // استدعاء initPush بعد التسجيل
+    } catch (e) {
+      console.error('❌ Service Worker registration failed:', e);
+    }
+  } else {
+    console.warn('⚠️ Service Worker not supported.');
+  }
+}
+
 
     // 4) تهيئة Push
     console.log('🚀 calling initPush()…');
