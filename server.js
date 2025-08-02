@@ -2,14 +2,13 @@
 
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
-const APP_VERSION = process.env.APP_VERSION || '1.0.7';
+const APP_VERSION = process.env.APP_VERSION || '1.0.0';
 const express               = require('express');
 const cors                  = require('cors');
 const path                  = require('path');
 const jwt                   = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin                 = require('firebase-admin');
-
 
 // 2) دالة لتحويل الأرقام العربية/الفارسية إلى لاتينية
 function normalizeDigits(str) {
@@ -40,13 +39,12 @@ async function sendPushTo(token, title, body, data = {}) {
     token,
     notification: { title, body },
     android: {
-      // تنتهي الرسالة بعد 48 ساعة
       ttl: '172800s',
       priority: 'high',
       notification: {
         android_channel_id: 'default',
-        sound:             'default',
-        vibrate_timings:   [100, 200, 100]
+        sound: 'default',
+        vibrate_timings: [100, 200, 100]
       }
     },
     data
@@ -60,9 +58,17 @@ async function sendPushTo(token, title, body, data = {}) {
   }
 }
 
-// 5) تهيئة Express
+// 5) تهيئة Express + CORS مخصص
 const app = express();
-app.use(cors());
+
+const corsOptions = {
+  origin: ['https://dwam-app-by-omar.netlify.app'],  // عدّل حسب نطاق موقعك
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -154,7 +160,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 10) معلومات المستخدم الحالي
+// 10) معلومات الحضور
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
@@ -165,7 +171,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
       normalizeDigits(String(r[idx] ?? '').trim()) === target
     );
 
-    // ✅ استخراج ملاحظة عامة من العمود "تنبيهات وملاحظات عامة"
+    // استخراج ملاحظة عامة من العمود "تنبيهات وملاحظات عامة"
     const noteColumnIndex = headers.indexOf("تنبيهات وملاحظات عامة");
     let generalNote = '';
     if (noteColumnIndex !== -1) {
@@ -178,7 +184,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     res.json({
       headers,
       data: filteredData,
-      generalNote // ✅ ترسل مع الرد
+      generalNote
     });
 
   } catch (e) {
@@ -187,30 +193,27 @@ app.get('/api/attendance', authenticate, async (req, res) => {
   }
 });
 
-
-// 11) الحضور
-// 11) الحضور — عدّل كما يلي
+// 11) الحضور — نسخة مُحسنة مع ملاحظات عامة لجميع العاملين
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
     const idxCode = headers.indexOf('رقم الموظف');
     const target  = normalizeDigits(String(req.user.code).trim());
 
-    // 1) صفوف الموظف
+    // صفوف الموظف
     const userRows = data.filter(r =>
       normalizeDigits(String(r[idxCode] ?? '').trim()) === target
     );
 
-    // 2) صفوف الملاحظات العامة (كود الموظف فارغ)
+    // صفوف الملاحظات العامة (كود الموظف فارغ)
     const generalRows = data.filter(r =>
       !(r[idxCode]?.toString().trim())
     );
 
-    // 3) احسب الملاحظة العامّة (أول صفّ عام، أو '' إذا لم يوجد)
+    // الملاحظة العامة (أول صف عام)
     const noteCol = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
     const generalNote = generalRows[0]?.[noteCol]?.trim() || '';
 
-    // 4) أرجع كل شيء
     res.json({
       headers,
       data: userRows,
@@ -272,11 +275,8 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   res.json({ success: true });
 });
 
-// —————————————————————————————————
-// **التعديلات لإشعارات موحدة على الخادم**
-// نجمع سجل الإشعارات في الذاكرة (مثال تعليمي — استخدمي DB في الإنتاج)
-const userNotifications = {};  
-// POST لحفظ إشعار جديد
+// إشعارات موحدة على الخادم (تخزين في الذاكرة - للاختبار فقط)
+const userNotifications = {};
 app.post('/api/notifications', authenticate, (req, res) => {
   const { title, body, time } = req.body;
   if (!title || !body || !time) return res.status(400).json({ error: 'Missing fields' });
@@ -286,7 +286,6 @@ app.post('/api/notifications', authenticate, (req, res) => {
   if (userNotifications[code].length > 50) userNotifications[code].pop();
   res.json({ success: true });
 });
-// GET لجلب سجل الإشعارات
 app.get('/api/notifications', authenticate, (req, res) => {
   const code = req.user.code;
   res.json({ notifications: userNotifications[code] || [] });
@@ -297,12 +296,10 @@ app.get('/api/version', (req, res) => {
   res.json({ version: APP_VERSION });
 });
 
-
 // 16) SPA fallback (يجب أن يكون آخر شيء)
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
-
 
 // بدء الخادم
 const PORT = process.env.PORT || 3000;
