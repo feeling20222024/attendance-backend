@@ -47,9 +47,33 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-  
 // —————————————————————————————————————————
-// ——————————————————————————————
+// تسجيل الـ Service Worker وتهيئة إشعارات Push
+// —————————————————————————————————————————
+async function registerSWandInitPush() {
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      console.log('✅ Service Worker registered with scope:', reg.scope);
+
+      // الانتظار حتى يصبح الـ SW جاهزًا تمامًا
+      await navigator.serviceWorker.ready;
+
+      // التهيئة حسب المنصة
+      if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
+        await window.initPushNative();
+      } else {
+        await window.initPush(reg);
+      }
+    } catch (e) {
+      console.error('❌ Service Worker registration failed:', e);
+    }
+  } else {
+    console.warn('⚠️ Service Worker not supported.');
+  }
+}
+
+// —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
@@ -61,14 +85,14 @@ async function login() {
     return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
-  let loginResponse;
   try {
-    // 1) طلب المصادقة
+    // طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, pass })
     });
+
     if (res.status === 401) {
       return alert('بيانات الدخول خاطئة');
     }
@@ -76,46 +100,27 @@ async function login() {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
 
-    // 2) استلام التوكن
-    loginResponse = await res.json();
+    // استلام التوكن
+    const loginResponse = await res.json();
     jwtToken = loginResponse.token;
     localStorage.setItem('jwtToken', jwtToken);
 
-    // 3) currentUser وتهيئة الإشعارات
+    // currentUser
     currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
     window.currentUser = currentUser;
     console.log('✅ login successful, currentUser =', currentUser);
-    async function registerSWandInitPush() {
-  if ('serviceWorker' in navigator) {
-    try {
-      const reg = await navigator.serviceWorker.register('/sw.js');
-      console.log('✅ Service Worker registered with scope:', reg.scope);
-      await window.initPush();  // استدعاء initPush بعد التسجيل
-    } catch (e) {
-      console.error('❌ Service Worker registration failed:', e);
-    }
-  } else {
-    console.warn('⚠️ Service Worker not supported.');
-  }
-}
 
+    // تسجيل الـ SW وتهيئة Push
+    console.log('🚀 Registering Service Worker and initializing Push Notifications...');
+    await registerSWandInitPush();
 
-    // 4) تهيئة Push
-    console.log('🚀 calling initPush()…');
-    if (window.Capacitor && Capacitor.getPlatform() !== 'web') {
-      await initNativePush();
-    } else {
-      await initPush();
-    }
-
-    // 5) تهيئة لوحة الإشعارات
+    // تهيئة لوحة الإشعارات (إن وجدت)
     if (typeof window.initNotifications === 'function') {
       window.initNotifications();
     }
 
-    // 6) جلب وعرض البيانات
+    // جلب وعرض البيانات
     await fetchAndRender();
-
 
   } catch (e) {
     console.error('❌ login error:', e);
@@ -123,21 +128,11 @@ async function login() {
   }
 }
 
-// —————————————————————————————————————————
-// 3) جلب وعرض البيانات (attendance + hwafez + me)
-// —————————————————————————————————————————
-async function fetchAndRender() {
-  if (!jwtToken) return;
+// (تابع باقي الدوال كما لديك بدون تغيير...)
 
-  // تهيئة الهيدر
-  const headersReq = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${jwtToken}`
-  };
+// مثال دالة fetchAndRender()، showHwafez()، showTqeem()، logout() ... 
 
-  // جلب البيانات من ثلاث نقاط نهاية دفعة واحدة
-  const [aRes, hwRes, meRes] = await Promise.all([
-    fetch(`${API_BASE}/attendance`, { headers: headersReq }),
+// تأكد أن باقي دوالك تعمل كما هي
     fetch(`${API_BASE}/hwafez`,      { headers: headersReq }),
     fetch(`${API_BASE}/me`,          { headers: headersReq })
   ]);
