@@ -33,7 +33,7 @@ export async function initPush() {
 
   let token;
   try {
-    token = await getToken(messaging, { vapidKey: VAPID_KEY });
+token = await getToken(messaging, { vapidKey: VAPID_PUBLIC_KEY });
     console.log('✅ FCM token:', token);
   } catch (err) {
     console.error('❌ getToken failed:', err);
