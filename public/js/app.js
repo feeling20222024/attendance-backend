@@ -140,69 +140,84 @@ async function login() {
 async function fetchAndRender() {
   if (!jwtToken) return;
 
-  // تهيئة الهيدر
   const headersReq = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${jwtToken}`
   };
 
-  // جلب البيانات من ثلاث نقاط نهاية دفعة واحدة
-  const [aRes, hwRes, meRes] = await Promise.all([
-    fetch(`${API_BASE}/attendance`, { headers: headersReq }),
-    fetch(`${API_BASE}/hwafez`,      { headers: headersReq }),
-    fetch(`${API_BASE}/me`,          { headers: headersReq })
-  ]);
-  if (!aRes.ok || !hwRes.ok || !meRes.ok) throw new Error('Unauthorized');
+  try {
+    const [aRes, hwRes, meRes] = await Promise.all([
+      fetch(`${API_BASE}/attendance`, { headers: headersReq }),
+      fetch(`${API_BASE}/hwafez`,      { headers: headersReq }),
+      fetch(`${API_BASE}/me`,          { headers: headersReq }),
+    ]);
 
-  // فك الاستجابة الخاصة بالحضور، مع generalNote
-  const aJson   = await aRes.json();
-  const hwJson  = await hwRes.json();
-  const meJson  = await meRes.json();
+    if (!aRes.ok || !hwRes.ok || !meRes.ok) {
+      throw new Error('فشل في جلب البيانات، يرجى تسجيل الدخول مجدداً.');
+    }
 
-  // تعيين المتغيرات العالمية
-  headersAtt      = aJson.headers;
-  attendanceData  = aJson.data;
-  const generalNote = aJson.generalNote;        // ← الملاحظة العامة
-  headersHw       = hwJson.headers;
-  hwafezData      = hwJson.data;
-  currentUser     = meJson.user['كود الموظف'];
+    // تحقق من نوع المحتوى قبل قراءة JSON
+    function isJsonResponse(res) {
+      const ct = res.headers.get('content-type') || '';
+      return ct.includes('application/json');
+    }
+    if (!isJsonResponse(aRes) || !isJsonResponse(hwRes) || !isJsonResponse(meRes)) {
+      throw new Error('الاستجابة ليست بصيغة JSON. تحقق من الخادم أو الاتصال.');
+    }
 
-  // ————————— عرض الملاحظة العامة إذا وُجدت —————————
-  if (generalNote) {
-    const generalBox  = document.getElementById('generalNoteBox');
-    const generalText = document.getElementById('generalNoteText');
-    generalText.textContent = generalNote;
-    generalBox.classList.remove('hidden');
-  }
+    const aJson = await aRes.json();
+    const hwJson = await hwRes.json();
+    const meJson = await meRes.json();
 
+    headersAtt      = aJson.headers;
+    attendanceData  = aJson.data;
+    const generalNote = aJson.generalNote || '';
+    headersHw       = hwJson.headers;
+    hwafezData      = hwJson.data;
+    currentUser     = meJson.user['كود الموظف'] || meJson.user.code || 'غير معروف';
+    window.currentUser = currentUser;
 
- // ————————— عرض الملاحظة الثابتة للجميع —————————
-const privateNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة");
-if (privateNoteIndex !== -1 && attendanceData.length > 0) {
-  const privateNote = attendanceData[0][privateNoteIndex] || '';
-  const noteBox = document.getElementById('supervisorNotes');
-  if (noteBox) {
-    noteBox.textContent = privateNote.trim();
+    if (generalNote) {
+      const generalBox = document.getElementById('generalNoteBox');
+      const generalText = document.getElementById('generalNoteText');
+      if (generalBox && generalText) {
+        generalText.textContent = generalNote;
+        generalBox.classList.remove('hidden');
+      }
+    }
+
+    const privateNoteIndex = headersAtt.indexOf("تنبيهات وملاحظات عامة");
+    if (privateNoteIndex !== -1 && attendanceData.length > 0) {
+      const privateNote = attendanceData[0][privateNoteIndex] || '';
+      const noteBox = document.getElementById('supervisorNotes');
+      if (noteBox) {
+        noteBox.textContent = privateNote.trim();
+      }
+    }
+
+    const loginSection = document.getElementById('loginSection');
+    const recordsSection = document.getElementById('records');
+    if (loginSection) loginSection.classList.add('hidden');
+    if (recordsSection) recordsSection.classList.remove('hidden');
+
+    const welcomeMsg = document.getElementById('welcomeMsg');
+    if (welcomeMsg) welcomeMsg.textContent = `مرحباً ${currentUser}`;
+
+    if (currentUser === SUPERVISOR_CODE) {
+      const pushSection = document.getElementById('pushSection');
+      const sendPushBtn = document.getElementById('sendPushBtn');
+      if (pushSection) pushSection.classList.remove('hidden');
+      if (sendPushBtn) sendPushBtn.onclick = sendSupervisorNotification;
+    }
+
+    renderRecords();
+
+  } catch (err) {
+    console.error('❌ fetchAndRender error:', err);
+    alert('حدث خطأ أثناء جلب البيانات: ' + err.message);
+    logout();
   }
 }
-
-
-
-  // ————————— إظهار واجهة المستخدم —————————
-  document.getElementById('loginSection').classList.add('hidden');
-  document.getElementById('records').classList.remove('hidden');
-  document.getElementById('welcomeMsg').textContent = `مرحباً ${currentUser}`;
-
-  // إذا كان المشرف، أظهر قسم الإشعارات
-  if (currentUser === SUPERVISOR_CODE) {
-    document.getElementById('pushSection').classList.remove('hidden');
-    document.getElementById('sendPushBtn').onclick = sendSupervisorNotification;
-  }
-
-  // ثم عرض السجلات
-  renderRecords();
-}
- // ← تم إغلاق الدالة الآن
 
 // —————————————————————————————————————————
 // 4) رسم سجلات الحضور للمستخدم الحالي
