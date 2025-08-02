@@ -22,6 +22,8 @@ const firebaseConfig = {
   appId: "1:235398312189:web:8febe5e63f7b134b808e94"
 };
 
+const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
+
 // —————————————————————————————————————————
 // 2) تهيئة إشعارات الويب (FCM)
 // —————————————————————————————————————————
