@@ -133,6 +133,22 @@ async function login() {
 // مثال دالة fetchAndRender()، showHwafez()، showTqeem()، logout() ... 
 
 // تأكد أن باقي دوالك تعمل كما هي
+
+// —————————————————————————————————————————
+// 3) جلب وعرض البيانات (attendance + hwafez + me)
+// —————————————————————————————————————————
+async function fetchAndRender() {
+  if (!jwtToken) return;
+
+  // تهيئة الهيدر
+  const headersReq = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${jwtToken}`
+  };
+
+  // جلب البيانات من ثلاث نقاط نهاية دفعة واحدة
+  const [aRes, hwRes, meRes] = await Promise.all([
+    fetch(`${API_BASE}/attendance`, { headers: headersReq }),
     fetch(`${API_BASE}/hwafez`,      { headers: headersReq }),
     fetch(`${API_BASE}/me`,          { headers: headersReq })
   ]);
