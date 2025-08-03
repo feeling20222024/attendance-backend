@@ -9,8 +9,8 @@ const jwt                  = require('jsonwebtoken');
 const { GoogleSpreadsheet} = require('google-spreadsheet');
 const admin                = require('firebase-admin');
 
-const APP_VERSION   = process.env.APP_VERSION      || '1.0.7';
-const PORT          = process.env.PORT             || 3000;
+const APP_VERSION = process.env.APP_VERSION || '1.0.7';
+const PORT        = process.env.PORT        || 3000;
 
 // 2) دالة لتطبيع الأرقام العربية/الفارسية
 function normalizeDigits(str) {
@@ -35,13 +35,13 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// 4) دالة إرسال إشعار FCM بTTL (48 ساعة بالمللي ثانية)
+// 4) دالة إرسال إشعار FCM بTTL (48 ساعة)
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
     notification: { title, body },
     android: {
-      ttl: 48 * 60 * 60 * 1000, // 48h in ms
+      ttl: 48 * 60 * 60 * 1000,
       priority: 'high'
     },
     data
@@ -59,7 +59,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 6) المتغيرات الأساسية
+// 6) قراءة متغيّرات البيئة الأساسية
 const {
   JWT_SECRET,
   SUPERVISOR_CODE,
@@ -67,7 +67,7 @@ const {
   GOOGLE_SERVICE_KEY
 } = process.env;
 if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY) {
-  console.error('❌ بدون بعض متغيّرات البيئة.');
+  console.error('❌ بعض متغيرات البيئة مفقودة.');
   process.exit(1);
 }
 let sheetCreds;
@@ -140,16 +140,21 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
-    const idx     = headers.indexOf('رقم الموظف');
-    const code    = normalizeDigits(String(req.user.code).trim());
+    const idx  = headers.indexOf('رقم الموظف');
+    const code = normalizeDigits(String(req.user.code).trim());
+
+    // صفوف المستخدم
     const userRows = data.filter(r => normalizeDigits((r[idx]||'').trim())===code);
+
     // ملاحظة خاصة
     const colSpec = headers.indexOf('تنبيهات وملاحظات عامة');
     const noteSpec = userRows.find(r=>r[colSpec]?.trim())?.[colSpec]?.trim()||'';
+
     // ملاحظة لجميع العاملين
     const generalRows = data.filter(r=>!(r[idx]||'').toString().trim());
-    const colAll = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
-    const noteAll = generalRows[0]?.[colAll]?.trim()||'';
+    const colAll      = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
+    const noteAll     = generalRows[0]?.[colAll]?.trim()||'';
+
     res.json({ headers, data: userRows, noteSpec, noteAll });
   } catch (e) {
     console.error(e);
@@ -163,7 +168,8 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
     const { headers, data } = await readSheet('hwafez');
     const idx  = headers.indexOf('رقم الموظف');
     const code = normalizeDigits(String(req.user.code).trim());
-    res.json({ headers, data: data.filter(r=>normalizeDigits((r[idx]||'').trim())===code) });
+    const filtered = data.filter(r=>normalizeDigits((r[idx]||'').trim())===code);
+    res.json({ headers, data: filtered });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error:e.message });
@@ -176,7 +182,8 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
     const { headers, data } = await readSheet('tqeem');
     const idx  = headers.indexOf('رقم الموظف');
     const code = normalizeDigits(String(req.user.code).trim());
-    res.json({ headers, data: data.filter(r=>normalizeDigits((r[idx]||'').trim())===code) });
+    const filtered = data.filter(r=>normalizeDigits((r[idx]||'').trim())===code);
+    res.json({ headers, data: filtered });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error:e.message });
@@ -214,17 +221,16 @@ app.post('/api/notifications', authenticate, (req, res) => {
 app.get('/api/notifications', authenticate, (req, res) => {
   res.json({ notifications: userNotifications[req.user.code]||[] });
 });
-// **مسح سِجل الإشعارات للمشرف فقط**
+// حذف سجل الإشعارات الموحد للمشرف فقط
 app.delete('/api/notifications', authenticate, (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
-    return res.status(403).json({ error: 'Forbidden: only supervisor can clear all notifications' });
+    return res.status(403).json({ error: 'Forbidden' });
   }
-  for (const code of Object.keys(userNotifications)) {
-    delete userNotifications[code];
-  }
-  res.json({ success: true, message: 'All notifications cleared by supervisor' });
+  Object.keys(userNotifications).forEach(k=>delete userNotifications[k]);
+  res.json({ success:true });
 });
-// 16) نسخة التطبيق
+
+// 16) فحص نسخة التطبيق
 app.get('/api/version', (_, res) => {
   res.json({ version: APP_VERSION });
 });
