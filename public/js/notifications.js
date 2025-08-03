@@ -1,1 +1,66 @@
-function _0x4160(){const _0x2284f9=['12VkCpbM','parse','getElementById','<li\x20class=\x22text-gray-500\x20text-sm\x22>لا\x20توجد\x20إشعارات</li>','body','style','48grPEjN','35190','inline-block','1339135gejheQ','removeItem','notificationsLog','display','هل\x20أنت\x20متأكد\x20أنك\x20تريد\x20مسح\x20جميع\x20الإشعارات؟','4OsavhV','993xAvRBT','clearNotifications','innerHTML','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22text-xs\x20text-gray-400\x20mt-1\x22>','9SJzZgE','none','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22text-sm\x20text-gray-700\x22>','notifBell','231448KnygDI','\x0a\x20\x20\x20\x20\x20\x20\x20\x20<li\x20class=\x22mb-4\x20border-b\x20pb-2\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22font-semibold\x20text-gray-800\x22>','notifCount','7676070sDOAFr','block','addEventListener','length','notificationsPanel','title','3734552iuUaAI','join','click','2540916uLhQLy','6833453GLIsZo','map','2234JoPCXD','textContent','</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20</li>\x0a\x20\x20\x20\x20\x20\x20'];_0x4160=function(){return _0x2284f9;};return _0x4160();}function _0x4d6b(_0x16208d,_0x53233e){const _0x4160cd=_0x4160();return _0x4d6b=function(_0x4d6b7c,_0x50c747){_0x4d6b7c=_0x4d6b7c-0xe2;let _0x35c5a5=_0x4160cd[_0x4d6b7c];return _0x35c5a5;},_0x4d6b(_0x16208d,_0x53233e);}(function(_0x10986b,_0x53a836){const _0x5bcae6=_0x4d6b,_0xc44c2d=_0x10986b();while(!![]){try{const _0x535596=-parseInt(_0x5bcae6(0xe3))/0x1*(parseInt(_0x5bcae6(0xfa))/0x2)+parseInt(_0x5bcae6(0xf7))/0x3+parseInt(_0x5bcae6(0xe2))/0x4*(parseInt(_0x5bcae6(0x106))/0x5)+-parseInt(_0x5bcae6(0x103))/0x6*(-parseInt(_0x5bcae6(0xeb))/0x7)+parseInt(_0x5bcae6(0xf4))/0x8+-parseInt(_0x5bcae6(0xe7))/0x9*(parseInt(_0x5bcae6(0xee))/0xa)+-parseInt(_0x5bcae6(0xf8))/0xb*(-parseInt(_0x5bcae6(0xfd))/0xc);if(_0x535596===_0x53a836)break;else _0xc44c2d['push'](_0xc44c2d['shift']());}catch(_0x1e2b8d){_0xc44c2d['push'](_0xc44c2d['shift']());}}}(_0x4160,0x902e5),(function(){const _0x52550c=_0x4d6b,_0x73cadf='notificationsLog',_0x16410c=document['getElementById'](_0x52550c(0xea)),_0x401cdd=document['getElementById'](_0x52550c(0xf2)),_0x1065ee=document[_0x52550c(0xff)](_0x52550c(0x108)),_0x1c2868=document[_0x52550c(0xff)](_0x52550c(0xe4)),_0x33185c=document[_0x52550c(0xff)](_0x52550c(0xed)),_0x312120=_0x52550c(0x104);function _0x20de42(){const _0x1ad78f=_0x52550c;try{return JSON[_0x1ad78f(0xfe)](localStorage['getItem'](_0x73cadf)||'[]');}catch{return[];}}function _0xcbec75(){const _0x5d4c5c=_0x52550c,_0x4e4077=_0x20de42();_0x4e4077[_0x5d4c5c(0xf1)]===0x0?_0x1065ee['innerHTML']=_0x5d4c5c(0x100):_0x1065ee[_0x5d4c5c(0xe5)]=_0x4e4077[_0x5d4c5c(0xf9)](_0xc92e3a=>_0x5d4c5c(0xec)+_0xc92e3a[_0x5d4c5c(0xf3)]+_0x5d4c5c(0xe9)+_0xc92e3a[_0x5d4c5c(0x101)]+_0x5d4c5c(0xe6)+_0xc92e3a['time']+_0x5d4c5c(0xfc))[_0x5d4c5c(0xf5)](''),_0x33185c[_0x5d4c5c(0xfb)]=_0x4e4077[_0x5d4c5c(0xf1)],_0x33185c[_0x5d4c5c(0x102)]['display']=_0x4e4077['length']?'inline-block':_0x5d4c5c(0xe8),_0x1c2868[_0x5d4c5c(0x102)][_0x5d4c5c(0x109)]=_0x4e4077[_0x5d4c5c(0xf1)]?_0x5d4c5c(0x105):_0x5d4c5c(0xe8);}_0x16410c[_0x52550c(0xf0)](_0x52550c(0xf6),()=>{const _0x1299dc=_0x52550c,_0x24cb12=_0x401cdd[_0x1299dc(0x102)]['display']==='block';_0x401cdd[_0x1299dc(0x102)]['display']=_0x24cb12?_0x1299dc(0xe8):_0x1299dc(0xef);if(!_0x24cb12)_0xcbec75();}),_0x1c2868[_0x52550c(0xf0)]('click',()=>{const _0x4ebeeb=_0x52550c;if(!confirm(_0x4ebeeb(0x10a)))return;localStorage[_0x4ebeeb(0x107)](_0x73cadf),_0xcbec75();}),window['renderNotifications']=_0xcbec75,window['updateBellCount']=()=>{const _0x126f1a=_0x52550c,_0x449721=_0x20de42()[_0x126f1a(0xf1)];_0x33185c[_0x126f1a(0xfb)]=_0x449721,_0x33185c[_0x126f1a(0x102)][_0x126f1a(0x109)]=_0x449721?_0x126f1a(0x105):_0x126f1a(0xe8);},updateBellCount();}()));
+// public/js/notifications.js
+(function(){
+  const STORAGE_KEY = 'notificationsLog';
+  const bell        = document.getElementById('notifBell');
+  const panel       = document.getElementById('notificationsPanel');
+  const list        = document.getElementById('notificationsLog');
+  const clearBtn    = document.getElementById('clearNotifications');
+  const countBadge  = document.getElementById('notifCount');
+  const SUPERVISOR  = '35190';
+
+  // تحميل الإشعارات من localStorage
+  function loadNotifications() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  // عرض الإشعارات في اللوحة وتحديث العداد
+  function renderNotifications() {
+    const notifs = loadNotifications();
+    if (notifs.length === 0) {
+      list.innerHTML = '<li class="text-gray-500 text-sm">لا توجد إشعارات</li>';
+    } else {
+      list.innerHTML = notifs.map(n => `
+        <li class="mb-4 border-b pb-2">
+          <div class="font-semibold text-gray-800">${n.title}</div>
+          <div class="text-sm text-gray-700">${n.body}</div>
+          <div class="text-xs text-gray-400 mt-1">${n.time}</div>
+        </li>
+      `).join('');
+    }
+    // تحديث العداد
+    countBadge.textContent = notifs.length;
+    countBadge.style.display = notifs.length ? 'inline-block' : 'none';
+    // إظهار زر المسح فقط للمشرف
+ clearBtn.style.display = notifs.length ? 'inline-block' : 'none';
+  }
+
+  // تبديل عرض اللوحة عند الضغط على الجرس
+  bell.addEventListener('click', () => {
+    // **إزالة شرط تسجيل الدخول** لنفتح اللوحة دائماً
+    const isOpen = panel.style.display === 'block';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) renderNotifications();
+  });
+
+  // مسح سجل الإشعارات (للمشرف فقط)
+  clearBtn.addEventListener('click', () => {
+    if (!confirm('هل أنت متأكد أنك تريد مسح جميع الإشعارات؟')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    renderNotifications();
+  });
+
+  // دوال يمكن لـ push.js استدعاؤها
+  window.renderNotifications = renderNotifications;
+  window.updateBellCount = () => {
+    const cnt = loadNotifications().length;
+    countBadge.textContent = cnt;
+    countBadge.style.display = cnt ? 'inline-block' : 'none';
+  };
+
+  // تهيئة أولية للعداد
+  updateBellCount();
+})();
