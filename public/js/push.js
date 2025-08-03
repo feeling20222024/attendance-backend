@@ -25,45 +25,6 @@ const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWW
 // دالة تهيئة إشعارات الويب (FCM)
 // —————————————————————————————————————————
 export async function initPush(serviceWorkerRegistration) {
-  const app = initializeApp(firebaseConfig);
-  const messaging = getMessaging(app);
-
-  try {
-    const token = await getToken(messaging, {
-      vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration
-    });
-    console.log('✅ FCM token:', token);
-
-// إرسال التوكن للخادم مرة واحدة مع الـ JWT
-if (localStorage.getItem('fcmTokenSent') !== token) {
-  await fetch('/api/register-token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
-    },
-    body: JSON.stringify({ token })  // فقط أرسل التوكن
-  });
-  localStorage.setItem('fcmTokenSent', token);
-}
-
-  // استقبال الرسائل أثناء تواجد التطبيق في الواجهة
-  onMessage(messaging, payload => {
-    const { title = '', body = '' } = payload.notification || {};
-    if (Notification.permission === 'granted') {
-      new Notification(title, { body });
-    }
-    if (typeof window.addNotification === 'function') {
-      window.addNotification({ title, body, time: new Date().toLocaleString() });
-    }
-  });
-}
-
-// —————————————————————————————————————————
-// دالة تهيئة إشعارات Native (Capacitor)
-// —————————————————————————————————————————
-export async function initPush(serviceWorkerRegistration) {
   const app       = initializeApp(firebaseConfig);
   const messaging = getMessaging(app);
 
@@ -104,20 +65,53 @@ export async function initPush(serviceWorkerRegistration) {
   }
 }
 
+// —————————————————————————————————————————
+// دالة تهيئة إشعارات Native (Capacitor)
+// —————————————————————————————————————————
+export async function initPushNative() {
+  let PushNotifications;
+  try {
+    ({ PushNotifications } = await import('https://unpkg.com/@capacitor/push-notifications/dist/esm/index.js'));
+  } catch {
+    return console.warn('⚠️ Capacitor PushNotifications unavailable');
+  }
 
-  PushNotifications.addListener('pushNotificationReceived', notif => {
-    const { title='', body='' } = notif;
-    if (Notification.permission === 'granted') {
-      new Notification(title, { body });
-    }
-    if (typeof window.addNotification === 'function') {
-      window.addNotification({ title, body, time: new Date().toLocaleString() });
-    }
-  });
+  try {
+    await PushNotifications.createChannel({ id:'default', name:'الإشعارات', importance:5 });
+    const perm = await PushNotifications.requestPermissions();
+    if (perm.receive !== 'granted') return;
+    await PushNotifications.register();
+
+    // إرسال التوكن عند التسجيل
+    PushNotifications.addListener('registration', ({ value }) => {
+      fetch('/api/register-token', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+        },
+        body: JSON.stringify({ token: value })
+      }).catch(console.error);
+    });
+
+    // استقبال الإشعارات في الواجهة
+    PushNotifications.addListener('pushNotificationReceived', notif => {
+      const { title = '', body = '' } = notif;
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+      if (typeof window.addNotification === 'function') {
+        window.addNotification({ title, body, time: new Date().toLocaleString() });
+      }
+    });
+
+  } catch (err) {
+    console.error('❌ initPushNative failed:', err);
+  }
 }
 
 // —————————————————————————————————————————
 // ربط الدوال
 // —————————————————————————————————————————
-window.initPush = initPush;
+window.initPush       = initPush;
 window.initPushNative = initPushNative;
