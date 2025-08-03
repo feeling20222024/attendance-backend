@@ -171,40 +171,36 @@ async function fetchAndRender() {
     }
     assertJson(aRes, 'attendance');
     assertJson(hwRes, 'hwafez');
+// فك JSON
+const aJson  = await aRes.json();
+const hwJson = await hwRes.json();
 
-    // فك JSON
-    const aJson  = await aRes.json();
-    const hwJson = await hwRes.json();
+// تعيين المتغيرات العالمية
+headersAtt     = aJson.headers;
+attendanceData = aJson.data;
+headersHw      = hwJson.headers;
+hwafezData     = hwJson.data;
 
-    // تعيين المتغيرات العالمية
-    headersAtt     = aJson.headers;
-    attendanceData = aJson.data;
-    const generalNote = aJson.generalNote || '';
-    headersHw      = hwJson.headers;
-    hwafezData     = hwJson.data;
-// بعد جلب البيانات وفك JSON من /api/attendance
-const generalNote = aJson.noteAll || '';       // الملاحظة العامة لجميع العاملين
-const personalNote = aJson.noteSpec || '';     // الملاحظة الخاصة بالعامل
+// جلب الملاحظات من الاستجابة
+const publicNote  = aJson.noteAll  || '';   // ملاحظات وتنبيهات عامة لجميع العاملين
+const privateNote = aJson.noteSpec || '';   // ملاحظات وتنبيهات خاصة بالعامل
 
 // ————————— عرض الملاحظة العامة لجميع العاملين —————————
-if (generalNote) {
+if (publicNote) {
   const generalBox  = document.getElementById('generalNoteBox');
   const generalText = document.getElementById('generalNoteText');
-  if (generalBox && generalText) {
-    generalText.textContent = generalNote;
-    generalBox.classList.remove('hidden');
-  }
+  generalText.textContent = publicNote;
+  generalBox.classList.remove('hidden');
 }
 
 // ————————— عرض الملاحظة الخاصة بالعامل —————————
-if (personalNote) {
+if (privateNote) {
   const personalBox  = document.getElementById('personalNoteBox');
   const personalText = document.getElementById('personalNoteText');
-  if (personalBox && personalText) {
-    personalText.textContent = personalNote;
-    personalBox.classList.remove('hidden');
-  }
+  personalText.textContent = privateNote;
+  personalBox.classList.remove('hidden');
 }
+
 
     // تحديث الواجهة
     document.getElementById('loginSection').classList.add('hidden');
