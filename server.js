@@ -193,9 +193,9 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
 // 13) تسجيل توكن FCM
 const tokens = new Map();
 app.post('/api/register-token', authenticate, (req, res) => {
-  const { user, token } = req.body;
-  if (!user||!token) return res.status(400).json({ error:'user and token required' });
-  tokens.set(token, user);
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error:'token required' });
+  tokens.set(token, req.user);  // ← نستخدم المستخدم من التوكن
   res.json({ success:true });
 });
 
