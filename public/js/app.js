@@ -53,18 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
 async function registerSWand() {
   if ('serviceWorker' in navigator) {
     try {
-      // هذا هو المسار الذي استخدمناه في public/
+      // سجّل Service Worker الخاص بالـ FCM
       const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       console.log('✅ FCM SW registered with scope:', reg.scope);
 
-      // مرّر الـ registration إلى 
-      await window.(reg);
+      // مرّر الـ registration إلى دالة initPush
+      await window.initPush(reg);
     } catch (e) {
-      console.error('❌ SW registration failed:', e);
+      console.error('❌ SW registration or initPush failed:', e);
     }
+  } else {
+    console.warn('⚠️ Service Worker not supported');
   }
 }
-
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
