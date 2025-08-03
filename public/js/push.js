@@ -19,7 +19,6 @@ const firebaseConfig = {
   messagingSenderId: "235398312189",
   appId: "1:235398312189:web:8febe5e63f7b134b808e94"
 };
-
 const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
 
 // —————————————————————————————————————————
@@ -30,6 +29,7 @@ export async function initPush(serviceWorkerRegistration) {
   const app = initializeApp(firebaseConfig);
   const messaging = getMessaging(app);
 
+  // 1) احصل على التوكن وأرسله للسيرفر
   try {
     const token = await getToken(messaging, {
       vapidKey: VAPID_PUBLIC_KEY,
@@ -37,25 +37,37 @@ export async function initPush(serviceWorkerRegistration) {
     });
     console.log('✅ FCM token:', token);
 
-    // إرسال التوكن للسيرفر (مثال)
     if (localStorage.getItem('fcmTokenSent') !== token) {
-      try {
-        await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: window.currentUser, token })
-        });
-        localStorage.setItem('fcmTokenSent', token);
-      } catch (e) {
-        console.error('❌ register-token failed:', e);
-      }
+      await fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: window.currentUser, token })
+      });
+      localStorage.setItem('fcmTokenSent', token);
     }
   } catch (err) {
-    console.error('❌ getToken failed:', err);
-    return;
+    console.error('❌ getToken/register-token failed:', err);
   }
 
-  // استقبال الرسائل أثناء تواجد التطبيق في الواجهة
+  // 2) جلب سجل الإشعارات من الخادم
+  try {
+    const res = await fetch('https://dwam-app-by-omar.onrender.com/api/notifications', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+      }
+    });
+    if (res.ok) {
+      const { notifications } = await res.json();
+      localStorage.setItem('notificationsLog', JSON.stringify(notifications));
+      if (typeof window.renderNotifications === 'function') window.renderNotifications();
+      if (typeof window.updateBellCount === 'function') window.updateBellCount();
+    }
+  } catch (e) {
+    console.warn('⚠️ failed to fetch notifications log:', e);
+  }
+
+  // 3) استقبال الرسائل أثناء تواجد التطبيق في الواجهة
   onMessage(messaging, payload => {
     const { title = '', body = '' } = payload.notification || {};
     if (Notification.permission === 'granted') {
@@ -74,9 +86,8 @@ export async function initPushNative() {
   let PushNotifications;
   try {
     ({ PushNotifications } = await import('https://unpkg.com/@capacitor/push-notifications/dist/esm/index.js'));
-  } catch (e) {
-    console.warn('⚠️ Dynamic import of Capacitor failed:', e);
-    return;
+  } catch {
+    return console.warn('⚠️ Capacitor Push import failed');
   }
 
   try {
@@ -90,13 +101,11 @@ export async function initPushNative() {
     const perm = await PushNotifications.requestPermissions();
     if (perm.receive !== 'granted') return;
     await PushNotifications.register();
-  } catch (e) {
-    console.warn('⚠️ Native init failed:', e);
-    return;
+  } catch {
+    return console.warn('⚠️ Native init failed');
   }
 
   PushNotifications.addListener('registration', ({ value }) => {
-    console.log('✅ Native token:', value);
     fetch('https://dwam-app-by-omar.onrender.com/api/register-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -107,15 +116,11 @@ export async function initPushNative() {
   PushNotifications.addListener('pushNotificationReceived', notif => {
     const { title = '', body = '' } = notif;
     if (Notification.permission === 'granted') {
-      new Notification(title, { body, data: notif.data, vibrate: [100, 200, 100], tag: 'default' });
+      new Notification(title, { body });
     }
     if (typeof window.addNotification === 'function') {
       window.addNotification({ title, body, time: new Date().toISOString() });
     }
-  });
-
-  PushNotifications.addListener('pushNotificationActionPerformed', action => {
-    console.log('➡️ Native action:', action);
   });
 }
 
