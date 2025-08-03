@@ -182,24 +182,29 @@ async function fetchAndRender() {
     const generalNote = aJson.generalNote || '';
     headersHw      = hwJson.headers;
     hwafezData     = hwJson.data;
+// بعد جلب البيانات وفك JSON من /api/attendance
+const generalNote = aJson.noteAll || '';       // الملاحظة العامة لجميع العاملين
+const personalNote = aJson.noteSpec || '';     // الملاحظة الخاصة بالعامل
 
-    // عرض الملاحظة العامة
-    if (generalNote) {
-      const generalBox  = document.getElementById('generalNoteBox');
-      const generalText = document.getElementById('generalNoteText');
-      if (generalBox && generalText) {
-        generalText.textContent = generalNote;
-        generalBox.classList.remove('hidden');
-      }
-    }
+// ————————— عرض الملاحظة العامة لجميع العاملين —————————
+if (generalNote) {
+  const generalBox  = document.getElementById('generalNoteBox');
+  const generalText = document.getElementById('generalNoteText');
+  if (generalBox && generalText) {
+    generalText.textContent = generalNote;
+    generalBox.classList.remove('hidden');
+  }
+}
 
-    // عرض الملاحظة الثابتة للجميع
-    const idxPriv = headersAtt.indexOf("تنبيهات وملاحظات عامة");
-    if (idxPriv !== -1 && attendanceData.length > 0) {
-      const privateNote = attendanceData[0][idxPriv] || '';
-      const noteBox = document.getElementById('supervisorNotes');
-      if (noteBox) noteBox.textContent = privateNote.trim();
-    }
+// ————————— عرض الملاحظة الخاصة بالعامل —————————
+if (personalNote) {
+  const personalBox  = document.getElementById('personalNoteBox');
+  const personalText = document.getElementById('personalNoteText');
+  if (personalBox && personalText) {
+    personalText.textContent = personalNote;
+    personalBox.classList.remove('hidden');
+  }
+}
 
     // تحديث الواجهة
     document.getElementById('loginSection').classList.add('hidden');
