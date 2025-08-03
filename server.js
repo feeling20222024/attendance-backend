@@ -155,7 +155,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     const colAll      = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
     const noteAll     = generalRows[0]?.[colAll]?.trim()||'';
 
-    res.json({ headers, data: userRows, noteSpec, noteAll });
+    res.json({ headers, data: userRows, noteSpec, generalNote: noteAll });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error:e.message });
