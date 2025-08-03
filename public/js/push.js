@@ -35,22 +35,18 @@ export async function initPush(serviceWorkerRegistration) {
     });
     console.log('✅ FCM token:', token);
 
-    // إرسال التوكن للخادم مرة واحدة مع الـ JWT
-    if (localStorage.getItem('fcmTokenSent') !== token) {
-      await fetch('/api/register-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
-        },
-        body: JSON.stringify({ user: window.currentUser, token })
-      });
-      localStorage.setItem('fcmTokenSent', token);
-    }
-  } catch (err) {
-    console.error('❌ getToken failed:', err);
-    return;
-  }
+// إرسال التوكن للخادم مرة واحدة مع الـ JWT
+if (localStorage.getItem('fcmTokenSent') !== token) {
+  await fetch('/api/register-token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+    },
+    body: JSON.stringify({ token })  // فقط أرسل التوكن
+  });
+  localStorage.setItem('fcmTokenSent', token);
+}
 
   // استقبال الرسائل أثناء تواجد التطبيق في الواجهة
   onMessage(messaging, payload => {
