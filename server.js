@@ -8,6 +8,18 @@ const path                 = require('path');
 const jwt                  = require('jsonwebtoken');
 const { GoogleSpreadsheet} = require('google-spreadsheet');
 const admin                = require('firebase-admin');
+const app = express();
+
+// 3) إعداد خيارات CORS
+const corsOptions = {
+  origin: ['https://dwam-app-by-omar.netlify.app'], // أضف نطاقات أخرى إن لزم
+  methods: ['GET', 'POST', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
+
+// 4) إعدادات عامة للتطبيق
+app.use(express.json());
 
 const APP_VERSION = process.env.APP_VERSION || '1.0.7';
 const PORT        = process.env.PORT        || 3000;
