@@ -2,19 +2,22 @@
 
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
+
 const express              = require('express');
 const cors                 = require('cors');
 const path                 = require('path');
 const jwt                  = require('jsonwebtoken');
 const { GoogleSpreadsheet} = require('google-spreadsheet');
 const admin                = require('firebase-admin');
+
+// 2) إنشاء تطبيق Express
 const app = express();
 
-// 3) إعداد خيارات CORS
+// 3) إعداد CORS
 const corsOptions = {
-  origin: ['https://dwam-app-by-omar.netlify.app'], // أضف نطاقات أخرى إن لزم
-  methods: ['GET', 'POST', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: ['https://dwam-app-by-omar.netlify.app'], // أضف المزيد إن لزم
+  methods: ['GET','POST','DELETE'],
+  allowedHeaders: ['Content-Type','Authorization']
 };
 app.use(cors(corsOptions));
 
