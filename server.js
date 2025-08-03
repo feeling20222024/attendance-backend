@@ -211,36 +211,74 @@ app.post('/api/register-token', authenticate, (req, res) => {
   res.json({ success:true });
 });
 
-// 15) إشعار للجميع (مشرف فقط)
+// 15) إشعار للجميع (مشرف فقط) مع تخزين الإشعارات في الذاكرة
 app.post('/api/notify-all', authenticate, async (req, res) => {
-  if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error:'Forbidden' });
+  if (req.user.code !== SUPERVISOR_CODE) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   const { title, body } = req.body;
-  await Promise.allSettled(Array.from(tokens.keys()).map(t => sendPushTo(t, title, body)));
-  res.json({ success:true });
+  if (!title || !body) {
+    return res.status(400).json({ error: 'title and body required' });
+  }
+
+  // 1) أرسل الرسائل عبر FCM
+  const results = await Promise.allSettled(
+    Array.from(tokens.keys()).map(t => sendPushTo(t, title, body))
+  );
+
+  // 2) خزّن الإشعار في سجل كل مستخدم
+  for (const [token, user] of tokens.entries()) {
+    const code = user.code;
+    userNotifications[code] = userNotifications[code] || [];
+    userNotifications[code].unshift({
+      title,
+      body,
+      time: new Date().toISOString()
+    });
+    if (userNotifications[code].length > 50) {
+      userNotifications[code].pop();
+    }
+  }
+
+  res.json({
+    success: true,
+    fcmResults: results.map(r => r.status)  // مثال: ['fulfilled','rejected',...]
+  });
 });
 
 // 16) سجل الإشعارات الموحد
 const userNotifications = {};
+
+// إضافة إشعار جديد (لن تحتاجها عادة بعد notify-all)
 app.post('/api/notifications', authenticate, (req, res) => {
   const { title, body, time } = req.body;
-  if (!title || !body || !time) return res.status(400).json({ error:'Missing fields' });
+  if (!title || !body || !time) {
+    return res.status(400).json({ error: 'Missing fields' });
+  }
   const code = req.user.code;
   userNotifications[code] = userNotifications[code] || [];
   userNotifications[code].unshift({ title, body, time });
-  if (userNotifications[code].length > 50) userNotifications[code].pop();
-  res.json({ success:true });
+  if (userNotifications[code].length > 50) {
+    userNotifications[code].pop();
+  }
+  res.json({ success: true });
 });
+
+// جلب سجل الإشعارات للمستخدم الحالي
 app.get('/api/notifications', authenticate, (req, res) => {
-  res.json({ notifications: userNotifications[req.user.code] || [] });
+  const code = req.user.code;
+  res.json({ notifications: userNotifications[code] || [] });
 });
+
 // مسح السجل الموحد (مشرف فقط)
 app.delete('/api/notifications', authenticate, (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
-    return res.status(403).json({ error:'Forbidden' });
+    return res.status(403).json({ error: 'Forbidden' });
   }
   Object.keys(userNotifications).forEach(k => delete userNotifications[k]);
-  res.json({ success:true });
+  res.json({ success: true });
 });
+
 
 // 17) فحص نسخة التطبيق
 app.get('/api/version', (_, res) => {
