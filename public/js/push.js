@@ -63,26 +63,47 @@ if (localStorage.getItem('fcmTokenSent') !== token) {
 // —————————————————————————————————————————
 // دالة تهيئة إشعارات Native (Capacitor)
 // —————————————————————————————————————————
-export async function initPushNative() {
-  let PushNotifications;
+export async function initPush(serviceWorkerRegistration) {
+  const app       = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
+
   try {
-    ({ PushNotifications } = await import('https://unpkg.com/@capacitor/push-notifications/dist/esm/index.js'));
-  } catch {
-    return console.warn('⚠️ Capacitor PushNotifications unavailable');
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration
+    });
+    console.log('✅ FCM token:', token);
+
+    // إرسال التوكن للخادم مرة واحدة مع الـ JWT
+    if (localStorage.getItem('fcmTokenSent') !== token) {
+      await fetch('/api/register-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+        },
+        body: JSON.stringify({ token })  // فقط أرسل التوكن
+      });
+      localStorage.setItem('fcmTokenSent', token);
+    }
+
+    // استقبال الرسائل أثناء تواجد التطبيق في الواجهة
+    onMessage(messaging, payload => {
+      const { title = '', body = '' } = payload.notification || {};
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+      if (typeof window.addNotification === 'function') {
+        window.addNotification({ title, body, time: new Date().toLocaleString() });
+      }
+    });
+
+  } catch (err) {
+    console.error('❌ initPush failed:', err);
+    // يمكنك هنا عرض رسالة للمستخدم أو اتخاذ أي إجراء آخر
   }
+}
 
-  await PushNotifications.createChannel({ id:'default', name:'الإشعارات', importance:5 });
-  const perm = await PushNotifications.requestPermissions();
-  if (perm.receive !== 'granted') return;
-  await PushNotifications.register();
-
-  PushNotifications.addListener('registration', ({ value }) => {
-    fetch('/api/register-token', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ user: window.currentUser, token: value })
-    }).catch(console.error);
-  });
 
   PushNotifications.addListener('pushNotificationReceived', notif => {
     const { title='', body='' } = notif;
