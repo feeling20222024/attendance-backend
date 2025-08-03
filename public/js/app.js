@@ -180,25 +180,28 @@ headersAtt     = aJson.headers;
 attendanceData = aJson.data;
 headersHw      = hwJson.headers;
 hwafezData     = hwJson.data;
-
 // جلب الملاحظات من الاستجابة
-const publicNote  = aJson.noteAll  || '';   // ملاحظات وتنبيهات عامة لجميع العاملين
-const privateNote = aJson.noteSpec || '';   // ملاحظات وتنبيهات خاصة بالعامل
+const generalNote  = aJson.noteAll  || '';   // تنبيهات وملاحظات عامة لجميع العاملين
+const personalNote = aJson.noteSpec || '';   // تنبيهات وملاحظات خاصة بالعامل
 
-// ————————— عرض الملاحظة العامة لجميع العاملين —————————
-if (publicNote) {
+// ————————— عرض تنبيهات وملاحظات عامة لجميع العاملين —————————
+if (generalNote) {
   const generalBox  = document.getElementById('generalNoteBox');
   const generalText = document.getElementById('generalNoteText');
-  generalText.textContent = publicNote;
-  generalBox.classList.remove('hidden');
+  if (generalBox && generalText) {
+    generalText.textContent = generalNote;
+    generalBox.classList.remove('hidden');
+  }
 }
 
-// ————————— عرض الملاحظة الخاصة بالعامل —————————
-if (privateNote) {
-  const personalBox  = document.getElementById('personalNoteBox');
-  const personalText = document.getElementById('personalNoteText');
-  personalText.textContent = privateNote;
-  personalBox.classList.remove('hidden');
+// ————————— عرض تنبيهات وملاحظات خاصة بالعامل —————————
+if (personalNote) {
+  const personalSection = document.getElementById('supervisorNotesSection');
+  const personalDiv     = document.getElementById('supervisorNotes');
+  if (personalSection && personalDiv) {
+    personalDiv.textContent = personalNote;
+    personalSection.classList.remove('hidden');
+  }
 }
 
 
