@@ -50,15 +50,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // —————————————————————————————————————————
 // تسجيل الـ Service Worker وتهيئة إشعارات Push
 // —————————————————————————————————————————
-async function registerSWandInitPush() {
+async function registerSWand() {
   if ('serviceWorker' in navigator) {
     try {
       // هذا هو المسار الذي استخدمناه في public/
       const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
       console.log('✅ FCM SW registered with scope:', reg.scope);
 
-      // مرّر الـ registration إلى initPush
-      await window.initPush(reg);
+      // مرّر الـ registration إلى 
+      await window.(reg);
     } catch (e) {
       console.error('❌ SW registration failed:', e);
     }
@@ -68,6 +68,7 @@ async function registerSWandInitPush() {
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
+// 2) دالة تسجيل الدخول
 async function login() {
   const code = normalizeDigits(
     document.getElementById('codeInput').value.trim()
@@ -78,13 +79,12 @@ async function login() {
   }
 
   try {
-    // طلب المصادقة
+    // 1) طلب المصادقة
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, pass })
     });
-
     if (res.status === 401) {
       return alert('بيانات الدخول خاطئة');
     }
@@ -92,26 +92,38 @@ async function login() {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
 
-    // استلام التوكن
+    // 2) استلام التوكن
     const loginResponse = await res.json();
     jwtToken = loginResponse.token;
     localStorage.setItem('jwtToken', jwtToken);
 
-    // currentUser
+    // 3) currentUser
     currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
     window.currentUser = currentUser;
     console.log('✅ login successful, currentUser =', currentUser);
 
-    // تسجيل الـ SW وتهيئة Push
+    // 4) تسجيل الـ SW وتهيئة Push Notifications
     console.log('🚀 Registering Service Worker and initializing Push Notifications...');
-    await registerSWandInitPush();
+    if ('serviceWorker' in navigator) {
+      try {
+        // سجّل Service Worker الخاص بالـ FCM
+        const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        console.log('✅ FCM SW registered with scope:', swReg.scope);
+        // مرّر الـ registration إلى دالة initPush
+        await window.initPush(swReg);
+      } catch (err) {
+        console.error('❌ Service Worker registration or initPush failed:', err);
+      }
+    } else {
+      console.warn('⚠️ Service Worker not supported');
+    }
 
-    // تهيئة لوحة الإشعارات (إن وجدت)
+    // 5) تهيئة لوحة الإشعارات (إن وجدت)
     if (typeof window.initNotifications === 'function') {
       window.initNotifications();
     }
 
-    // جلب وعرض البيانات
+    // 6) جلب وعرض البيانات
     await fetchAndRender();
 
   } catch (e) {
@@ -119,6 +131,7 @@ async function login() {
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
 }
+
 
 // (تابع باقي الدوال كما لديك بدون تغيير...)
 
