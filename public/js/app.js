@@ -45,19 +45,23 @@ async function initNotifications() {
 // —————————————————————————————————————————
 // فتح سجل الإشعارات في الواجهة
 // —————————————————————————————————————————
-function openNotificationLog() {
-  // افترض أن لديك زر أو تبويب به id="notificationsTab"
-  const tab = document.getElementById('notificationsTab');
-  if (tab) {
-    tab.click();
-  }
+// —————————————————————————————————————————
+// فتح سجل الإشعارات في الواجهة (مع إعادة جلب ثم عرض)
+// —————————————————————————————————————————
+async function openNotificationLog() {
+  // (1) جلب أحدث التنبيهات
+  await initNotifications();
 
-  // ثم عنصر الحاوية الذي يعرض القائمة.. مثلاً id="notificationsPanel"
+  // (2) عرض التبويب/اللوحة
+  const tab   = document.getElementById('notificationsTab');
   const panel = document.getElementById('notificationsPanel');
+  if (tab)   tab.click();
   if (panel) {
+    panel.classList.remove('hidden');
     panel.scrollIntoView({ behavior: 'smooth' });
   }
 }
+
 
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
@@ -92,18 +96,30 @@ function renderNotifications() {
     count.style.display = 'inline-block';
   }
 }
-
-// —————————————————————————————————————————
-// DOMContentLoaded: ربط الأزرار
-// —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('loginBtn').onclick  = login;
-  document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('aboutBtn').onclick  = () =>
+  document.getElementById('loginBtn').onclick         = login;
+  document.getElementById('logoutBtn').onclick        = logout;
+  document.getElementById('aboutBtn').onclick         = () =>
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
-  document.getElementById('hwafezBtn').onclick = showHwafez;
-  document.getElementById('tqeemBtn').onclick  = showTqeem;
+  document.getElementById('hwafezBtn').onclick        = showHwafez;
+  document.getElementById('tqeemBtn').onclick         = showTqeem;
 
+  // ربط زر فتح سجل الإشعارات
+  const notificationsTab = document.getElementById('notificationsTab');
+  if (notificationsTab) {
+    notificationsTab.onclick = openNotificationLog;
+  }
+
+  // ربط زر إغلاق سجل الإشعارات
+  const closeBtn = document.getElementById('closeNotificationsBtn');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      const panel = document.getElementById('notificationsPanel');
+      if (panel) panel.classList.add('hidden');
+    };
+  }
+
+  // إذا هناك توكين مخزن مسبقاً
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
@@ -116,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(logout);
   }
 });
-
 // —————————————————————————————————————————
 // تسجيل الـ Service Worker وتهيئة Push
 // —————————————————————————————————————————
