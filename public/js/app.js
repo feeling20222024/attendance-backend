@@ -217,7 +217,8 @@ if (perm === 'granted') {
 
 await fetchAndRender();
 await initNotifications();
-
+}
+}
 
 // (تابع باقي الدوال كما لديك بدون تغيير...)
 
