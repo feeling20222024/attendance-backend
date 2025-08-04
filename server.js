@@ -15,6 +15,17 @@ const corsOptions = {
   methods: ['GET','POST','DELETE'],
   allowedHeaders: ['Content-Type','Authorization']
 };
+const { getFirestore } = require('firebase-admin/firestore');
+const db = getFirestore();
+
+async function deleteTokenFromFirestore(token) {
+  const snapshot = await db.collection('fcm_tokens')
+    .where('token', '==', token)
+    .get();
+
+  snapshot.forEach(doc => doc.ref.delete());
+}
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -45,7 +56,6 @@ try {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
-// 6) دالة إرسال إشعار FCM مع حذف التوكن غير الصالح
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
@@ -56,14 +66,13 @@ async function sendPushTo(token, title, body, data = {}) {
 
   try {
     await admin.messaging().send(message);
-    console.log(`✅ تم الإرسال بنجاح إلى ${token}`);
   } catch (err) {
     console.error(`❌ فشل الإرسال إلى ${token}:`, err);
 
-    // التوكن غير صالح أو لم يعد مسجلاً
-    if (err.code === 'messaging/registration-token-not-registered') {
-      console.warn('🗑️ التوكن غير صالح - سيتم حذفه من قاعدة البيانات:', token);
-      await removeInvalidToken(token); // ✴️ نفذ هذه الدالة حسب نوع قاعدة البيانات التي تستخدمها
+    // ✅ في حالة التوكن غير مسجل أو غير صالح، احذفه من Firestore
+    if (err.errorInfo?.code === 'messaging/registration-token-not-registered') {
+      console.log('🗑️ حذف التوكن غير الصالح من Firestore...');
+      await deleteTokenFromFirestore(token);
     }
   }
 }
