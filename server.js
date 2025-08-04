@@ -21,6 +21,8 @@ const corsOptions = {
   methods: ['GET','POST','DELETE'],
   allowedHeaders: ['Content-Type','Authorization']
 };
+// قبل app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
