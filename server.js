@@ -7,9 +7,14 @@ const path                 = require('path');
 const jwt                  = require('jsonwebtoken');
 const { GoogleSpreadsheet }= require('google-spreadsheet');
 const admin                = require('firebase-admin');
-const serviceAccount       = require('./firebaseServiceAccount.json');
-
-// 2) تهيئة Firebase Admin
+// 5) تهيئة Firebase Admin
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch (err) {
+  console.error('❌ FIREBASE_SERVICE_ACCOUNT غير صالح أو غير موجود في الـ env.');
+  process.exit(1);
+}
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
