@@ -192,33 +192,32 @@ async function login() {
       window.initNotifications();
     }
 
-    
- // 6) بعد تسجيل الـ SW وجلب بيانات المستخدم
-await registerSWand();
+    // 6) بعد تسجيل الـ SW وجلب بيانات المستخدم
+    await registerSWand();
 
-const messaging = firebase.messaging();
-const perm = await Notification.requestPermission();
-if (perm === 'granted') {
-  const fcmToken = await messaging.getToken({
-    vapidKey: 'BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ'
-  });
-  if (fcmToken) {
-    await fetch(`${API_BASE}/register-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      body: JSON.stringify({ token: fcmToken })
-    });
-    console.log('✅ FCM token registered:', fcmToken);
-  }
-}
+    const messaging = firebase.messaging();
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      const fcmToken = await messaging.getToken({
+        vapidKey: 'BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ'
+      });
+      if (fcmToken) {
+        await fetch(`${API_BASE}/register-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwtToken}`
+          },
+          body: JSON.stringify({ token: fcmToken })
+        });
+        console.log('✅ FCM token registered:', fcmToken);
+      }
+    }
 
-await fetchAndRender();
-await initNotifications();
-}
-}
+    await fetchAndRender();
+    await initNotifications();
+ }  // ← إغلاق الـ try
+}    // ← إغلاق دالة async function login()
 
 // (تابع باقي الدوال كما لديك بدون تغيير...)
 
