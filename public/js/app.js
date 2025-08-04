@@ -127,18 +127,11 @@ async function registerSWand() {
   }
   try {
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('✅ SW registered with scope:', reg.scope);
-
-    // ننتظر حتى يصبح الSW فعّالاً
     await navigator.serviceWorker.ready;
-
-    // ثم نمرّر الـ registration إلى initPush (إن وجدت)
-    if (typeof window.initPush === 'function') {
-      await window.initPush(reg);
-    }
+    console.log('✅ SW registered and ready:', reg.scope);
     return reg;
   } catch (e) {
-    console.error('❌ SW registration/initPush failed:', e);
+    console.error('❌ SW registration failed:', e);
     return null;
   }
 }
@@ -174,29 +167,30 @@ async function login() {
     localStorage.setItem('jwtToken', jwtToken);
     currentUser = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
+// (4) تسجيل الـ SW وتهيئة Push
+const reg = await registerSWand(); // احفظ كائن الـ registration
 
-    // (4) تسجيل الـ SW وتهيئة Push (ينتظر تمام التفعيل)
-    await registerSWand();
+// (5) طلب إذن الإشعارات وتسجيل FCM token
+const messaging = firebase.messaging();
+const perm = await Notification.requestPermission();
+if (perm === 'granted') {
+  const fcmToken = await messaging.getToken({
+    vapidKey: 'BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ',
+    serviceWorkerRegistration: reg  // ← حل المشكلة هنا
+  });
 
-    // (5) طلب إذن الإشعارات وتسجيل FCM token
-    const messaging = firebase.messaging();
-    const perm = await Notification.requestPermission();
-    if (perm === 'granted') {
-      const fcmToken = await messaging.getToken({
-        vapidKey: 'BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ'
-      });
-      if (fcmToken) {
-        await fetch(`${API_BASE}/register-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwtToken}`
-          },
-          body: JSON.stringify({ token: fcmToken })
-        });
-        console.log('✅ FCM token registered:', fcmToken);
-      }
-    }
+  if (fcmToken) {
+    await fetch(`${API_BASE}/register-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      },
+      body: JSON.stringify({ token: fcmToken })
+    });
+    console.log('✅ FCM token registered:', fcmToken);
+  }
+}
 
     // (6) جلب البيانات وتهيئة سجل الإشعارات
     await fetchAndRender();
