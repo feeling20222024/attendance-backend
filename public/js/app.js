@@ -191,7 +191,7 @@ async function login() {
     if (typeof window.initNotifications === 'function') {
       window.initNotifications();
     }
-
+    }
     // 6) بعد تسجيل الـ SW وجلب بيانات المستخدم
     await registerSWand();
 
@@ -216,7 +216,6 @@ async function login() {
 
     await fetchAndRender();
     await initNotifications();
-}    // ← إغلاق دالة async function login()
 
 // (تابع باقي الدوال كما لديك بدون تغيير...)
 
