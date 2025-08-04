@@ -1,4 +1,3 @@
-// public/sw.js
 const CACHE_NAME = 'v1';
 const ASSETS = [
   '/',
@@ -6,7 +5,7 @@ const ASSETS = [
   '/css/style.css',
   '/js/app.js',
   '/js/push.js',
-  // أضف هنا أي أصول أخرى تريد كاشنها مسبقاً
+  // ...
 ];
 
 self.addEventListener('install', e => {
@@ -22,6 +21,13 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  const reqUrl = new URL(e.request.url);
+
+  // إذا الطلب لأصل خارجي (API) فاتركه يمر دون اعتراض
+  if (reqUrl.origin !== self.location.origin) {
+    return; 
+  }
+
   e.respondWith(
     caches.match(e.request).then(cached =>
       cached || fetch(e.request)
