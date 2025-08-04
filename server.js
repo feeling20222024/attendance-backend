@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 3) إعدادات عامة
-const APP_VERSION = process.env.APP_VERSION || '1.0.7';
+const APP_VERSION = process.env.APP_VERSION || '1.0.0';
 const PORT        = process.env.PORT        || 3000;
 
 // 4) تطبيع الأرقام العربية/الفارسية
