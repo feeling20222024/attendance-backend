@@ -111,7 +111,15 @@ function normalizeDigits(str) {
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOMContentLoaded — ربط الأزرار');
-
+// لا تقم بإخفاء اللوحة أو الجرس قبل تسجيل الدخول
++  const saved = localStorage.getItem('jwtToken');
++  if (saved) {
++    jwtToken = saved;
++    fetchAndRender().then(initNotifications).catch(logout);
++  } else {
++    // حاول فقط تهيئة notifications count (سيكون صفر)
++    renderNotifications();
++  }
   // تسجيل الدخول / الخروج
   const loginBtn  = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
