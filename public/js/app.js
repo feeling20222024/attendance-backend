@@ -115,8 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(logout);
   }
-});// —————————————————————————————————————————
-// تسجيل الـ Service Worker وتهيئة إشعارات Push
+});
+
+// —————————————————————————————————————————
+// تسجيل الـ Service Worker وتهيئة Push
 // —————————————————————————————————————————
 async function registerSWand() {
   if (!('serviceWorker' in navigator)) {
@@ -124,31 +126,28 @@ async function registerSWand() {
     return null;
   }
   try {
-    // سجّل Service Worker الخاص بالـ FCM
     const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     console.log('✅ SW registered with scope:', reg.scope);
 
-    // انتظر حتى يصبح فعالاً
+    // ننتظر حتى يصبح الSW فعّالاً
     await navigator.serviceWorker.ready;
-    console.log('✅ SW is active');
 
-    // مرّر الـ registration إلى initPush (من firebase)
+    // ثم نمرّر الـ registration إلى initPush (إن وجدت)
     if (typeof window.initPush === 'function') {
       await window.initPush(reg);
-      console.log('✅ initPush completed');
     }
-
     return reg;
   } catch (e) {
-    console.error('❌ SW registration or initPush failed:', e);
+    console.error('❌ SW registration/initPush failed:', e);
     return null;
   }
 }
+
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
-  // (1) طَلْبُ الكود والرقم السري
+  // (1) طلب الكود والرقم السري
   const code = normalizeDigits(document.getElementById('codeInput').value.trim());
   const pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
@@ -176,7 +175,7 @@ async function login() {
     currentUser = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
 
-    // (4) تسجيل الـ SW وتهيئة Push
+    // (4) تسجيل الـ SW وتهيئة Push (ينتظر تمام التفعيل)
     await registerSWand();
 
     // (5) طلب إذن الإشعارات وتسجيل FCM token
@@ -208,6 +207,7 @@ async function login() {
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
 } // ← إغلاق دالة login()
+
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
