@@ -102,42 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(logout);
   }
 });
-
-// —————————————————————————————————————————
-// تسجيل الـ Service Worker وتهيئة إشعارات Push
-// —————————————————————————————————————————
-async function registerSWand() {
-  if ('serviceWorker' in navigator) {
-    try {
-      // سجّل Service Worker الخاص بالـ FCM
-      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('✅ FCM SW registered with scope:', reg.scope);
-
-      // مرّر الـ registration إلى دالة initPush
-      await window.initPush(reg);
-    } catch (e) {
-      console.error('❌ SW registration or initPush failed:', e);
-    }
-  } else {
-    console.warn('⚠️ Service Worker not supported');
-  }
-}
-
-// —————————————————————————————————————————
-// استماع لرسائل من الـ Service Worker (عند نقر المستخدم على إشعار)
-// —————————————————————————————————————————
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('message', event => {
-    if (event.data && event.data.action === 'openNotifications') {
-      openNotificationLog();
-    }
-  });
-}
-
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
-// 2) دالة تسجيل الدخول
 async function login() {
   const code = normalizeDigits(
     document.getElementById('codeInput').value.trim()
@@ -169,32 +136,11 @@ async function login() {
     // 3) currentUser
     currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
     window.currentUser = currentUser;
-    console.log('✅ login successful, currentUser =', currentUser);
 
-    // 4) تسجيل الـ SW وتهيئة Push Notifications
-    console.log('🚀 Registering Service Worker and initializing Push Notifications...');
-    if ('serviceWorker' in navigator) {
-      try {
-        // سجّل Service Worker الخاص بالـ FCM
-        const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        console.log('✅ FCM SW registered with scope:', swReg.scope);
-        // مرّر الـ registration إلى دالة initPush
-        await window.initPush(swReg);
-      } catch (err) {
-        console.error('❌ Service Worker registration or initPush failed:', err);
-      }
-    } else {
-      console.warn('⚠️ Service Worker not supported');
-    }
-
-    // 5) تهيئة لوحة الإشعارات (إن وجدت)
-    if (typeof window.initNotifications === 'function') {
-      window.initNotifications();
-    }
-    }
-    // 6) بعد تسجيل الـ SW وجلب بيانات المستخدم
+    // 4) تسجيل الـ Service Worker وتهيئة Push
     await registerSWand();
 
+    // 5) طلب إذن الإشعارات وتسجيل FCM token
     const messaging = firebase.messaging();
     const perm = await Notification.requestPermission();
     if (perm === 'granted') {
@@ -214,14 +160,15 @@ async function login() {
       }
     }
 
+    // 6) جلب البيانات وتهيئة سجل الإشعارات
     await fetchAndRender();
     await initNotifications();
 
-// (تابع باقي الدوال كما لديك بدون تغيير...)
-
-// مثال دالة fetchAndRender()، showHwafez()، showTqeem()، logout() ... 
-
-// تأكد أن باقي دوالك تعمل كما هي
+  } catch (e) {
+    console.error('❌ login error:', e);
+    alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
+  }
+} // ← إغلاق دالة login()
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
