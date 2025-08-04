@@ -15,15 +15,39 @@ const corsOptions = {
   methods: ['GET','POST','DELETE'],
   allowedHeaders: ['Content-Type','Authorization']
 };
+// حذف التوكن من Firestore عند فشله
 const { getFirestore } = require('firebase-admin/firestore');
 const db = getFirestore();
 
+// دالة الحذف
 async function deleteTokenFromFirestore(token) {
   const snapshot = await db.collection('fcm_tokens')
     .where('token', '==', token)
     .get();
 
   snapshot.forEach(doc => doc.ref.delete());
+}
+
+// دالة إرسال الإشعار
+async function sendPushTo(token, title, body, data = {}) {
+  const message = {
+    token,
+    notification: { title, body },
+    android: { ttl: 48 * 60 * 60 * 1000, priority: 'high' },
+    data
+  };
+
+  try {
+    await admin.messaging().send(message);
+  } catch (err) {
+    console.error(`❌ فشل الإرسال إلى ${token}:`, err);
+
+    // حذف التوكن غير الصالح
+    if (err.errorInfo?.code === 'messaging/registration-token-not-registered') {
+      console.log('🗑️ حذف التوكن غير المسجل من Firestore');
+      await deleteTokenFromFirestore(token);
+    }
+  }
 }
 
 app.use(cors(corsOptions));
