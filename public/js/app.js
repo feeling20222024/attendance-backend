@@ -174,15 +174,18 @@ async function fetchAndRender() {
 // فك JSON
 const aJson  = await aRes.json();
 const hwJson = await hwRes.json();
+const generalNote  = aJson.generalNote  || '';
+const personalNote = aJson.personalNote || '';
 
 // تعيين المتغيرات العالمية
 headersAtt     = aJson.headers;
 attendanceData = aJson.data;
 headersHw      = hwJson.headers;
 hwafezData     = hwJson.data;
+
 // جلب الملاحظات من الاستجابة
-const generalNote  = aJson.noteAll  || '';   // تنبيهات وملاحظات عامة لجميع العاملين
-const personalNote = aJson.noteSpec || '';   // تنبيهات وملاحظات خاصة بالعامل
+const generalNote  = aJson.generalNote  || '';   // تنبيهات وملاحظات عامة لجميع العاملين
+const personalNote = aJson.personalNote || '';   // تنبيهات وملاحظات خاصة بالعامل
 
 // ————————— عرض تنبيهات وملاحظات عامة لجميع العاملين —————————
 if (generalNote) {
@@ -193,6 +196,17 @@ if (generalNote) {
     generalBox.classList.remove('hidden');
   }
 }
+
+// ————————— عرض تنبيهات وملاحظات خاصة بالعامل —————————
+if (personalNote) {
+  const personalSection = document.getElementById('supervisorNotesSection');
+  const personalDiv     = document.getElementById('supervisorNotes');
+  if (personalSection && personalDiv) {
+    personalDiv.textContent = personalNote;
+    personalSection.classList.remove('hidden');
+  }
+}
+
 
 // ————————— عرض تنبيهات وملاحظات خاصة بالعامل —————————
 if (personalNote) {
