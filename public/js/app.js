@@ -97,8 +97,15 @@ function renderNotifications() {
   }
 }
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('loginBtn').onclick         = login;
-  document.getElementById('logoutBtn').onclick        = logout;
+  console.log('DOMContentLoaded fired');
+
+  // تسجيل الدخول/الخروج
+  const loginBtn  = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  console.log('loginBtn =', loginBtn, 'logoutBtn =', logoutBtn);
+  if (loginBtn)  loginBtn.onclick  = login;
+  if (logoutBtn) logoutBtn.onclick = logout;
+
   document.getElementById('aboutBtn').onclick         = () =>
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
   document.getElementById('hwafezBtn').onclick        = showHwafez;
