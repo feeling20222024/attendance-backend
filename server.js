@@ -138,7 +138,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 11) /api/attendance — حضور + ملاحظات خاصة وعامة
+// 11) حضور + ملاحظات خاصة وعامة
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
@@ -150,13 +150,11 @@ app.get('/api/attendance', authenticate, async (req, res) => {
       normalizeDigits((r[idx]||'').trim()) === code
     );
 
-    // عمود "تنبيهات وملاحظات خاصة بالعامل"
+    // تنبيهات وملاحظات خاصة بالعامل
     const colPersonal = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
-    const personalNote = userRows.find(r =>
-      r[colPersonal]?.trim()
-    )?.[colPersonal]?.trim() || '';
+    const personalNote = userRows.find(r => r[colPersonal]?.trim())?.[colPersonal]?.trim() || '';
 
-    // عمود "تنبيهات وملاحظات عامة لجميع العاملين"
+    // تنبيهات وملاحظات عامة لجميع العاملين
     const generalRows = data.filter(r => !(r[idx]||'').toString().trim());
     const colGeneral  = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
     const generalNote = generalRows[0]?.[colGeneral]?.trim() || '';
@@ -214,7 +212,7 @@ app.post('/api/register-token', authenticate, (req, res) => {
   res.json({ success:true });
 });
 
-// 15) إشعار للجميع (مشرف فقط) مع تخزين الإشعارات
+// 15) إشعار للجميع (مشرف فقط) + تخزين
 const userNotifications = {};
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
@@ -229,8 +227,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   await Promise.allSettled(
     Array.from(tokens.keys()).map(t => sendPushTo(t, title, body))
   );
-
-  // تخزين بالإشعارات الموحدة
+  // تخزين لكل مستخدم
   for (const user of tokens.values()) {
     const c = user.code;
     userNotifications[c] = userNotifications[c] || [];
@@ -241,7 +238,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   res.json({ success:true });
 });
 
-// 16) نقاط الإشعارات الموحدة
+// 16) سجل الإشعارات الموحد
 app.get('/api/notifications', authenticate, (req, res) => {
   const c = req.user.code;
   res.json({ notifications: userNotifications[c]||[] });
