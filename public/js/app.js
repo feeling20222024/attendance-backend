@@ -101,21 +101,39 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(logout);
   }
-});
+});// —————————————————————————————————————————
+// تسجيل الـ Service Worker وتهيئة إشعارات Push
+// —————————————————————————————————————————
+async function registerSWand() {
+  if ('serviceWorker' in navigator) {
+    try {
+      // سجّل Service Worker الخاص بالـ FCM
+      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log('✅ FCM SW registered with scope:', reg.scope);
+
+      // مرّر الـ registration إلى دالة initPush (من سكربت firebase)
+      await window.initPush(reg);
+    } catch (e) {
+      console.error('❌ SW registration or initPush failed:', e);
+    }
+  } else {
+    console.warn('⚠️ Service Worker not supported');
+  }
+}
+
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
-  const code = normalizeDigits(
-    document.getElementById('codeInput').value.trim()
-  );
+  // (1) طَلْبُ الكود والرقم السري
+  const code = normalizeDigits(document.getElementById('codeInput').value.trim());
   const pass = document.getElementById('passwordInput').value.trim();
   if (!code || !pass) {
     return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
   try {
-    // 1) طلب المصادقة
+    // (2) إرسال بيانات الدخول للخادم
     const res = await fetch(LOGIN_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -128,19 +146,17 @@ async function login() {
       throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
     }
 
-    // 2) استلام التوكن
-    const loginResponse = await res.json();
-    jwtToken = loginResponse.token;
+    // (3) استلام الـ JWT
+    const { token, user } = await res.json();
+    jwtToken = token;
     localStorage.setItem('jwtToken', jwtToken);
-
-    // 3) currentUser
-    currentUser = loginResponse.user.code ?? loginResponse.user['كود الموظف'];
+    currentUser = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
 
-    // 4) تسجيل الـ Service Worker وتهيئة Push
+    // (4) تسجيل الـ SW وتهيئة Push
     await registerSWand();
 
-    // 5) طلب إذن الإشعارات وتسجيل FCM token
+    // (5) طلب إذن الإشعارات وتسجيل FCM token
     const messaging = firebase.messaging();
     const perm = await Notification.requestPermission();
     if (perm === 'granted') {
@@ -160,7 +176,7 @@ async function login() {
       }
     }
 
-    // 6) جلب البيانات وتهيئة سجل الإشعارات
+    // (6) جلب البيانات وتهيئة سجل الإشعارات
     await fetchAndRender();
     await initNotifications();
 
@@ -169,7 +185,6 @@ async function login() {
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
 } // ← إغلاق دالة login()
-
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
