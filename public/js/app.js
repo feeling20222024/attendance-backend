@@ -212,7 +212,7 @@ async function login() {
         });
         console.log('✅ FCM token registered:', fcmToken);
       }
-    }
+    
 
     await fetchAndRender();
     await initNotifications();
