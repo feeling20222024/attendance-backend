@@ -1,5 +1,3 @@
-// server.js
-
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
 
@@ -13,7 +11,7 @@ const admin                = require('firebase-admin');
 // 2) تهيئة Express و CORS
 const app = express();
 const corsOptions = {
-  origin: ['https://dwam-app-by-omar.netlify.app'], // واجهة Netlify
+  origin: ['https://dwam-app-by-omar.netlify.app'],
   methods: ['GET','POST','DELETE'],
   allowedHeaders: ['Content-Type','Authorization']
 };
@@ -25,7 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const APP_VERSION = process.env.APP_VERSION || '1.0.7';
 const PORT        = process.env.PORT        || 3000;
 
-// 4) دالة لتطبيع الأرقام العربية/الفارسية
+// 4) تطبيع الأرقام العربية/الفارسية
 function normalizeDigits(str) {
   if (!str) return '';
   return str.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, ch => {
@@ -53,10 +51,7 @@ async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
     notification: { title, body },
-    android: {
-      ttl: 48 * 60 * 60 * 1000, // 48h
-      priority: 'high'
-    },
+    android: { ttl: 48 * 60 * 60 * 1000, priority: 'high' },
     data
   };
   try {
@@ -66,7 +61,7 @@ async function sendPushTo(token, title, body, data = {}) {
   }
 }
 
-// 7) قراءة متغيّرات البيئة الخاصة بالجوجل شيت والـJWT
+// 7) قراءة متغيّرات البيئة
 const {
   JWT_SECRET,
   SUPERVISOR_CODE,
@@ -85,7 +80,7 @@ try {
   process.exit(1);
 }
 
-// 8) دوال الوصول إلى Google Sheets
+// 8) دوال Google Sheets
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
@@ -143,36 +138,35 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// 11) /api/attendance — حضور + ملاحظات خاصة وعامة للكل
+// 11) /api/attendance — حضور + ملاحظات خاصة وعامة
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
-    const idx   = headers.indexOf('رقم الموظف');
-    const code  = normalizeDigits(String(req.user.code).trim());
+    const idx  = headers.indexOf('رقم الموظف');
+    const code = normalizeDigits(String(req.user.code).trim());
 
     // صفوف المستخدم
-    const userRows = data.filter(r => normalizeDigits((r[idx]||'').trim()) === code);
+    const userRows = data.filter(r =>
+      normalizeDigits((r[idx]||'').trim()) === code
+    );
 
-    // ملاحظة خاصة
-    const colSpec = headers.indexOf('تنبيهات وملاحظات عامة');
-    const noteSpec = userRows.find(r => r[colSpec]?.trim())?.[colSpec]?.trim() || '';
+    // عمود "تنبيهات وملاحظات خاصة بالعامل"
+    const colPersonal = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
+    const personalNote = userRows.find(r =>
+      r[colPersonal]?.trim()
+    )?.[colPersonal]?.trim() || '';
 
-    // ملاحظة لجميع العاملين
+    // عمود "تنبيهات وملاحظات عامة لجميع العاملين"
     const generalRows = data.filter(r => !(r[idx]||'').toString().trim());
-    const colAll      = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
-    const noteAll     = generalRows[0]?.[colAll]?.trim() || '';
+    const colGeneral  = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
+    const generalNote = generalRows[0]?.[colGeneral]?.trim() || '';
 
-   res.json({
-  headers,
-  data: userRows,
-
-  // ملاحظات وتنبيهات خاصة بكل عامل:
-  personalNote: noteSpec,
-
-  // ملاحظات وتنبيهات عامة لجميع العاملين:
-  generalNote: noteAll
-});
-
+    res.json({
+      headers,
+      data: userRows,
+      personalNote,
+      generalNote
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.message });
@@ -183,9 +177,11 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
-    const idx   = headers.indexOf('رقم الموظف');
-    const code  = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r => normalizeDigits((r[idx]||'').trim()) === code);
+    const idx  = headers.indexOf('رقم الموظف');
+    const code = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits((r[idx]||'').trim()) === code
+    );
     res.json({ headers, data: filtered });
   } catch (e) {
     console.error(e);
@@ -197,9 +193,11 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
 app.get('/api/tqeem', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('tqeem');
-    const idx   = headers.indexOf('رقم الموظف');
-    const code  = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r => normalizeDigits((r[idx]||'').trim()) === code);
+    const idx  = headers.indexOf('رقم الموظف');
+    const code = normalizeDigits(String(req.user.code).trim());
+    const filtered = data.filter(r =>
+      normalizeDigits((r[idx]||'').trim()) === code
+    );
     res.json({ headers, data: filtered });
   } catch (e) {
     console.error(e);
@@ -216,74 +214,45 @@ app.post('/api/register-token', authenticate, (req, res) => {
   res.json({ success:true });
 });
 
-// 15) إشعار للجميع (مشرف فقط) مع تخزين الإشعارات في الذاكرة
+// 15) إشعار للجميع (مشرف فقط) مع تخزين الإشعارات
+const userNotifications = {};
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error:'Forbidden' });
   }
   const { title, body } = req.body;
   if (!title || !body) {
-    return res.status(400).json({ error: 'title and body required' });
+    return res.status(400).json({ error:'title and body required' });
   }
 
-  // 1) أرسل الرسائل عبر FCM
-  const results = await Promise.allSettled(
+  // إرسال عبر FCM
+  await Promise.allSettled(
     Array.from(tokens.keys()).map(t => sendPushTo(t, title, body))
   );
 
-  // 2) خزّن الإشعار في سجل كل مستخدم
-  for (const [token, user] of tokens.entries()) {
-    const code = user.code;
-    userNotifications[code] = userNotifications[code] || [];
-    userNotifications[code].unshift({
-      title,
-      body,
-      time: new Date().toISOString()
-    });
-    if (userNotifications[code].length > 50) {
-      userNotifications[code].pop();
-    }
+  // تخزين بالإشعارات الموحدة
+  for (const user of tokens.values()) {
+    const c = user.code;
+    userNotifications[c] = userNotifications[c] || [];
+    userNotifications[c].unshift({ title, body, time: new Date().toISOString() });
+    if (userNotifications[c].length > 50) userNotifications[c].pop();
   }
 
-  res.json({
-    success: true,
-    fcmResults: results.map(r => r.status)  // مثال: ['fulfilled','rejected',...]
-  });
+  res.json({ success:true });
 });
 
-// 16) سجل الإشعارات الموحد
-const userNotifications = {};
-
-// إضافة إشعار جديد (لن تحتاجها عادة بعد notify-all)
-app.post('/api/notifications', authenticate, (req, res) => {
-  const { title, body, time } = req.body;
-  if (!title || !body || !time) {
-    return res.status(400).json({ error: 'Missing fields' });
-  }
-  const code = req.user.code;
-  userNotifications[code] = userNotifications[code] || [];
-  userNotifications[code].unshift({ title, body, time });
-  if (userNotifications[code].length > 50) {
-    userNotifications[code].pop();
-  }
-  res.json({ success: true });
-});
-
-// جلب سجل الإشعارات للمستخدم الحالي
+// 16) نقاط الإشعارات الموحدة
 app.get('/api/notifications', authenticate, (req, res) => {
-  const code = req.user.code;
-  res.json({ notifications: userNotifications[code] || [] });
+  const c = req.user.code;
+  res.json({ notifications: userNotifications[c]||[] });
 });
-
-// مسح السجل الموحد (مشرف فقط)
 app.delete('/api/notifications', authenticate, (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
-    return res.status(403).json({ error: 'Forbidden' });
+    return res.status(403).json({ error:'Forbidden' });
   }
   Object.keys(userNotifications).forEach(k => delete userNotifications[k]);
-  res.json({ success: true });
+  res.json({ success:true });
 });
-
 
 // 17) فحص نسخة التطبيق
 app.get('/api/version', (_, res) => {
