@@ -105,21 +105,25 @@ const caseMapping = {
 // —————————————————————————————————————————
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-}
-// —————————————————————————————————————————
+}// —————————————————————————————————————————
 // 8) ربط الأزرار عند تحميل الصفحة
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOMContentLoaded — ربط الأزرار');
-// لا تقم بإخفاء اللوحة أو الجرس قبل تسجيل الدخول
-+  const saved = localStorage.getItem('jwtToken');
-+  if (saved) {
-+    jwtToken = saved;
-+    fetchAndRender().then(initNotifications).catch(logout);
-+  } else {
-+    // حاول فقط تهيئة notifications count (سيكون صفر)
-+    renderNotifications();
-+  }
+
+  // إذا كان هناك JWT مخزن سابقاً
+  const saved = localStorage.getItem('jwtToken');
+  if (saved) {
+    jwtToken = saved;
+    // جلب البيانات ثم تهيئة سجل الإشعارات
+    fetchAndRender()
+      .then(initNotifications)
+      .catch(logout);
+  } else {
+    // حتى قبل تسجيل الدخول: عرض عداد الإشعارات (سيكون فارغاً)
+    renderNotifications();
+  }
+
   // تسجيل الدخول / الخروج
   const loginBtn  = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -127,10 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (logoutBtn) logoutBtn.onclick = logout;
 
   // أزرار القائمة الأخرى
-  document.getElementById('aboutBtn').onclick = () =>
+  const aboutBtn    = document.getElementById('aboutBtn');
+  const hwafezBtn   = document.getElementById('hwafezBtn');
+  const tqeemBtn    = document.getElementById('tqeemBtn');
+  if (aboutBtn)  aboutBtn.onclick  = () =>
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
-  document.getElementById('hwafezBtn').onclick = showHwafez;
-  document.getElementById('tqeemBtn').onclick  = showTqeem;
+  if (hwafezBtn) hwafezBtn.onclick = showHwafez;
+  if (tqeemBtn)  tqeemBtn.onclick  = showTqeem;
 
   // أيقونة الجرس (فتح/إغلاق لوحة الإشعارات)
   const bell = document.getElementById('notifBell');
@@ -148,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clearNotifications');
   if (clearBtn) {
     clearBtn.onclick = async () => {
-      // تأكد أن المستخدم مشرف
+      // التحقق من كود المشرف
       if (currentUser !== SUPERVISOR_CODE) {
         return alert('غير مسموح لك بمسح الإشعارات.');
       }
@@ -170,6 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
   }
+});
+
 
   // زر إغلاق سجل الإشعارات (داخل اللوحة)
   const closeBtn = document.getElementById('closeNotificationsBtn');
