@@ -198,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(() => initNotifications())
       .catch(logout);
   }
-});
 
 // —————————————————————————————————————————
 // تسجيل الـ Service Worker وتهيئة Push
