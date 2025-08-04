@@ -45,8 +45,7 @@ try {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
-
-// 6) دالة إرسال إشعار FCM
+// 6) دالة إرسال إشعار FCM مع حذف التوكن غير الصالح
 async function sendPushTo(token, title, body, data = {}) {
   const message = {
     token,
@@ -54,10 +53,18 @@ async function sendPushTo(token, title, body, data = {}) {
     android: { ttl: 48 * 60 * 60 * 1000, priority: 'high' },
     data
   };
+
   try {
     await admin.messaging().send(message);
+    console.log(`✅ تم الإرسال بنجاح إلى ${token}`);
   } catch (err) {
     console.error(`❌ فشل الإرسال إلى ${token}:`, err);
+
+    // التوكن غير صالح أو لم يعد مسجلاً
+    if (err.code === 'messaging/registration-token-not-registered') {
+      console.warn('🗑️ التوكن غير صالح - سيتم حذفه من قاعدة البيانات:', token);
+      await removeInvalidToken(token); // ✴️ نفذ هذه الدالة حسب نوع قاعدة البيانات التي تستخدمها
+    }
   }
 }
 
