@@ -7,6 +7,27 @@ let headersHw       = [], hwafezData     = [];
 let headersTq       = [], tqeemData      = [];
 let currentUser     = null;
 let jwtToken        = null;
+// أعلى الملف بعد المتغيرات العامة
+let serverNotifications = [];
+
+async function initNotifications() {
+  if (!jwtToken) return;
+  try {
+    const res = await fetch(`${API_BASE}/notifications`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
+    const { notifications } = await res.json();
+    serverNotifications = notifications;
+    renderNotifications();
+  } catch (e) {
+    console.error('initNotifications:', e);
+  }
+}
+
 
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
@@ -21,6 +42,25 @@ const caseMapping = {
 // —————————————————————————————————————————
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
+function renderNotifications() {
+  const list = document.getElementById('notificationsLog');
+  const count = document.getElementById('notifCount');
+  if (!list || !count) return;
+  if (serverNotifications.length === 0) {
+    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    count.style.display = 'none';
+  } else {
+    list.innerHTML = serverNotifications.map(n => `
+      <li class="mb-2 border-b pb-1">
+        <strong>${n.title}</strong><br>
+        <small>${n.body}</small><br>
+        <small class="text-gray-400">${n.time}</small>
+      </li>
+    `).join('');
+    count.textContent = serverNotifications.length;
+    count.style.display = 'inline-block';
+  }
 }
 
 // —————————————————————————————————————————
@@ -124,8 +164,11 @@ async function login() {
       window.initNotifications();
     }
 
-    // 6) جلب وعرض البيانات
+    
+   // 6) جلب وعرض البيانات
+    await registerSWand();
     await fetchAndRender();
+    await initNotifications();
 
   } catch (e) {
     console.error('❌ login error:', e);
@@ -426,26 +469,54 @@ async function sendSupervisorNotification() {
     const title = document.getElementById('notifTitleInput').value.trim();
     const body  = document.getElementById('notifBodyInput').value.trim();
     if (!title || !body) {
-      alert('يرجى إدخال عنوان ونص الإشعار.');
-      return;
+      return alert('يرجى إدخال عنوان ونص الإشعار.');
     }
+
     const res = await fetch(`${API_BASE}/notify-all`, {
       method: 'POST',
-      headers:{
+      headers: {
         'Content-Type':'application/json',
         'Authorization': `Bearer ${jwtToken}`
       },
       body: JSON.stringify({ title, body })
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'خطأ غير متوقع من الخادم');
+    }
+
+    // 1) استعلام وقت الإرسال
+    const now = new Date().toLocaleString();
+
+    // 2) إضافة الإشعار للسجل المحلي لكل المستخدمين يتضمن المشرف نفسه
+    if (typeof window.addNotification === 'function') {
+      window.addNotification({ title, body, time: now });
+    }
+
+    // 3) تحديث الواجهة
     alert('✅ تم إرسال الإشعار لجميع المستخدمين.');
     document.getElementById('notifTitleInput').value = '';
     document.getElementById('notifBodyInput').value  = '';
+
   } catch (err) {
     console.error('❌ sendSupervisorNotification error:', err);
     alert('❌ خطأ في إرسال الإشعار: ' + err.message);
   }
 }
+
+// —————————————————————————————————————————
+// عند استقبال إشعار جديد من FCM أثناء عمل التطبيق في الواجهة
+// —————————————————————————————————————————
+window.addNotification = ({ title, body, time }) => {
+  // خزّن في المصفوفة الموحدة
+  serverNotifications.unshift({ title, body, time });
+  if (serverNotifications.length > 50) {
+    serverNotifications.pop();
+  }
+  // أعد رسم سجل الإشعارات
+  renderNotifications();
+};
+
 
 // —————————————————————————————————————————
 // 7) تسجيل الخروج
