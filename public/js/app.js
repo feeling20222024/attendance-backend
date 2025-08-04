@@ -28,6 +28,22 @@ async function initNotifications() {
   }
 }
 
+// —————————————————————————————————————————
+// فتح سجل الإشعارات في الواجهة
+// —————————————————————————————————————————
+function openNotificationLog() {
+  // افترض أن لديك زر أو تبويب به id="notificationsTab"
+  const tab = document.getElementById('notificationsTab');
+  if (tab) {
+    tab.click();
+  }
+
+  // ثم عنصر الحاوية الذي يعرض القائمة.. مثلاً id="notificationsPanel"
+  const panel = document.getElementById('notificationsPanel');
+  if (panel) {
+    panel.scrollIntoView({ behavior: 'smooth' });
+  }
+}
 
 const caseMapping = {
   '1': "غياب غير مبرر (بدون إذن رسمي)",
@@ -106,6 +122,18 @@ async function registerSWand() {
     console.warn('⚠️ Service Worker not supported');
   }
 }
+
+// —————————————————————————————————————————
+// استماع لرسائل من الـ Service Worker (عند نقر المستخدم على إشعار)
+// —————————————————————————————————————————
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.action === 'openNotifications') {
+      openNotificationLog();
+    }
+  });
+}
+
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
