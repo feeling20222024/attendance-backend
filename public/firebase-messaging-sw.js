@@ -22,4 +22,32 @@ messaging.onBackgroundMessage(function(payload) {
     tag: 'default',
     data: payload.data
   });
+
+  // ---------------------------------------
+//  عند نقر المستخدم على الإشعار
+// ---------------------------------------
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  // المسار أو الـ URL الذي يعرض سجل الإشعارات
+  const targetUrl = '/#notifications';  // غيّره إذا تستخدم مساراً آخر
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // حاول أن تركز على النافذة المفتوحة أولاً
+      for (const client of windowClients) {
+        if (client.url.includes('/') && 'focus' in client) {
+          // أرسل رسالة للنافذة لتنفيذ الفتح داخلها
+          client.postMessage({ action: 'openNotifications' });
+          return client.focus();
+        }
+      }
+      // إذا لم توجد أي نافذة مفتوحة، افتح نافذة جديدة
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
 });
