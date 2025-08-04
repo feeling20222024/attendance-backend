@@ -119,22 +119,31 @@ document.addEventListener('DOMContentLoaded', () => {
 // تسجيل الـ Service Worker وتهيئة إشعارات Push
 // —————————————————————————————————————————
 async function registerSWand() {
-  if ('serviceWorker' in navigator) {
-    try {
-      // سجّل Service Worker الخاص بالـ FCM
-      const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('✅ FCM SW registered with scope:', reg.scope);
-
-      // مرّر الـ registration إلى دالة initPush (من سكربت firebase)
-      await window.initPush(reg);
-    } catch (e) {
-      console.error('❌ SW registration or initPush failed:', e);
-    }
-  } else {
+  if (!('serviceWorker' in navigator)) {
     console.warn('⚠️ Service Worker not supported');
+    return null;
+  }
+  try {
+    // سجّل Service Worker الخاص بالـ FCM
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('✅ SW registered with scope:', reg.scope);
+
+    // انتظر حتى يصبح فعالاً
+    await navigator.serviceWorker.ready;
+    console.log('✅ SW is active');
+
+    // مرّر الـ registration إلى initPush (من firebase)
+    if (typeof window.initPush === 'function') {
+      await window.initPush(reg);
+      console.log('✅ initPush completed');
+    }
+
+    return reg;
+  } catch (e) {
+    console.error('❌ SW registration or initPush failed:', e);
+    return null;
   }
 }
-
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
