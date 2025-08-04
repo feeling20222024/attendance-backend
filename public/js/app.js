@@ -1,35 +1,41 @@
+// —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
-const API_BASE       = 'https://dwam-app-by-omar.onrender.com/api';
-const LOGIN_ENDPOINT = `${API_BASE}/login`;
-const SUPERVISOR_CODE= '35190';
-let headersAtt      = [], attendanceData = [];
-let headersHw       = [], hwafezData     = [];
-let headersTq       = [], tqeemData      = [];
-let currentUser     = null;
-let jwtToken        = null;
-// أعلى الملف بعد المتغيرات العامة
-let serverNotifications = [];
+// —————————————————————————————————————————
+const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const LOGIN_ENDPOINT  = `${API_BASE}/login`;
+const SUPERVISOR_CODE = '35190';
+
+let headersAtt           = [], attendanceData   = [];
+let headersHw            = [], hwafezData        = [];
+let headersTq            = [], tqeemData         = [];
+let currentUser          = null;
+let jwtToken             = null;
+let serverNotifications  = [];
 
 // —————————————————————————————————————————
-// تهيئة Firebase في الواجهة
+// 2) تهيئة Firebase في الواجهة
 // —————————————————————————————————————————
 const firebaseConfig = {
-  apiKey: "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
-  authDomain: "device-streaming-47cbe934.firebaseapp.com",
-  projectId: "device-streaming-47cbe934",
-  storageBucket: "device-streaming-47cbe934.appspot.com",
+  apiKey:            "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
+  authDomain:        "device-streaming-47cbe934.firebaseapp.com",
+  projectId:         "device-streaming-47cbe934",
+  storageBucket:     "device-streaming-47cbe934.appspot.com",
   messagingSenderId: "235398312189",
-  appId: "1:235398312189:web:8febe5e63f7b134b808e94"
+  appId:             "1:235398312189:web:8febe5e63f7b134b808e94"
 };
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
+
+// —————————————————————————————————————————
+// 3) جلب التنبيهات الموحدة من الخادم
+// —————————————————————————————————————————
 async function initNotifications() {
   if (!jwtToken) return;
   try {
     const res = await fetch(`${API_BASE}/notifications`, {
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type':  'application/json',
         'Authorization': `Bearer ${jwtToken}`
       }
     });
@@ -43,16 +49,13 @@ async function initNotifications() {
 }
 
 // —————————————————————————————————————————
-// فتح سجل الإشعارات في الواجهة
-// —————————————————————————————————————————
-// —————————————————————————————————————————
-// فتح سجل الإشعارات في الواجهة (مع إعادة جلب ثم عرض)
+// 4) فتح سجل الإشعارات (يعيد جلب ثم يعرض)
 // —————————————————————————————————————————
 async function openNotificationLog() {
-  // (1) جلب أحدث التنبيهات
+  // (1) جلب آخر التنبيهات
   await initNotifications();
 
-  // (2) عرض التبويب/اللوحة
+  // (2) إظهار التبويب واللوحة
   const tab   = document.getElementById('notificationsTab');
   const panel = document.getElementById('notificationsPanel');
   if (tab)   tab.click();
@@ -62,27 +65,16 @@ async function openNotificationLog() {
   }
 }
 
-
-const caseMapping = {
-  '1': "غياب غير مبرر (بدون إذن رسمي)",
-  '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
-  '3': "خروج مبكر (أو عدم مهر البصمة مساءً)",
-  '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
-  '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
-};
-
 // —————————————————————————————————————————
-// Helper: تطبيع أرقام عربية → غربية
+// 5) رسم قائمة التنبيهات في DOM
 // —————————————————————————————————————————
-function normalizeDigits(str) {
-  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-}
 function renderNotifications() {
-  const list = document.getElementById('notificationsLog');
+  const list  = document.getElementById('notificationsLog');
   const count = document.getElementById('notifCount');
   if (!list || !count) return;
+
   if (serverNotifications.length === 0) {
-    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    list.innerHTML  = '<li class="text-gray-500">لا توجد إشعارات</li>';
     count.style.display = 'none';
   } else {
     list.innerHTML = serverNotifications.map(n => `
@@ -92,50 +84,64 @@ function renderNotifications() {
         <small class="text-gray-400">${n.time}</small>
       </li>
     `).join('');
-    count.textContent = serverNotifications.length;
-    count.style.display = 'inline-block';
+    count.textContent        = serverNotifications.length;
+    count.style.display      = 'inline-block';
   }
 }
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded fired');
 
-  // تسجيل الدخول/الخروج
+// —————————————————————————————————————————
+// 6) خريطة حالات التأخير (مثال)
+// —————————————————————————————————————————
+const caseMapping = {
+  '1': "غياب غير مبرر (بدون إذن رسمي)",
+  '2': "تأخر أكثر من ساعة أو عدم مهر البصمة صباحاً",
+  '3': "خروج مبكر (أو عدم مهر البصمة مساءً)",
+  '4': "عدد مرات التأخر أقل من ساعة (حسم يوم كل 3 تأخيرات)",
+  '5': "تجميع ساعيات (كل ثماني ساعات يتم احتساب يوم)"
+};
+
+// —————————————————————————————————————————
+// 7) تطبيع الأرقام العربية → غربية
+// —————————————————————————————————————————
+function normalizeDigits(str) {
+  return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+}
+
+// —————————————————————————————————————————
+// 8) ربط الأزرار عند تحميل الصفحة
+// —————————————————————————————————————————
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded — ربط الأزرار');
+
+  // تسجيل الدخول / الخروج
   const loginBtn  = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
-  console.log('loginBtn =', loginBtn, 'logoutBtn =', logoutBtn);
   if (loginBtn)  loginBtn.onclick  = login;
   if (logoutBtn) logoutBtn.onclick = logout;
 
-  document.getElementById('aboutBtn').onclick         = () =>
+  // أزرار القائمة الأخرى
+  document.getElementById('aboutBtn').onclick = () =>
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
-  document.getElementById('hwafezBtn').onclick        = showHwafez;
-  document.getElementById('tqeemBtn').onclick         = showTqeem;
+  document.getElementById('hwafezBtn').onclick = showHwafez;
+  document.getElementById('tqeemBtn').onclick  = showTqeem;
 
-  // ربط زر فتح سجل الإشعارات
+  // زر فتح سجل الإشعارات
   const notificationsTab = document.getElementById('notificationsTab');
-  if (notificationsTab) {
-    notificationsTab.onclick = openNotificationLog;
-  }
+  if (notificationsTab) notificationsTab.onclick = openNotificationLog;
 
-  // ربط زر إغلاق سجل الإشعارات
+  // زر إغلاق سجل الإشعارات
   const closeBtn = document.getElementById('closeNotificationsBtn');
-  if (closeBtn) {
-    closeBtn.onclick = () => {
-      const panel = document.getElementById('notificationsPanel');
-      if (panel) panel.classList.add('hidden');
-    };
-  }
+  if (closeBtn) closeBtn.onclick = () => {
+    const panel = document.getElementById('notificationsPanel');
+    if (panel) panel.classList.add('hidden');
+  };
 
-  // إذا هناك توكين مخزن مسبقاً
+  // إذا كان المستخدم سابقاً مسجلاً
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
     fetchAndRender()
-      .then(() => {
-        if (typeof window.initNotifications === 'function') {
-          window.initNotifications();
-        }
-      })
+      .then(() => initNotifications())
       .catch(logout);
   }
 });
