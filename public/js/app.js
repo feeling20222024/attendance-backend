@@ -106,7 +106,6 @@ const caseMapping = {
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 }
-
 // —————————————————————————————————————————
 // 8) ربط الأزرار عند تحميل الصفحة
 // —————————————————————————————————————————
@@ -125,16 +124,52 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('hwafezBtn').onclick = showHwafez;
   document.getElementById('tqeemBtn').onclick  = showTqeem;
 
-  // زر فتح سجل الإشعارات
-  const notificationsTab = document.getElementById('notificationsTab');
-  if (notificationsTab) notificationsTab.onclick = openNotificationLog;
+  // أيقونة الجرس (فتح/إغلاق لوحة الإشعارات)
+  const bell = document.getElementById('notifBell');
+  if (bell) {
+    bell.onclick = () => {
+      const panel = document.getElementById('notificationsPanel');
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        openNotificationLog(); // يعيد جلب وعرض التنبيهات عند الفتح
+      }
+    };
+  }
 
-  // زر إغلاق سجل الإشعارات
+  // زر مسح الإشعارات (للمشرف فقط)
+  const clearBtn = document.getElementById('clearNotifications');
+  if (clearBtn) {
+    clearBtn.onclick = async () => {
+      // تأكد أن المستخدم مشرف
+      if (currentUser !== SUPERVISOR_CODE) {
+        return alert('غير مسموح لك بمسح الإشعارات.');
+      }
+      try {
+        await fetch(`${API_BASE}/notifications`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${jwtToken}`
+          }
+        });
+        serverNotifications = [];
+        renderNotifications();
+        clearBtn.classList.add('hidden');
+        alert('✅ تم مسح جميع الإشعارات.');
+      } catch (e) {
+        console.error('❌ خطأ في مسح الإشعارات:', e);
+        alert('حدث خطأ أثناء مسح الإشعارات.');
+      }
+    };
+  }
+
+  // زر إغلاق سجل الإشعارات (داخل اللوحة)
   const closeBtn = document.getElementById('closeNotificationsBtn');
-  if (closeBtn) closeBtn.onclick = () => {
-    const panel = document.getElementById('notificationsPanel');
-    if (panel) panel.classList.add('hidden');
-  };
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      document.getElementById('notificationsPanel')?.classList.add('hidden');
+    };
+  }
 
   // إذا كان المستخدم سابقاً مسجلاً
   const saved = localStorage.getItem('jwtToken');
@@ -145,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(logout);
   }
 });
+
 // —————————————————————————————————————————
 // تسجيل الـ Service Worker وتهيئة Push
 // —————————————————————————————————————————
