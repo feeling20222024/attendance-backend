@@ -212,11 +212,10 @@ async function login() {
         });
         console.log('✅ FCM token registered:', fcmToken);
       }
-    
+    }
 
     await fetchAndRender();
     await initNotifications();
- }  // ← إغلاق الـ try
 }    // ← إغلاق دالة async function login()
 
 // (تابع باقي الدوال كما لديك بدون تغيير...)
