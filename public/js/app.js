@@ -105,7 +105,9 @@ const caseMapping = {
 // —————————————————————————————————————————
 function normalizeDigits(str) {
   return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-}// —————————————————————————————————————————
+}
+// —————————————————————————————————————————
+// —————————————————————————————————————————
 // 8) ربط الأزرار عند تحميل الصفحة
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
@@ -115,12 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('jwtToken');
   if (saved) {
     jwtToken = saved;
-    // جلب البيانات ثم تهيئة سجل الإشعارات
     fetchAndRender()
       .then(initNotifications)
       .catch(logout);
   } else {
-    // حتى قبل تسجيل الدخول: عرض عداد الإشعارات (سيكون فارغاً)
     renderNotifications();
   }
 
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const panel = document.getElementById('notificationsPanel');
       panel.classList.toggle('hidden');
       if (!panel.classList.contains('hidden')) {
-        openNotificationLog(); // يعيد جلب وعرض التنبيهات عند الفتح
+        openNotificationLog();
       }
     };
   }
@@ -155,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clearNotifications');
   if (clearBtn) {
     clearBtn.onclick = async () => {
-      // التحقق من كود المشرف
       if (currentUser !== SUPERVISOR_CODE) {
         return alert('غير مسموح لك بمسح الإشعارات.');
       }
@@ -177,7 +176,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
   }
+
+// **هنا نغلق دالة DOMContentLoaded**
 });
+
 
 
   // زر إغلاق سجل الإشعارات (داخل اللوحة)
