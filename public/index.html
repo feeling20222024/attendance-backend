@@ -63,38 +63,53 @@
   .hidden { display: none !important; }
 </style>
 
+
 <body class="bg-gray-100 min-h-screen flex flex-col">
   <!-- Header مع أيقونة الجرس والعداد -->
- <header class="relative bg-blue-600 text-white">
+  <header class="relative bg-blue-600 text-white">
   <div class="container mx-auto px-4 py-4 text-center">
     <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
   </div>
+  <div id="notifBell" style="position:absolute; top:1rem; right:1rem; cursor:pointer;">
+    🔔<span id="notifCount" class="badge" style="
+        font-size:0.75rem;
+        background:red;
+        color:white;
+        border-radius:50%;
+        padding:0 5px;
+        vertical-align:top;
+        margin-left:2px;
+      ">0</span>
+  </div>
+</header>
 
-<!-- 🔔 أيقونة الجرس -->
-<div id="notifBell" class="absolute top-4 right-4 cursor-pointer select-none">
-  🔔
-  <span id="notifCount"
-        class="inline-block bg-red-500 text-white rounded-full px-2 py-0.5 text-xs ml-1">
-    0
-  </span>
+<!-- لوحة الإشعارات المنسدلة -->
+<div id="notificationsPanel" style="
+     display:none;
+     position:absolute;
+     top:4rem; /* تحت الهيدر */
+     right:1rem;
+     width:300px;
+     max-height:400px;
+     overflow-y:auto;
+     background:#fff;
+     border:1px solid #ccc;
+     box-shadow:0 2px 6px rgba(0,0,0,0.2);
+     padding:0.5rem;
+     z-index:1000;
+">
+  <h3>📩 سجل الإشعارات</h3>
+  <ul id="notificationsLog" class="list-none p-0 m-0"></ul>
+  <button id="clearNotifications" style="
+      display:none;
+      margin-top:0.5rem;
+      background:#f44336;
+      color:white;
+      border:none;
+      padding:0.25rem 0.5rem;
+      cursor:pointer;
+    ">🗑️ مسح الإشعارات</button>
 </div>
-
-<!-- 📩 لوحة الإشعارات المنسدلة -->
-<div id="notificationsPanel"
-     class="hidden absolute top-14 right-4 w-80 max-h-96 overflow-y-auto bg-white border border-gray-300 shadow-lg p-3 z-50 rounded"
-     onclick="event.stopPropagation()">
-  <h3 class="font-semibold text-sm mb-2">📩 سجل الإشعارات</h3>
-  
-  <ul id="notificationsLog" class="space-y-2 text-sm text-gray-800">
-    <!-- سيتم تعبئة الإشعارات هنا -->
-  </ul>
-  
-  <button id="clearNotifications"
-          class="mt-3 text-red-600 text-xs hover:underline hidden">
-    🗑️ مسح الكل
-  </button>
-</div>
-
   <!-- Main -->
   <main class="flex-grow container mx-auto px-4 py-8">
 
