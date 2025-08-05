@@ -64,21 +64,24 @@ async function initNotifications() {
 
 // 2) فتح سجل الإشعارات (يعيد جلب ثم يعرض)
 // —————————————————————————————————————————
+// —————————————————————————————————————————
+// 4) فتح سجل الإشعارات (يعيد جلب ثم يعرض)
+// —————————————————————————————————————————
 async function openNotificationLog() {
   if (!jwtToken) return;
   await initNotifications();
   const panel = document.getElementById('notificationsPanel');
   panel.classList.remove('hidden');
-  panel.scrollIntoView({ behavior: 'smooth' });
+  // نمنع الـ scrollToTop غير الضروري:
+  // panel.scrollIntoView({ behavior: 'smooth' });
 }
 
 // —————————————————————————————————————————
-// 3) إضافة إشعار جديد مع تجنّب التكرار
+// 5) إضافة إشعار جديد مع تجنّب التكرار
 // —————————————————————————————————————————
 window.addNotification = ({ title, body, time }) => {
   const arr   = window.serverNotifications || [];
   const first = arr[0];
-  // تجنّب التكرار المتتالي
   if (first?.title === title && first.body === body) return;
   arr.unshift({ title, body, time });
   if (arr.length > 50) arr.pop();
@@ -87,7 +90,7 @@ window.addNotification = ({ title, body, time }) => {
 };
 
 // —————————————————————————————————————————
-// 4) رسم قائمة التنبيهات والعداد
+// 6) رسم قائمة التنبيهات والعداد
 // —————————————————————————————————————————
 function renderNotifications() {
   const list     = document.getElementById('notificationsLog');
@@ -95,65 +98,70 @@ function renderNotifications() {
   const clearBtn = document.getElementById('clearNotifications');
   const arr      = window.serverNotifications || [];
 
+  if (!list || !count || !clearBtn) return;
+
   if (arr.length === 0) {
-    list.innerHTML       = '<li class="py-1 text-gray-500">لا توجد إشعارات</li>';
-    count.style.display  = 'none';
+    list.innerHTML      = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    count.style.display = 'none';
   } else {
     list.innerHTML = arr.map(n => `
-      <li class="py-1 mb-1 border-b">
+      <li class="mb-2 border-b pb-1">
         <strong>${n.title}</strong><br>
         <small>${n.body}</small><br>
         <small class="text-gray-400">${n.time}</small>
       </li>
     `).join('');
-    count.textContent    = arr.length;
-    count.style.display  = 'inline-block';
+    count.textContent       = arr.length;
+    count.style.display     = 'inline-block';
   }
 
-  // إظهار زر المسح للمشرف فقط إذا هناك إشعارات
-  if (jwtToken && window.currentUser === SUPERVISOR_CODE && arr.length > 0) {
+  // زر المسح فقط للمشرف
+  if (currentUser === SUPERVISOR_CODE && arr.length) {
     clearBtn.classList.remove('hidden');
   } else {
     clearBtn.classList.add('hidden');
   }
 }
 
-
 // —————————————————————————————————————————
-// 6) ربط DOMContentLoaded: الجرس وأزرار المسح والإغلاق
+// 7) ربط DOMContentLoaded: الجرس وأزرار الإشعارات
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  // ارسم العداد أولًا (حتى قبل تسجيل الدخول)
+  // نرسم العداد حتى قبل تسجيل الدخول
   renderNotifications();
 
   const bell     = document.getElementById('notifBell');
   const panel    = document.getElementById('notificationsPanel');
   const clearBtn = document.getElementById('clearNotifications');
+  const closeBtn = document.getElementById('closeNotificationsBtn');
 
-  // (1) عند النقر على الجرس
+  // (1) عند النقر على أيقونة الجرس
   bell?.addEventListener('click', async e => {
     e.stopPropagation();
     panel.classList.toggle('hidden');
     if (!panel.classList.contains('hidden') && jwtToken) {
       await openNotificationLog();
     }
-    if (!panel.classList.contains('hidden') && !jwtToken) {
-      // مسجّل من دون جلسة: اعرض ما في الذاكرة فقط
-      renderNotifications();
-    }
+    renderNotifications();
   });
 
-  // (2) إغلاق الصندوق عند النقر خارجاً
-  document.body.addEventListener('click', () => {
+  // (2) إغلاق الصندوق عند النقر خارج اللوحة
+  document.addEventListener('click', () => {
     if (!panel.classList.contains('hidden')) {
       panel.classList.add('hidden');
     }
   });
 
-  // (3) زر المسح (للمشرف فقط)
+  // (3) زر إغلاق لوحة الإشعارات
+  closeBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    panel.classList.add('hidden');
+  });
+
+  // (4) زر المسح (للمشرف فقط)
   clearBtn?.addEventListener('click', async e => {
     e.stopPropagation();
-    if (window.currentUser !== SUPERVISOR_CODE) {
+    if (currentUser !== SUPERVISOR_CODE) {
       return alert('غير مسموح لك بمسح الإشعارات.');
     }
     if (!confirm('مسح جميع الإشعارات؟')) return;
@@ -173,14 +181,13 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('❌ حدث خطأ أثناء مسح الإشعارات.');
     }
   });
-});
-  // (4) تحميل بيانات الجلسة إن وجدت
+
+  // (5) إذا كان هناك جلسة مُسجَّلة
   if (jwtToken) {
-    // هنا تربط login/logout و fetchAndRender حسب الكود الأصلي
-    // ثم تهيئة التنبيهات من الخادم:
     initNotifications();
   }
-});
+});  // ← هذا القوس يغلق DOMContentLoaded مرة واحدة فقط
+
 // —————————————————————————————————————————
 // 6) خريطة حالات التأخير (مثال)
 // —————————————————————————————————————————
