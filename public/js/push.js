@@ -35,17 +35,22 @@ export async function initPush(serviceWorkerRegistration) {
     });
     console.log('✅ FCM token:', token);
 
-    // إرسال التوكن للخادم مرة واحدة مع الـ JWT
+    // إرسال التوكن للخادم
     if (localStorage.getItem('fcmTokenSent') !== token) {
-      await fetch('/api/register-token', {
+      await fetch(`${API_BASE}/register-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
         },
-        body: JSON.stringify({ token })  // فقط أرسل التوكن
+        body: JSON.stringify({ token })
       });
       localStorage.setItem('fcmTokenSent', token);
+
+      // بعد التسجيل، جلب التنبيهات الموحدة لعرض العداد فوراً
+      if (typeof window.initNotifications === 'function') {
+        window.initNotifications();
+      }
     }
 
     // استقبال الرسائل أثناء تواجد التطبيق في الواجهة
@@ -61,10 +66,8 @@ export async function initPush(serviceWorkerRegistration) {
 
   } catch (err) {
     console.error('❌ initPush failed:', err);
-    // يمكنك هنا عرض رسالة للمستخدم أو اتخاذ أي إجراء آخر
   }
 }
-
 // —————————————————————————————————————————
 // دالة تهيئة إشعارات Native (Capacitor)
 // —————————————————————————————————————————
