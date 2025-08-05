@@ -1,6 +1,7 @@
 // notifications.js — تحديث وتحسين واجهة سجل الإشعارات
 
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
 const panel           = document.getElementById('notificationsPanel');
 const list            = document.getElementById('notificationsLog');
 const badge           = document.getElementById('notifCount');
@@ -20,7 +21,7 @@ function renderNotifications() {
     list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     badge.classList.add('hidden');
   } else {
-    for (const n of arr.slice(0, 50)) {
+    arr.slice(0, 50).forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
       const timeStr = new Date(n.timestamp).toLocaleString('ar-EG', {
@@ -33,12 +34,11 @@ function renderNotifications() {
         <small class="text-gray-400">${timeStr}</small>
       `;
       list.appendChild(li);
-    }
+    });
     badge.textContent = arr.length;
     badge.classList.remove('hidden');
   }
 
-  // زر المسح للمشرف فقط
   if (window.currentUser === SUPERVISOR_CODE && arr.length > 0) {
     clearButton.classList.remove('hidden');
   } else {
@@ -46,7 +46,7 @@ function renderNotifications() {
   }
 }
 
-// 2) إضافة إشعار جديد مع تجنّب التكرار
+// 2) إضافة إشعار جديد
 window.addNotification = ({ title, body, timestamp }) => {
   const now = timestamp || Date.now();
   const arr = window.serverNotifications;
@@ -63,21 +63,18 @@ window.openNotificationLog = async () => {
     const res = await fetch(`${API_BASE}/notifications`, {
       headers: { Authorization: `Bearer ${window.jwtToken}` }
     });
-    if (!res.ok) throw new Error('فشل التحميل');
+    if (!res.ok) throw new Error();
     const { notifications } = await res.json();
     window.serverNotifications = notifications || [];
-    renderNotifications();
-  } catch (err) {
-    console.error('فشل تحميل الإشعارات:', err);
-    renderNotifications();
+  } catch {
+    window.serverNotifications = [];
   }
+  renderNotifications();
 };
 
 // 4) ربط الأحداث
-// منع إغلاق عند النقر داخل اللوحة
 panel.addEventListener('click', e => e.stopPropagation());
 
-// فتح/إغلاق عند النقر على الجرس
 bell.addEventListener('click', async e => {
   e.stopPropagation();
   panel.classList.toggle('hidden');
@@ -86,12 +83,10 @@ bell.addEventListener('click', async e => {
   }
 });
 
-// إغلاق الصندوق عند النقر خارجاً
 document.addEventListener('click', () => {
   panel.classList.add('hidden');
 });
 
-// زر المسح
 clearButton.addEventListener('click', async e => {
   e.stopPropagation();
   if (window.currentUser !== SUPERVISOR_CODE) return;
@@ -104,5 +99,5 @@ clearButton.addEventListener('click', async e => {
   renderNotifications();
 });
 
-// 5) عرض عداد التنبيهات عند التحميل
+// 5) عدّاد عند التحميل
 document.addEventListener('DOMContentLoaded', renderNotifications);
