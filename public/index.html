@@ -65,15 +65,28 @@
 
 <body class="bg-gray-100 min-h-screen flex flex-col">
   <!-- Header مع أيقونة الجرس والعداد -->
-  <header class="relative bg-blue-600 text-white">
-    <div class="container mx-auto px-4 py-4 text-center">
-      <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
+ <header class="relative bg-blue-600 text-white">
+  <div class="container mx-auto px-4 py-4 text-center">
+    <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
+  </div>
+
+  <!-- الجرس داخل الهيدر -->
+  <div id="notifBell" class="absolute top-4 right-4 cursor-pointer">
+    🔔
+    <span id="notifCount" class="badge bg-red-500 text-white rounded-full px-1 text-xs align-top ml-1">0</span>
+
+    <!-- لوحة الإشعارات داخل نفس الحاوية -->
+    <div id="notificationsPanel"
+         class="hidden absolute top-full right-0 mt-2 w-64 max-h-80 overflow-y-auto bg-white border border-gray-300 shadow-lg z-50 p-2">
+      <h3 class="font-semibold mb-2">📩 سجل الإشعارات</h3>
+      <ul id="notificationsLog" class="divide-y divide-gray-200"></ul>
+      <button id="clearNotifications"
+              class="hidden mt-2 w-full bg-red-500 text-white py-1 text-sm rounded">
+        🗑️ مسح الإشعارات
+      </button>
     </div>
-    <div id="notifBell" class="absolute top-4 right-4 cursor-pointer">
-      🔔
-      <span id="notifCount" class="badge bg-red-500 text-white rounded-full px-1 text-xs align-top ml-1">0</span>
-    </div>
-  </header>
+  </div>
+</header>
 
   <!-- لوحة الإشعارات المنسدلة -->
   <div id="notificationsPanel" class="hidden absolute top-16 right-4 w-72 max-h-96 overflow-y-auto bg-white border border-gray-300 shadow p-2 z-50">
