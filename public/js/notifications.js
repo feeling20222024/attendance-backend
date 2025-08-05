@@ -1,19 +1,18 @@
+// js/notifications-ui.js
+
 (function(){
-  const STORAGE_KEY = 'notificationsLog';
-  const bell        = document.getElementById('notifBell');
-  const panel       = document.getElementById('notificationsPanel');
-  const list        = document.getElementById('notificationsLog');
-  const clearBtn    = document.getElementById('clearNotifications');
-  const countBadge  = document.getElementById('notifCount');
-  const SUPERVISOR  = '35190';
+  const bell       = document.getElementById('notifBell');
+  const panel      = document.getElementById('notificationsPanel');
+  const list       = document.getElementById('notificationsLog');
+  const clearBtn   = document.getElementById('clearNotifications');
+  const countBadge = document.getElementById('notifCount');
+  const SUPERVISOR = '35190';
 
-  function loadNotifications() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-    catch { return []; }
-  }
-
+  // 1) رسم التنبيهات الموجودة في المتغيّر serverNotifications
   function renderNotifications() {
-    const notifs = loadNotifications();
+    // serverNotifications هو مصفوفة يتم تعبئتها بواسطة initNotifications()
+    const notifs = window.serverNotifications || [];
+
     if (!notifs.length) {
       list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     } else {
@@ -25,34 +24,69 @@
         </li>
       `).join('');
     }
+
+    // عدّاد الجرس
     countBadge.textContent = notifs.length;
     countBadge.style.display = notifs.length ? 'inline-block' : 'none';
-    clearBtn.style.display = window.currentUser===SUPERVISOR && notifs.length ? 'inline-block' : 'none';
+
+    // زر المسح للمشرف فقط
+    if (window.currentUser === SUPERVISOR && notifs.length) {
+      clearBtn.style.display = 'inline-block';
+    } else {
+      clearBtn.style.display = 'none';
+    }
   }
 
-  bell.addEventListener('click', () => {
-    panel.style.display = panel.style.display==='block' ? 'none' : 'block';
-    if (panel.style.display==='block') renderNotifications();
-  });
-
-  clearBtn.addEventListener('click', () => {
-    if (confirm('مسح جميع الإشعارات؟')) {
-      localStorage.removeItem(STORAGE_KEY);
-      fetch('/api/notifications', { method:'DELETE', headers:{ 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }})
-        .then(()=>renderNotifications())
-        .catch(console.error);
+  // 2) عند النقر على الجرس: إعادة جلب ثم عرض التنبيهات
+  bell.addEventListener('click', async () => {
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    if (panel.style.display === 'block') {
+      // initNotifications() جلب من الخادم
+      if (typeof window.initNotifications === 'function') {
+        await window.initNotifications();
+      }
+      renderNotifications();
     }
   });
 
+  // 3) زر المسح (للمشرف فقط)
+  clearBtn.addEventListener('click', async () => {
+    if (window.currentUser !== SUPERVISOR) {
+      return alert('غير مسموح لك بمسح الإشعارات.');
+    }
+    if (!confirm('مسح جميع الإشعارات؟')) return;
+
+    try {
+      // مسح من الخادم
+      await fetch(`${API_BASE}/notifications`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      // مسح محلياً
+      window.serverNotifications = [];
+      renderNotifications();
+      alert('✅ تم مسح جميع الإشعارات.');
+    } catch (e) {
+      console.error(e);
+      alert('❌ حدث خطأ أثناء مسح الإشعارات.');
+    }
+  });
+
+  // 4) عند استقبال إشعار جديد (push foreground أو من addNotification)
   window.addNotification = ({ title, body, time }) => {
-    const arr = loadNotifications();
-    arr.unshift({ title, body, time });
-    if (arr.length>50) arr.pop();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    window.serverNotifications = window.serverNotifications || [];
+    window.serverNotifications.unshift({ title, body, time });
+    if (window.serverNotifications.length > 50) {
+      window.serverNotifications.pop();
+    }
     renderNotifications();
   };
-  window.renderNotifications = renderNotifications;
-  window.updateBellCount = renderNotifications;
 
-  renderNotifications();
+  // 5) ربط أولي: 
+  // إذا كان هنالك مستخدم مسجّل سابقاً، نهيّئ count
+  document.addEventListener('DOMContentLoaded', () => {
+    renderNotifications();
+  });
 })();
