@@ -39,23 +39,24 @@ messaging.onMessage(payload => {
   window.addNotification({ title, body, time: new Date().toLocaleString() });
 });
 
-// —————————————————————————————————————————
-// 4) جلب التنبيهات الموحدة من الخادم
-// —————————————————————————————————————————
 async function initNotifications() {
   if (!jwtToken) return;
-  const res = await fetch(`${API_BASE}/notifications`, {
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${jwtToken}`
-    }
-  });
-  if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
-  const { notifications } = await res.json();
-  window.serverNotifications = notifications;
-  updateUI();
+  try {
+    const res = await fetch(`${API_BASE}/notifications`, {
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
+    const { notifications } = await res.json();
+    window.serverNotifications = notifications;
+    renderNotifications();    // ← استخدم renderNotifications لا updateUI
+  } catch (e) {
+    console.error('initNotifications:', e);
+    renderNotifications();    // ← أيضاً هنا
+  }
 }
-
 // —————————————————————————————————————————
 // 5) إضافة إشعار جديد مع تجنّب التكرار
 // —————————————————————————————————————————
