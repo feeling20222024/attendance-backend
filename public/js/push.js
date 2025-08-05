@@ -42,17 +42,16 @@ export async function initPush(swReg) {
     }
 
     onMessage(messaging, payload => {
-      const { title='', body='' } = payload.notification||{};
-      if (Notification.permission==='granted') {
-        new Notification(title, { body });
-      }
-      window.addNotification?.({ title, body, time: new Date().toLocaleString() });
-    });
-
-  } catch (err) {
-    console.error('❌ initPush failed:', err);
+  const { title='', body='' } = payload.notification||{};
+  if (Notification.permission==='granted') {
+    new Notification(title, { body });
   }
-}
+  window.addNotification?.({
+    title,
+    body,
+    time: new Date().toLocaleString()   // استخدم toLocaleString بدل ISO
+  });
+});
 
 // —————————————————————————————————————————
 // ربط للواجهة
