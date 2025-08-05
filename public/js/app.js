@@ -262,33 +262,31 @@ function normalizeDigits(str) {
       }
     };
   }
-   
-  // زر مسح الإشعارات (للمشرف فقط)
-  const clearBtn = document.getElementById('clearNotifications');
-  if (clearBtn) {
-    clearBtn.onclick = async () => {
-      if (currentUser !== SUPERVISOR_CODE) {
-        return alert('غير مسموح لك بمسح الإشعارات.');
-      }
-      try {
-        await fetch(`${API_BASE}/notifications`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${jwtToken}`
-          }
-        serverNotifications = [];
-        renderNotifications();
-        clearBtn.classList.add('hidden');
-        alert('✅ تم مسح جميع الإشعارات.');
-      } catch (e) {
-        console.error('❌ خطأ في مسح الإشعارات:', e);
-        alert('حدث خطأ أثناء مسح الإشعارات.');
-      }
-    };
-  }
-    });
-
+   // زر مسح الإشعارات (للمشرف فقط)
+const clearBtn = document.getElementById('clearNotifications');
+if (clearBtn) {
+  clearBtn.onclick = async () => {
+    if (currentUser !== SUPERVISOR_CODE) {
+      return alert('غير مسموح لك بمسح الإشعارات.');
+    }
+    try {
+      await fetch(`${API_BASE}/notifications`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      serverNotifications = [];
+      renderNotifications();
+      clearBtn.classList.add('hidden');
+      alert('✅ تم مسح جميع الإشعارات.');
+    } catch (e) {
+      console.error('❌ خطأ في مسح الإشعارات:', e);
+      alert('حدث خطأ أثناء مسح الإشعارات.');
+    }
+  };
+}
 
   // زر إغلاق سجل الإشعارات (داخل اللوحة)
   const closeBtn = document.getElementById('closeNotificationsBtn');
