@@ -25,14 +25,22 @@ admin.initializeApp({
 const db = getFirestore();
 
 // 3) إعداد Express و CORS
+const express = require('express');
+const cors    = require('cors');
+const path    = require('path');
+
 const app = express();
+
 const corsOptions = {
-  origin: ['https://dwam-app-by-omar.netlify.app'],
-  methods: ['GET','POST','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  origin: 'https://dwam-app-by-omar.netlify.app',
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
-// لا بد من تمرير OPTIONS لجميع المسارات أولاً
+
+// دعم طلبات preflight لجميع المسارات أولاً
 app.options('*', cors(corsOptions));
+
+// ثم استخدم الـ middleware
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
