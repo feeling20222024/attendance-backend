@@ -76,16 +76,22 @@
     <span id="notifCount" class="badge bg-red-500 text-white rounded-full px-1 text-xs align-top ml-1">0</span>
 
     <!-- لوحة الإشعارات داخل نفس الحاوية -->
-    <div id="notificationsPanel"
-         class="hidden absolute top-full right-0 mt-2 w-64 max-h-80 overflow-y-auto bg-white border border-gray-300 shadow-lg z-50 p-2">
-      <h3 class="font-semibold mb-2">📩 سجل الإشعارات</h3>
-      <ul id="notificationsLog" class="divide-y divide-gray-200"></ul>
-      <button id="clearNotifications"
-              class="hidden mt-2 w-full bg-red-500 text-white py-1 text-sm rounded">
-        🗑️ مسح الإشعارات
-      </button>
-    </div>
-  </div>
+<div id="notifBell" class="absolute top-4 right-4 cursor-pointer">
+  🔔
+  <span id="notifCount" class="badge bg-red-500 text-white rounded-full px-1 text-xs align-top ml-1">0</span>
+</div>
+
+<!-- لوحة الإشعارات المنسدلة -->
+<div id="notificationsPanel"
+     class="hidden absolute top-14 right-4 w-72 max-h-96 overflow-y-auto bg-white border border-gray-300 shadow-lg p-2 z-50"
+     onclick="event.stopPropagation()">
+  <h3 class="font-semibold mb-2">📩 سجل الإشعارات</h3>
+  <ul id="notificationsLog" class="list-none p-0 m-0 space-y-1 text-sm"></ul>
+  <button id="clearNotifications"
+          class="mt-2 text-red-600 text-xs hover:underline hidden">
+    🗑️ مسح الكل
+  </button>
+</div>
 </header>
 
   <!-- لوحة الإشعارات المنسدلة -->
