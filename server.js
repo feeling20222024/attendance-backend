@@ -1,13 +1,17 @@
+// server.js
+
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
 
-const express              = require('express');
-const cors                 = require('cors');
-const path                 = require('path');
-const jwt                  = require('jsonwebtoken');
-const { GoogleSpreadsheet }= require('google-spreadsheet');
-const admin                = require('firebase-admin');
-// 5) تهيئة Firebase Admin
+const express               = require('express');
+const cors                  = require('cors');
+const path                  = require('path');
+const jwt                   = require('jsonwebtoken');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
+const admin                 = require('firebase-admin');
+const { getFirestore }      = require('firebase-admin/firestore');
+
+// 2) تهيئة Firebase Admin
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -18,23 +22,22 @@ try {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
+const db = getFirestore();
 
 // 3) إعداد Express و CORS
 const app = express();
 const corsOptions = {
   origin: ['https://dwam-app-by-omar.netlify.app'],
-  methods: ['GET','POST','DELETE'],
+  methods: ['GET','POST','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization']
 };
-// قبل app.use(cors(corsOptions));
+// لا بد من تمرير OPTIONS لجميع المسارات أولاً
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 4) Firestore لحذف التوكن غير الصالح
-const { getFirestore } = require('firebase-admin/firestore');
-const db = getFirestore();
+// 4) حذف التوكن غير الصالح من Firestore
 async function deleteTokenFromFirestore(token) {
   const snapshot = await db.collection('fcm_tokens')
     .where('token', '==', token)
@@ -52,6 +55,7 @@ async function sendPushTo(token, title, body, data = {}) {
   };
   try {
     await admin.messaging().send(message);
+    console.log(`✅ تم الإرسال بنجاح إلى ${token}`);
   } catch (err) {
     console.error(`❌ فشل الإرسال إلى ${token}:`, err);
     if (err.errorInfo?.code === 'messaging/registration-token-not-registered') {
@@ -62,12 +66,12 @@ async function sendPushTo(token, title, body, data = {}) {
 }
 
 // 6) إعدادات عامة
-const APP_VERSION      = process.env.APP_VERSION      || '1.0.0';
-const PORT             = process.env.PORT             || 3000;
-const JWT_SECRET       = process.env.JWT_SECRET;
-const SUPERVISOR_CODE  = process.env.SUPERVISOR_CODE;
-const SHEET_ID         = process.env.GOOGLE_SHEET_ID;
-const GOOGLE_SERVICE_KEY = process.env.GOOGLE_SERVICE_KEY;
+const APP_VERSION       = process.env.APP_VERSION        || '1.0.0';
+const PORT              = process.env.PORT               || 3000;
+const JWT_SECRET        = process.env.JWT_SECRET;
+const SUPERVISOR_CODE   = process.env.SUPERVISOR_CODE;
+const SHEET_ID          = process.env.GOOGLE_SHEET_ID;
+const GOOGLE_SERVICE_KEY= process.env.GOOGLE_SERVICE_KEY;
 
 if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY) {
   console.error('❌ بعض متغيرات البيئة مفقودة.');
@@ -101,7 +105,7 @@ async function accessSheet() {
   return doc;
 }
 async function readSheet(title) {
-  const doc = await accessSheet();
+  const doc   = await accessSheet();
   const sheet = doc.sheetsByTitle[title];
   if (!sheet) throw new Error(`Sheet "${title}" غير موجود`);
   await sheet.loadHeaderRow();
@@ -154,18 +158,14 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     const { headers, data } = await readSheet('Attendance');
     const idx  = headers.indexOf('رقم الموظف');
     const code = normalizeDigits(String(req.user.code).trim());
-
     const userRows = data.filter(r =>
       normalizeDigits((r[idx]||'').trim()) === code
     );
-
     const colPersonal = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
     const personalNote = userRows.find(r => r[colPersonal]?.trim())?.[colPersonal]?.trim() || '';
-
     const generalRows = data.filter(r => !(r[idx]||'').toString().trim());
     const colGeneral  = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
     const generalNote = generalRows[0]?.[colGeneral]?.trim() || '';
-
     res.json({ headers, data: userRows, personalNote, generalNote });
   } catch (e) {
     console.error(e);
@@ -222,27 +222,24 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   }
   const { title, body } = req.body;
   if (!title || !body) return res.status(400).json({ error: 'title and body required' });
-
   await Promise.allSettled(
     Array.from(tokens.keys()).map(t => sendPushTo(t, title, body))
   );
-
   for (const user of tokens.values()) {
     const c = user.code;
     userNotifications[c] = userNotifications[c] || [];
     userNotifications[c].unshift({ title, body, time: new Date().toISOString() });
     if (userNotifications[c].length > 50) userNotifications[c].pop();
   }
-
   res.json({ success: true });
 });
 
 // 16) سجل الإشعارات الموحد
-app.get('/api/notifications', authenticate, (req, res) => {
+app.get('/api/notifications', cors(corsOptions), authenticate, (req, res) => {
   const c = req.user.code;
   res.json({ notifications: userNotifications[c] || [] });
 });
-app.delete('/api/notifications', authenticate, (req, res) => {
+app.delete('/api/notifications', cors(corsOptions), authenticate, (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
   Object.keys(userNotifications).forEach(k => delete userNotifications[k]);
   res.json({ success: true });
