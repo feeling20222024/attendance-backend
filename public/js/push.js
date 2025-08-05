@@ -53,7 +53,6 @@ export async function initPush(swReg) {
   });
 });
 
-// —————————————————————————————————————————
-// ربط للواجهة
-// —————————————————————————————————————————
-window.initPush = initPush;
+// في نهاية push.js
+window.initPush       = initPush;
+window.initPushNative = initPushNative;
