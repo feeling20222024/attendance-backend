@@ -277,7 +277,6 @@ function normalizeDigits(str) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${jwtToken}`
           }
-        });
         serverNotifications = [];
         renderNotifications();
         clearBtn.classList.add('hidden');
@@ -288,6 +287,7 @@ function normalizeDigits(str) {
       }
     };
   }
+    });
 
 
   // زر إغلاق سجل الإشعارات (داخل اللوحة)
