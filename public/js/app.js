@@ -262,7 +262,7 @@ function normalizeDigits(str) {
       }
     };
   }
-
+   
   // زر مسح الإشعارات (للمشرف فقط)
   const clearBtn = document.getElementById('clearNotifications');
   if (clearBtn) {
@@ -288,10 +288,6 @@ function normalizeDigits(str) {
       }
     };
   }
-
-// **هنا نغلق دالة DOMContentLoaded**
-});
-
 
 
   // زر إغلاق سجل الإشعارات (داخل اللوحة)
