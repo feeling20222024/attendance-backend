@@ -126,67 +126,97 @@ function renderNotifications() {
 // —————————————————————————————————————————
 // 7) ربط DOMContentLoaded: الجرس وأزرار الإشعارات
 // —————————————————————————————————————————
-document.addEventListener('DOMContentLoaded', () => {
-  // نرسم العداد حتى قبل تسجيل الدخول
-  renderNotifications();
+// —————————————————————————————————————————
+// Notification UI (ضع هذا كله مباشرة بعد تعريف initNotifications و openNotificationLog و renderNotifications)
+// —————————————————————————————————————————
+;(function() {
+  const bell       = document.getElementById('notifBell');
+  const panel      = document.getElementById('notificationsPanel');
+  const list       = document.getElementById('notificationsLog');
+  const clearBtn   = document.getElementById('clearNotifications');
+  const closeBtn   = document.getElementById('closeNotificationsBtn');
+  const countBadge = document.getElementById('notifCount');
 
-  const bell     = document.getElementById('notifBell');
-  const panel    = document.getElementById('notificationsPanel');
-  const clearBtn = document.getElementById('clearNotifications');
-  const closeBtn = document.getElementById('closeNotificationsBtn');
+  // (1) إعادة الرسم
+  function updateUI() {
+    const arr = window.serverNotifications || [];
+    if (!list || !countBadge || !clearBtn) return;
 
-  // (1) عند النقر على أيقونة الجرس
+    // الرسالة إن لم توجد إشعارات
+    list.innerHTML = arr.length
+      ? arr.map(n => `
+          <li class="mb-2 border-b pb-1">
+            <strong>${n.title}</strong><br>
+            <small>${n.body}</small><br>
+            <small class="text-gray-400">${n.time}</small>
+          </li>
+        `).join('')
+      : '<li class="text-gray-500">لا توجد إشعارات</li>';
+
+    // عدّاد
+    countBadge.textContent = arr.length;
+    countBadge.style.display = arr.length ? 'inline-block' : 'none';
+
+    // زر المسح للمشرف فقط
+    clearBtn.style.display = (currentUser === SUPERVISOR_CODE && arr.length)
+      ? 'block'
+      : 'none';
+  }
+
+  // (2) فتح/إغلاق
   bell?.addEventListener('click', async e => {
     e.stopPropagation();
     panel.classList.toggle('hidden');
     if (!panel.classList.contains('hidden') && jwtToken) {
-      await openNotificationLog();
+      await initNotifications();
     }
-    renderNotifications();
+    updateUI();
   });
 
-  // (2) إغلاق الصندوق عند النقر خارج اللوحة
+  // (3) إغلاق عند النقر خارج
   document.addEventListener('click', () => {
     if (!panel.classList.contains('hidden')) {
       panel.classList.add('hidden');
     }
   });
 
-  // (3) زر إغلاق لوحة الإشعارات
+  // (4) زر الإغلاق الصغير داخل اللوحة
   closeBtn?.addEventListener('click', e => {
     e.stopPropagation();
     panel.classList.add('hidden');
   });
 
-  // (4) زر المسح (للمشرف فقط)
+  // (5) زر المسح
   clearBtn?.addEventListener('click', async e => {
     e.stopPropagation();
-    if (currentUser !== SUPERVISOR_CODE) {
-      return alert('غير مسموح لك بمسح الإشعارات.');
-    }
+    if (currentUser !== SUPERVISOR_CODE) return alert('غير مسموح لك.');
     if (!confirm('مسح جميع الإشعارات؟')) return;
     try {
       await fetch(`${API_BASE}/notifications`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${jwtToken}`
-        }
+        headers: { 'Authorization': `Bearer ${jwtToken}` }
       });
       window.serverNotifications = [];
-      renderNotifications();
-      alert('✅ تم مسح جميع الإشعارات.');
+      updateUI();
     } catch (err) {
       console.error(err);
-      alert('❌ حدث خطأ أثناء مسح الإشعارات.');
+      alert('خطأ أثناء المسح.');
     }
   });
 
-  // (5) إذا كان هناك جلسة مُسجَّلة
-  if (jwtToken) {
-    initNotifications();
-  }
-});  // ← هذا القوس يغلق DOMContentLoaded مرة واحدة فقط
+  // (6) إضافة إشعار جديد خارجي
+  window.addNotification = ({ title, body, time }) => {
+    const arr = window.serverNotifications || [];
+    if (arr[0]?.title === title && arr[0].body === body) return;
+    arr.unshift({ title, body, time });
+    if (arr.length > 50) arr.pop();
+    window.serverNotifications = arr;
+    updateUI();
+  };
+
+  // (7) عند تحميل الصفحة، فقط ارسم الواجهة (عداد فقط)
+  document.addEventListener('DOMContentLoaded', updateUI);
+})();
 
 // —————————————————————————————————————————
 // 6) خريطة حالات التأخير (مثال)
