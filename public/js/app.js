@@ -1,7 +1,7 @@
 // —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
-window.API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
+const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
 
@@ -9,8 +9,8 @@ let headersAtt           = [], attendanceData   = [];
 let headersHw            = [], hwafezData        = [];
 let headersTq            = [], tqeemData         = [];
 let currentUser          = null;
-let jwtToken             = null;
-let serverNotifications  = [];
+let jwtToken             = localStorage.getItem('jwtToken') || null;
+window.serverNotifications = [];
 
 // —————————————————————————————————————————
 // 2) تهيئة Firebase في الواجهة
@@ -26,22 +26,17 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
+
 // —————————————————————————————————————————
-// 2.1) تهيئة Messaging واستقبال الإشعارات أثناء عمل الواجهة
+// 2.1) استقبال الإشعارات أثناء وجود التطبيق مفتوحاً
 // —————————————————————————————————————————
 const messaging = firebase.messaging();
-
-// عندما تصل رسالة أثناء أن التطبيق مفتوح
 messaging.onMessage(payload => {
-  console.log('Received foreground message ', payload);
+  console.log('Received foreground message', payload);
   const { title = '', body = '' } = payload.notification || {};
-
-  // 1) عرض Notification API
   if (Notification.permission === 'granted') {
     new Notification(title, { body });
   }
-
-  // 2) إضافة السجل محليًّا
   const now = new Date().toLocaleString();
   window.addNotification({ title, body, time: now });
 });
@@ -60,7 +55,7 @@ async function initNotifications() {
     });
     if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
     const { notifications } = await res.json();
-    serverNotifications = notifications;
+    window.serverNotifications = notifications;
     renderNotifications();
   } catch (e) {
     console.error('initNotifications:', e);
@@ -71,43 +66,107 @@ async function initNotifications() {
 // 4) فتح سجل الإشعارات (يعيد جلب ثم يعرض)
 // —————————————————————————————————————————
 async function openNotificationLog() {
-  // (1) جلب آخر التنبيهات
+  if (!jwtToken) return;
   await initNotifications();
-
-  // (2) إظهار التبويب واللوحة
-  const tab   = document.getElementById('notificationsTab');
   const panel = document.getElementById('notificationsPanel');
-  if (tab)   tab.click();
-  if (panel) {
-    panel.classList.remove('hidden');
-    panel.scrollIntoView({ behavior: 'smooth' });
-  }
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({ behavior: 'smooth' });
 }
 
 // —————————————————————————————————————————
-// 5) رسم قائمة التنبيهات في DOM
+// 5) إضافة إشعار جديد مع تجنّب التكرار
+// —————————————————————————————————————————
+window.addNotification = ({ title, body, time }) => {
+  const arr = window.serverNotifications || [];
+  const first = arr[0];
+  if (first?.title === title && first.body === body) return;
+  arr.unshift({ title, body, time });
+  if (arr.length > 50) arr.pop();
+  window.serverNotifications = arr;
+  renderNotifications();
+};
+
+// —————————————————————————————————————————
+// 6) رسم قائمة التنبيهات والعداد
 // —————————————————————————————————————————
 function renderNotifications() {
-  const list  = document.getElementById('notificationsLog');
-  const count = document.getElementById('notifCount');
-  if (!list || !count) return;
+  const list     = document.getElementById('notificationsLog');
+  const count    = document.getElementById('notifCount');
+  const clearBtn = document.getElementById('clearNotifications');
+  const arr      = window.serverNotifications || [];
 
-  if (serverNotifications.length === 0) {
-    list.innerHTML  = '<li class="text-gray-500">لا توجد إشعارات</li>';
+  // الرسم
+  if (arr.length === 0) {
+    list.innerHTML = '<li class="py-1 text-gray-500">لا توجد إشعارات</li>';
     count.style.display = 'none';
   } else {
-    list.innerHTML = serverNotifications.map(n => `
-      <li class="mb-2 border-b pb-1">
+    list.innerHTML = arr.map(n => `
+      <li class="py-1 mb-1 border-b">
         <strong>${n.title}</strong><br>
         <small>${n.body}</small><br>
         <small class="text-gray-400">${n.time}</small>
       </li>
     `).join('');
-    count.textContent        = serverNotifications.length;
-    count.style.display      = 'inline-block';
+    count.textContent   = arr.length;
+    count.style.display = 'inline-block';
+  }
+
+  // زر المسح للمشرف فقط
+  if (window.currentUser === SUPERVISOR_CODE && arr.length > 0) {
+    clearBtn.classList.remove('hidden');
+  } else {
+    clearBtn.classList.add('hidden');
   }
 }
 
+// —————————————————————————————————————————
+// 7) ربط DOMContentLoaded: الجرس وأزرار المسح
+// —————————————————————————————————————————
+document.addEventListener('DOMContentLoaded', () => {
+  // (1) عرض العداد ولوحة التنبيهات بدايةً
+  renderNotifications();
+
+  // (2) جرس الإشعارات
+  const bell = document.getElementById('notifBell');
+  bell?.addEventListener('click', () => {
+    const panel = document.getElementById('notificationsPanel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+      if (jwtToken) openNotificationLog();
+      else renderNotifications();
+    }
+  });
+
+  // (3) زر مسح الإشعارات
+  document.getElementById('clearNotifications')?.addEventListener('click', async () => {
+    if (window.currentUser !== SUPERVISOR_CODE) {
+      return alert('غير مسموح لك بمسح الإشعارات.');
+    }
+    if (!confirm('مسح جميع الإشعارات؟')) return;
+    try {
+      await fetch(`${API_BASE}/notifications`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwtToken}`
+        }
+      });
+      window.serverNotifications = [];
+      renderNotifications();
+      alert('✅ تم مسح جميع الإشعارات.');
+    } catch (e) {
+      console.error(e);
+      alert('❌ حدث خطأ أثناء مسح الإشعارات.');
+    }
+  });
+
+  // (4) تحميل بيانات الجلسة إن وجدت
+  if (jwtToken) {
+    // هنا تربط login/logout و fetchAndRender حسب الكود الأصلي
+    // ثم تهيئة التنبيهات من الخادم:
+    initNotifications();
+  }
+});
 // —————————————————————————————————————————
 // 6) خريطة حالات التأخير (مثال)
 // —————————————————————————————————————————
