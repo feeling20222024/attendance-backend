@@ -71,24 +71,18 @@
   </div>
 
 
-    <!-- لوحة الإشعارات داخل نفس الحاوية -->
-<div id="notifBell" class="absolute top-4 right-4 cursor-pointer">
-  🔔
-  <span id="notifCount" class="badge bg-red-500 text-white rounded-full px-1 text-xs align-top ml-1">0</span>
-</div>
-<!-- لوحة الإشعارات المنسدلة -->
+<!-- صندوق سجل الإشعارات (خارج الـ<header> حتى لا يقيده حجم الأب) -->
 <div id="notificationsPanel"
-     class="hidden absolute top-14 right-4 w-72 max-h-96 overflow-y-auto bg-white border border-gray-300 shadow-lg p-2 z-50"
-     onclick="event.stopPropagation()">
-  <h3 class="font-semibold mb-2">📩 سجل الإشعارات</h3>
-  <ul id="notificationsLog" class="list-none p-0 m-0 space-y-1 text-sm"></ul>
+     class="hidden fixed top-[5.5rem] right-4 w-72 max-h-80 overflow-y-auto
+            bg-white border rounded-lg shadow-lg p-4 z-50"
+     style="background-color: rgba(255,255,255,1) !important;">
+  <h3 class="font-semibold mb-3 text-gray-800">📩 سجل الإشعارات</h3>
+  <ul id="notificationsLog" class="list-none p-0 m-0 text-gray-700 text-sm space-y-2"></ul>
   <button id="clearNotifications"
-          class="mt-2 text-red-600 text-xs hover:underline hidden">
-    🗑️ مسح الكل
+          class="hidden mt-4 w-full bg-red-500 text-white py-2 rounded-lg">
+    🗑️ مسح الإشعارات
   </button>
 </div>
-</body>
-
   <!-- Main -->
   <main class="flex-grow container mx-auto px-4 py-8">
 
