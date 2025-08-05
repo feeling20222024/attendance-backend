@@ -1,6 +1,3 @@
-// —————————————————————————————————————————
-// استيراد مكتبات Firebase (Web modular API)
-// —————————————————————————————————————————
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
 import {
   getMessaging,
@@ -9,36 +6,30 @@ import {
 } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging.js';
 
 // —————————————————————————————————————————
-// ثوابت إعداد Firebase
+// ثوابت
 // —————————————————————————————————————————
-const firebaseConfig = {
-  apiKey: "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
-  authDomain: "device-streaming-47cbe934.firebaseapp.com",
-  projectId: "device-streaming-47cbe934",
-  storageBucket: "device-streaming-47cbe934.appspot.com",
-  messagingSenderId: "235398312189",
-  appId: "1:235398312189:web:8febe5e63f7b134b808e94"
-};
-const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
+const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const firebaseConfig  = { /* ... */ };
+const VAPID_PUBLIC_KEY = 'BIvZq29UIB5CgKiI…';
 
 // —————————————————————————————————————————
-// دالة تهيئة إشعارات الويب (FCM)
+// دالة تهيئة FCM
 // —————————————————————————————————————————
-export async function initPush(serviceWorkerRegistration) {
+export async function initPush(swReg) {
   const app       = initializeApp(firebaseConfig);
   const messaging = getMessaging(app);
 
   try {
     const token = await getToken(messaging, {
       vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration
+      serviceWorkerRegistration: swReg
     });
     console.log('✅ FCM token:', token);
 
-    // إرسال التوكن للخادم
     if (localStorage.getItem('fcmTokenSent') !== token) {
       await fetch(`${API_BASE}/register-token`, {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
@@ -46,75 +37,24 @@ export async function initPush(serviceWorkerRegistration) {
         body: JSON.stringify({ token })
       });
       localStorage.setItem('fcmTokenSent', token);
-
-      // بعد التسجيل، جلب التنبيهات الموحدة لعرض العداد فوراً
-      if (typeof window.initNotifications === 'function') {
-        window.initNotifications();
-      }
+      // بعدها حدّث العداد فوراً
+      window.initNotifications?.();
     }
 
-    // استقبال الرسائل أثناء تواجد التطبيق في الواجهة
     onMessage(messaging, payload => {
-      const { title = '', body = '' } = payload.notification || {};
-      if (Notification.permission === 'granted') {
+      const { title='', body='' } = payload.notification||{};
+      if (Notification.permission==='granted') {
         new Notification(title, { body });
       }
-      if (typeof window.addNotification === 'function') {
-        window.addNotification({ title, body, time: new Date().toLocaleString() });
-      }
+      window.addNotification?.({ title, body, time: new Date().toLocaleString() });
     });
 
   } catch (err) {
     console.error('❌ initPush failed:', err);
   }
 }
-// —————————————————————————————————————————
-// دالة تهيئة إشعارات Native (Capacitor)
-// —————————————————————————————————————————
-export async function initPushNative() {
-  let PushNotifications;
-  try {
-    ({ PushNotifications } = await import('https://unpkg.com/@capacitor/push-notifications/dist/esm/index.js'));
-  } catch {
-    return console.warn('⚠️ Capacitor PushNotifications unavailable');
-  }
-
-  try {
-    await PushNotifications.createChannel({ id:'default', name:'الإشعارات', importance:5 });
-    const perm = await PushNotifications.requestPermissions();
-    if (perm.receive !== 'granted') return;
-    await PushNotifications.register();
-
-    // إرسال التوكن عند التسجيل
-    PushNotifications.addListener('registration', ({ value }) => {
-      fetch('/api/register-token', {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
-        },
-        body: JSON.stringify({ token: value })
-      }).catch(console.error);
-    });
-
-    // استقبال الإشعارات في الواجهة
-    PushNotifications.addListener('pushNotificationReceived', notif => {
-      const { title = '', body = '' } = notif;
-      if (Notification.permission === 'granted') {
-        new Notification(title, { body });
-      }
-      if (typeof window.addNotification === 'function') {
-        window.addNotification({ title, body, time: new Date().toLocaleString() });
-      }
-    });
-
-  } catch (err) {
-    console.error('❌ initPushNative failed:', err);
-  }
-}
 
 // —————————————————————————————————————————
-// ربط الدوال
+// ربط للواجهة
 // —————————————————————————————————————————
-window.initPush       = initPush;
-window.initPushNative = initPushNative;
+window.initPush = initPush;
