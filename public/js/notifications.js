@@ -1,79 +1,108 @@
 // notifications.js — تحديث وتحسين واجهة سجل الإشعارات
 
-const panel = document.getElementById('notificationsPanel');
-const list = document.getElementById('notificationsList');
-const badge = document.getElementById('notifBadge');
-const bell = document.getElementById('notifBell');
-const clearButton = document.getElementById('clearNotifications');
+const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
+const panel           = document.getElementById('notificationsPanel');
+const list            = document.getElementById('notificationsLog');
+const badge           = document.getElementById('notifCount');
+const bell            = document.getElementById('notifBell');
+const clearButton     = document.getElementById('clearNotifications');
 
 window.serverNotifications = [];
 
+// 1) رسم التنبيهات والعداد
+function renderNotifications() {
+  if (!list || !badge || !clearButton) return;
 
-  function renderNotifications() {
-  const list     = document.getElementById('notificationsLog');
-  const count    = document.getElementById('notifCount');
-  const clearBtn = document.getElementById('clearNotifications');
-  if (!list || !count || !clearBtn) return; // ← تأكد من وجودها
+  list.innerHTML = '';
 
   const arr = window.serverNotifications || [];
-  // ... بقية المنطق
-}
-
-  const maxToShow = 50;
-  const items = window.serverNotifications.slice(0, maxToShow);
-
-  for (const n of items) {
-    const li = document.createElement('li');
-    li.className = 'notification-item';
-
-    const date = new Date(n.timestamp);
-    const timeStr = date.toLocaleString('ar-EG', {
-      dateStyle: 'short',
-      timeStyle: 'short',
-    });
-
-    li.innerHTML = `
-      <div class="notif-title">${n.title || '(بدون عنوان)'}</div>
-      <div class="notif-body">${n.body || ''}</div>
-      <div class="notif-time">${timeStr}</div>
-    `;
-
-    list.appendChild(li);
+  if (arr.length === 0) {
+    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    badge.classList.add('hidden');
+  } else {
+    for (const n of arr.slice(0, 50)) {
+      const li = document.createElement('li');
+      li.className = 'mb-2 border-b pb-1';
+      const timeStr = new Date(n.timestamp).toLocaleString('ar-EG', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+      });
+      li.innerHTML = `
+        <strong>${n.title || '(بدون عنوان)'}</strong><br>
+        <small>${n.body || ''}</small><br>
+        <small class="text-gray-400">${timeStr}</small>
+      `;
+      list.appendChild(li);
+    }
+    badge.textContent = arr.length;
+    badge.classList.remove('hidden');
   }
 
-  badge.classList.remove('hidden');
-  badge.textContent = items.length;
+  // زر المسح للمشرف فقط
+  if (window.currentUser === SUPERVISOR_CODE && arr.length > 0) {
+    clearButton.classList.remove('hidden');
+  } else {
+    clearButton.classList.add('hidden');
+  }
 }
 
+// 2) إضافة إشعار جديد مع تجنّب التكرار
 window.addNotification = ({ title, body, timestamp }) => {
   const now = timestamp || Date.now();
-
-  window.serverNotifications.unshift({ title, body, timestamp: now });
-
-  // الاحتفاظ بآخر 50 إشعار فقط
-  window.serverNotifications = window.serverNotifications.slice(0, 50);
+  const arr = window.serverNotifications;
+  if (arr[0]?.title === title && arr[0].body === body) return;
+  arr.unshift({ title, body, timestamp: now });
+  window.serverNotifications = arr.slice(0, 50);
   renderNotifications();
 };
 
+// 3) جلب التنبيهات من الخادم
 window.openNotificationLog = async () => {
   if (!window.jwtToken) return;
-
   try {
     const res = await fetch(`${API_BASE}/notifications`, {
-      headers: { Authorization: `Bearer ${window.jwtToken}` },
+      headers: { Authorization: `Bearer ${window.jwtToken}` }
     });
-
     if (!res.ok) throw new Error('فشل التحميل');
-
-    const json = await res.json();
-    window.serverNotifications = json.notifications || [];
+    const { notifications } = await res.json();
+    window.serverNotifications = notifications || [];
     renderNotifications();
   } catch (err) {
-    console.error('فشل تحميل الإشعارات:', err.message);
+    console.error('فشل تحميل الإشعارات:', err);
+    renderNotifications();
   }
 };
 
-// منع إغلاق الصندوق عند النقر بداخله
-panel.addEventListener('click', e => {
+// 4) ربط الأحداث
+// منع إغلاق عند النقر داخل اللوحة
+panel.addEventListener('click', e => e.stopPropagation());
+
+// فتح/إغلاق عند النقر على الجرس
+bell.addEventListener('click', async e => {
   e.stopPropagation();
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) {
+    await openNotificationLog();
+  }
 });
+
+// إغلاق الصندوق عند النقر خارجاً
+document.addEventListener('click', () => {
+  panel.classList.add('hidden');
+});
+
+// زر المسح
+clearButton.addEventListener('click', async e => {
+  e.stopPropagation();
+  if (window.currentUser !== SUPERVISOR_CODE) return;
+  if (!confirm('مسح جميع الإشعارات؟')) return;
+  await fetch(`${API_BASE}/notifications`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${window.jwtToken}` }
+  });
+  window.serverNotifications = [];
+  renderNotifications();
+});
+
+// 5) عرض عداد التنبيهات عند التحميل
+document.addEventListener('DOMContentLoaded', renderNotifications);
