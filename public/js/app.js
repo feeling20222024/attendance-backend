@@ -28,109 +28,48 @@ if (!firebase.apps.length) {
 }
 
 // —————————————————————————————————————————
-// 2.1) استقبال الإشعارات أثناء وجود التطبيق مفتوحاً
+// 3) استقبال الإشعارات في الواجهة المفتوحة
 // —————————————————————————————————————————
 const messaging = firebase.messaging();
 messaging.onMessage(payload => {
-  console.log('Received foreground message', payload);
   const { title = '', body = '' } = payload.notification || {};
   if (Notification.permission === 'granted') {
     new Notification(title, { body });
   }
-  const now = new Date().toLocaleString();
-  window.addNotification({ title, body, time: now });
+  window.addNotification({ title, body, time: new Date().toLocaleString() });
 });
 
 // —————————————————————————————————————————
-// 3) جلب التنبيهات الموحدة من الخادم
+// 4) جلب التنبيهات الموحدة من الخادم
 // —————————————————————————————————————————
 async function initNotifications() {
   if (!jwtToken) return;
-  try {
-    const res = await fetch(`${API_BASE}/notifications`, {
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      }
-    });
-    if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
-    const { notifications } = await res.json();
-    window.serverNotifications = notifications;
-    renderNotifications();
-  } catch (e) {
-    console.error('initNotifications:', e);
-  }
-}
-
-// 2) فتح سجل الإشعارات (يعيد جلب ثم يعرض)
-// —————————————————————————————————————————
-// —————————————————————————————————————————
-// 4) فتح سجل الإشعارات (يعيد جلب ثم يعرض)
-// —————————————————————————————————————————
-async function openNotificationLog() {
-  if (!jwtToken) return;
-  await initNotifications();
-  const panel = document.getElementById('notificationsPanel');
-  panel.classList.remove('hidden');
-  // نمنع الـ scrollToTop غير الضروري:
-  // panel.scrollIntoView({ behavior: 'smooth' });
+  const res = await fetch(`${API_BASE}/notifications`, {
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${jwtToken}`
+    }
+  });
+  if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
+  const { notifications } = await res.json();
+  window.serverNotifications = notifications;
+  updateUI();
 }
 
 // —————————————————————————————————————————
 // 5) إضافة إشعار جديد مع تجنّب التكرار
 // —————————————————————————————————————————
 window.addNotification = ({ title, body, time }) => {
-  const arr   = window.serverNotifications || [];
-  const first = arr[0];
-  if (first?.title === title && first.body === body) return;
+  const arr = window.serverNotifications || [];
+  if (arr[0]?.title === title && arr[0].body === body) return;
   arr.unshift({ title, body, time });
   if (arr.length > 50) arr.pop();
   window.serverNotifications = arr;
-  renderNotifications();
+  updateUI();
 };
 
 // —————————————————————————————————————————
-// 6) رسم قائمة التنبيهات والعداد
-// —————————————————————————————————————————
-function renderNotifications() {
-  const list     = document.getElementById('notificationsLog');
-  const count    = document.getElementById('notifCount');
-  const clearBtn = document.getElementById('clearNotifications');
-  const arr      = window.serverNotifications || [];
-
-  if (!list || !count || !clearBtn) return;
-
-  if (arr.length === 0) {
-    list.innerHTML      = '<li class="text-gray-500">لا توجد إشعارات</li>';
-    count.style.display = 'none';
-  } else {
-    list.innerHTML = arr.map(n => `
-      <li class="mb-2 border-b pb-1">
-        <strong>${n.title}</strong><br>
-        <small>${n.body}</small><br>
-        <small class="text-gray-400">${n.time}</small>
-      </li>
-    `).join('');
-    count.textContent       = arr.length;
-    count.style.display     = 'inline-block';
-  }
-
-  // زر المسح فقط للمشرف
-  if (currentUser === SUPERVISOR_CODE && arr.length) {
-    clearBtn.classList.remove('hidden');
-  } else {
-    clearBtn.classList.add('hidden');
-  }
-}
-
-// —————————————————————————————————————————
-// 7) ربط DOMContentLoaded: الجرس وأزرار الإشعارات
-// —————————————————————————————————————————
-// —————————————————————————————————————————
-// Notification UI (ضع هذا كله مباشرة بعد تعريف initNotifications و openNotificationLog و renderNotifications)
-// —————————————————————————————————————————
-// —————————————————————————————————————————
-// Notification UI (IIFE)
+// 6) تحديث واجهة التنبيهات (داخل الـ IIFE)
 // —————————————————————————————————————————
 ;(function() {
   const bell       = document.getElementById('notifBell');
@@ -140,9 +79,9 @@ function renderNotifications() {
   const closeBtn   = document.getElementById('closeNotificationsBtn');
   const countBadge = document.getElementById('notifCount');
 
-  // (1) إعادة الرسم
   function updateUI() {
     const arr = window.serverNotifications || [];
+    if (!list || !countBadge || !clearBtn) return;
     list.innerHTML = arr.length
       ? arr.map(n => `
           <li class="mb-2 border-b pb-1">
@@ -158,7 +97,6 @@ function renderNotifications() {
                               ? 'block' : 'none';
   }
 
-  // (2) فتح/إغلاق اللوحة
   bell?.addEventListener('click', async e => {
     e.stopPropagation();
     panel.classList.toggle('hidden');
@@ -168,18 +106,15 @@ function renderNotifications() {
     updateUI();
   });
 
-  // (3) إغلاق عند النقر خارج اللوحة
   document.addEventListener('click', () => {
     panel.classList.add('hidden');
   });
 
-  // (4) زر الإغلاق الصغير داخل اللوحة
   closeBtn?.addEventListener('click', e => {
     e.stopPropagation();
     panel.classList.add('hidden');
   });
 
-  // (5) زر المسح
   clearBtn?.addEventListener('click', async e => {
     e.stopPropagation();
     if (currentUser !== SUPERVISOR_CODE) return alert('غير مسموح لك.');
@@ -192,20 +127,8 @@ function renderNotifications() {
     updateUI();
   });
 
-  // (6) استقبال إشعار جديد من أي مكان
-  window.addNotification = ({ title, body, time }) => {
-    const arr = window.serverNotifications || [];
-    if (arr[0]?.title === title && arr[0].body === body) return;
-    arr.unshift({ title, body, time });
-    if (arr.length > 50) arr.pop();
-    window.serverNotifications = arr;
-    updateUI();
-  };
-
-  // (7) عند تحميل الصفحة، ارسم الواجهة (عداد)
   document.addEventListener('DOMContentLoaded', updateUI);
-
-})();  // ← إغلاق الـ IIFE مرة واحدة فقط
+})();  // ← تغلق الـ IIFE هنا
 
 // —————————————————————————————————————————
 // 6) خريطة حالات التأخير (مثال)
@@ -242,7 +165,22 @@ function normalizeDigits(str) {
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
   if (hwafezBtn) hwafezBtn.onclick = showHwafez;
   if (tqeemBtn)  tqeemBtn.onclick  = showTqeem;
-  
+  const bell  = document.getElementById('notifBell');
+  const panel = document.getElementById('notificationsPanel');
+  if (bell && panel) {
+    bell.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        await openNotificationLog();
+      }
+    });
+    document.addEventListener('click', () => {
+      if (!panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+      }
+    });
+  }
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', event => {
       if (event.data?.action === 'openNotifications') {
