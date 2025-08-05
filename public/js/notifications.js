@@ -1,7 +1,6 @@
 (function(){
   // اجلب API_BASE من window أو اعطِ قيمة افتراضية
   const API_BASE = window.API_BASE || 'https://dwam-app-by-omar.onrender.com/api';
-
   const bell       = document.getElementById('notifBell');
   const panel      = document.getElementById('notificationsPanel');
   const list       = document.getElementById('notificationsLog');
@@ -9,15 +8,22 @@
   const countBadge = document.getElementById('notifCount');
   const SUPERVISOR = '35190';
 
-  // 1) تهيئة جلب التنبيهات من الخادم
+ // 1) تهيئة جلب التنبيهات من الخادم
   window.initNotifications = async () => {
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      // لا توكن → افتراضيًا سجلّ فارغ
+      window.serverNotifications = [];
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+          'Authorization': `Bearer ${token}`
         }
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       window.serverNotifications = data.notifications || [];
     } catch (e) {
