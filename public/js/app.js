@@ -62,8 +62,7 @@ async function initNotifications() {
   }
 }
 
-// —————————————————————————————————————————
-// 4) فتح سجل الإشعارات (يعيد جلب ثم يعرض)
+// 2) فتح سجل الإشعارات (يعيد جلب ثم يعرض)
 // —————————————————————————————————————————
 async function openNotificationLog() {
   if (!jwtToken) return;
@@ -74,11 +73,12 @@ async function openNotificationLog() {
 }
 
 // —————————————————————————————————————————
-// 5) إضافة إشعار جديد مع تجنّب التكرار
+// 3) إضافة إشعار جديد مع تجنّب التكرار
 // —————————————————————————————————————————
 window.addNotification = ({ title, body, time }) => {
-  const arr = window.serverNotifications || [];
+  const arr   = window.serverNotifications || [];
   const first = arr[0];
+  // تجنّب التكرار المتتالي
   if (first?.title === title && first.body === body) return;
   arr.unshift({ title, body, time });
   if (arr.length > 50) arr.pop();
@@ -87,7 +87,7 @@ window.addNotification = ({ title, body, time }) => {
 };
 
 // —————————————————————————————————————————
-// 6) رسم قائمة التنبيهات والعداد
+// 4) رسم قائمة التنبيهات والعداد
 // —————————————————————————————————————————
 function renderNotifications() {
   const list     = document.getElementById('notificationsLog');
@@ -95,10 +95,9 @@ function renderNotifications() {
   const clearBtn = document.getElementById('clearNotifications');
   const arr      = window.serverNotifications || [];
 
-  // الرسم
   if (arr.length === 0) {
-    list.innerHTML = '<li class="py-1 text-gray-500">لا توجد إشعارات</li>';
-    count.style.display = 'none';
+    list.innerHTML       = '<li class="py-1 text-gray-500">لا توجد إشعارات</li>';
+    count.style.display  = 'none';
   } else {
     list.innerHTML = arr.map(n => `
       <li class="py-1 mb-1 border-b">
@@ -107,12 +106,12 @@ function renderNotifications() {
         <small class="text-gray-400">${n.time}</small>
       </li>
     `).join('');
-    count.textContent   = arr.length;
-    count.style.display = 'inline-block';
+    count.textContent    = arr.length;
+    count.style.display  = 'inline-block';
   }
 
-  // زر المسح للمشرف فقط
-  if (window.currentUser === SUPERVISOR_CODE && arr.length > 0) {
+  // إظهار زر المسح للمشرف فقط إذا هناك إشعارات
+  if (jwtToken && window.currentUser === SUPERVISOR_CODE && arr.length > 0) {
     clearBtn.classList.remove('hidden');
   } else {
     clearBtn.classList.add('hidden');
@@ -120,25 +119,60 @@ function renderNotifications() {
 }
 
 // —————————————————————————————————————————
-// 7) ربط DOMContentLoaded: الجرس وأزرار المسح
+// 5) جلب التنبيهات الموحدة من الخادم
+// —————————————————————————————————————————
+async function initNotifications() {
+  if (!jwtToken) return;
+  try {
+    const res = await fetch(`${API_BASE}/notifications`, {
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${jwtToken}`
+      }
+    });
+    if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
+    const { notifications } = await res.json();
+    window.serverNotifications = notifications;
+    renderNotifications();
+  } catch (e) {
+    console.error('initNotifications:', e);
+  }
+}
+
+// —————————————————————————————————————————
+// 6) ربط DOMContentLoaded: الجرس وأزرار المسح والإغلاق
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  // (1) عرض العداد ولوحة التنبيهات بدايةً
+  // ارسم العداد أولًا (حتى قبل تسجيل الدخول)
   renderNotifications();
 
-  // (2) جرس الإشعارات
-  const bell = document.getElementById('notifBell');
-  bell?.addEventListener('click', () => {
-    const panel = document.getElementById('notificationsPanel');
+  const bell     = document.getElementById('notifBell');
+  const panel    = document.getElementById('notificationsPanel');
+  const clearBtn = document.getElementById('clearNotifications');
+
+  // (1) عند النقر على الجرس
+  bell?.addEventListener('click', async e => {
+    e.stopPropagation();
     panel.classList.toggle('hidden');
-    if (!panel.classList.contains('hidden')) {
-      if (jwtToken) openNotificationLog();
-      else renderNotifications();
+    if (!panel.classList.contains('hidden') && jwtToken) {
+      await openNotificationLog();
+    }
+    if (!panel.classList.contains('hidden') && !jwtToken) {
+      // مسجّل من دون جلسة: اعرض ما في الذاكرة فقط
+      renderNotifications();
     }
   });
 
-  // (3) زر مسح الإشعارات
-  document.getElementById('clearNotifications')?.addEventListener('click', async () => {
+  // (2) إغلاق الصندوق عند النقر خارجاً
+  document.body.addEventListener('click', () => {
+    if (!panel.classList.contains('hidden')) {
+      panel.classList.add('hidden');
+    }
+  });
+
+  // (3) زر المسح (للمشرف فقط)
+  clearBtn?.addEventListener('click', async e => {
+    e.stopPropagation();
     if (window.currentUser !== SUPERVISOR_CODE) {
       return alert('غير مسموح لك بمسح الإشعارات.');
     }
@@ -154,12 +188,12 @@ document.addEventListener('DOMContentLoaded', () => {
       window.serverNotifications = [];
       renderNotifications();
       alert('✅ تم مسح جميع الإشعارات.');
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       alert('❌ حدث خطأ أثناء مسح الإشعارات.');
     }
   });
-
+});
   // (4) تحميل بيانات الجلسة إن وجدت
   if (jwtToken) {
     // هنا تربط login/logout و fetchAndRender حسب الكود الأصلي
