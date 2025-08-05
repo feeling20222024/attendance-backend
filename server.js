@@ -24,10 +24,6 @@ admin.initializeApp({
 });
 const db = getFirestore();
 
-// 3) إعداد Express و CORS
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
 
 const app = express();
 
