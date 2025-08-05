@@ -58,7 +58,10 @@ window.addNotification = ({ title, body, timestamp }) => {
 
 // 3) جلب التنبيهات من الخادم
 window.openNotificationLog = async () => {
-  if (!window.jwtToken) return;
+  if (!window.jwtToken) {
+    renderNotifications(); // عرض الإشعارات المحلية فقط
+    return;
+  }
   try {
     const res = await fetch(`${API_BASE}/notifications`, {
       headers: { Authorization: `Bearer ${window.jwtToken}` }
