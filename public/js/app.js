@@ -129,6 +129,9 @@ function renderNotifications() {
 // —————————————————————————————————————————
 // Notification UI (ضع هذا كله مباشرة بعد تعريف initNotifications و openNotificationLog و renderNotifications)
 // —————————————————————————————————————————
+// —————————————————————————————————————————
+// Notification UI (IIFE)
+// —————————————————————————————————————————
 ;(function() {
   const bell       = document.getElementById('notifBell');
   const panel      = document.getElementById('notificationsPanel');
@@ -140,9 +143,6 @@ function renderNotifications() {
   // (1) إعادة الرسم
   function updateUI() {
     const arr = window.serverNotifications || [];
-    if (!list || !countBadge || !clearBtn) return;
-
-    // الرسالة إن لم توجد إشعارات
     list.innerHTML = arr.length
       ? arr.map(n => `
           <li class="mb-2 border-b pb-1">
@@ -152,18 +152,13 @@ function renderNotifications() {
           </li>
         `).join('')
       : '<li class="text-gray-500">لا توجد إشعارات</li>';
-
-    // عدّاد
-    countBadge.textContent = arr.length;
+    countBadge.textContent   = arr.length;
     countBadge.style.display = arr.length ? 'inline-block' : 'none';
-
-    // زر المسح للمشرف فقط
-    clearBtn.style.display = (currentUser === SUPERVISOR_CODE && arr.length)
-      ? 'block'
-      : 'none';
+    clearBtn.style.display   = (currentUser === SUPERVISOR_CODE && arr.length)
+                              ? 'block' : 'none';
   }
 
-  // (2) فتح/إغلاق
+  // (2) فتح/إغلاق اللوحة
   bell?.addEventListener('click', async e => {
     e.stopPropagation();
     panel.classList.toggle('hidden');
@@ -173,11 +168,9 @@ function renderNotifications() {
     updateUI();
   });
 
-  // (3) إغلاق عند النقر خارج
+  // (3) إغلاق عند النقر خارج اللوحة
   document.addEventListener('click', () => {
-    if (!panel.classList.contains('hidden')) {
-      panel.classList.add('hidden');
-    }
+    panel.classList.add('hidden');
   });
 
   // (4) زر الإغلاق الصغير داخل اللوحة
@@ -191,19 +184,15 @@ function renderNotifications() {
     e.stopPropagation();
     if (currentUser !== SUPERVISOR_CODE) return alert('غير مسموح لك.');
     if (!confirm('مسح جميع الإشعارات؟')) return;
-    try {
-      await fetch(`${API_BASE}/notifications`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${jwtToken}` }
-      });
-      window.serverNotifications = [];
-      updateUI();
-    } catch (err) {
-      console.error(err);
-      alert('خطأ أثناء المسح.');
-    }
+    await fetch(`${API_BASE}/notifications`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${jwtToken}` }
+    });
+    window.serverNotifications = [];
+    updateUI();
   });
-    // (6) إضافة إشعار جديد خارجي
+
+  // (6) استقبال إشعار جديد من أي مكان
   window.addNotification = ({ title, body, time }) => {
     const arr = window.serverNotifications || [];
     if (arr[0]?.title === title && arr[0].body === body) return;
@@ -213,9 +202,10 @@ function renderNotifications() {
     updateUI();
   };
 
-  // (7) عند تحميل الصفحة، فقط ارسم الواجهة (عداد فقط)
+  // (7) عند تحميل الصفحة، ارسم الواجهة (عداد)
   document.addEventListener('DOMContentLoaded', updateUI);
-})();   // ← إغلاق الـ IIFE مرة واحدة فقط
+
+})();  // ← إغلاق الـ IIFE مرة واحدة فقط
 
 // —————————————————————————————————————————
 // 6) خريطة حالات التأخير (مثال)
