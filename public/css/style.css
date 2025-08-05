@@ -1,4 +1,14 @@
-/* public/css/style.css */
-
-/* هنا أضف أي أكواد CSS إضافية لديك.
-   إن لم يكن هناك شيء، يمكنك تركه فارغًا. */
+#notificationsPanel {
+  display: none;
+  position: fixed;    /* ثابت فوق المحتوى */
+  top: 4rem;
+  right: 1rem;
+  width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  padding: 0.5rem;
+  z-index: 1000;
+}
