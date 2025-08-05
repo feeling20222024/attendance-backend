@@ -312,9 +312,6 @@
         .catch(e => console.warn('❌ SW register failed', e));
     }
   </script>
-<script>
-  window.SUPERVISOR_CODE = '35190'; // ✅ تعريف الكود هنا عالميًا قبل تحميل notifications.js
-</script>
 <script src="notifications.js"></script>
 <!-- ثم push.js الذي يستدعي initPush و initNotifications -->
 <script type="module" src="/js/push.js"></script>
