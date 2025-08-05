@@ -8,14 +8,16 @@ const clearButton = document.getElementById('clearNotifications');
 
 window.serverNotifications = [];
 
-function renderNotifications() {
-  list.innerHTML = '';
 
-  if (!window.serverNotifications.length) {
-    list.innerHTML = '<li class="no-notifs">لا توجد إشعارات حالياً.</li>';
-    badge.classList.add('hidden');
-    return;
-  }
+  function renderNotifications() {
+  const list     = document.getElementById('notificationsLog');
+  const count    = document.getElementById('notifCount');
+  const clearBtn = document.getElementById('clearNotifications');
+  if (!list || !count || !clearBtn) return; // ← تأكد من وجودها
+
+  const arr = window.serverNotifications || [];
+  // ... بقية المنطق
+}
 
   const maxToShow = 50;
   const items = window.serverNotifications.slice(0, maxToShow);
