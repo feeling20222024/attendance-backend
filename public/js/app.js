@@ -200,21 +200,7 @@ function normalizeDigits(str) {
 }
 // —————————————————————————————————————————
 // —————————————————————————————————————————
-// 8) ربط الأزرار عند تحميل الصفحة
-// —————————————————————————————————————————
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOMContentLoaded — ربط الأزرار');
 
-  // إذا كان هناك JWT مخزن سابقاً
-  const saved = localStorage.getItem('jwtToken');
-  if (saved) {
-    jwtToken = saved;
-    fetchAndRender()
-      .then(initNotifications)
-      .catch(logout);
-  } else {
-    renderNotifications();
-  }
 
   // تسجيل الدخول / الخروج
   const loginBtn  = document.getElementById('loginBtn');
