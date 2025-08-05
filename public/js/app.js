@@ -157,6 +157,14 @@ document.addEventListener('DOMContentLoaded', () => {
     alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
   if (hwafezBtn) hwafezBtn.onclick = showHwafez;
   if (tqeemBtn)  tqeemBtn.onclick  = showTqeem;
+  
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.action === 'openNotifications') {
+        openNotificationLog();
+      }
+    });
+  }
 
   // أيقونة الجرس (فتح/إغلاق لوحة الإشعارات)
   const bell = document.getElementById('notifBell');
