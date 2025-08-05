@@ -118,26 +118,6 @@ function renderNotifications() {
   }
 }
 
-// —————————————————————————————————————————
-// 5) جلب التنبيهات الموحدة من الخادم
-// —————————————————————————————————————————
-async function initNotifications() {
-  if (!jwtToken) return;
-  try {
-    const res = await fetch(`${API_BASE}/notifications`, {
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      }
-    });
-    if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
-    const { notifications } = await res.json();
-    window.serverNotifications = notifications;
-    renderNotifications();
-  } catch (e) {
-    console.error('initNotifications:', e);
-  }
-}
 
 // —————————————————————————————————————————
 // 6) ربط DOMContentLoaded: الجرس وأزرار المسح والإغلاق
