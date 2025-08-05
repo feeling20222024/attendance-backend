@@ -189,17 +189,6 @@ function normalizeDigits(str) {
     });
   }
 
-  // أيقونة الجرس (فتح/إغلاق لوحة الإشعارات)
-  const bell = document.getElementById('notifBell');
-  if (bell) {
-    bell.onclick = () => {
-      const panel = document.getElementById('notificationsPanel');
-      panel.classList.toggle('hidden');
-      if (!panel.classList.contains('hidden')) {
-        openNotificationLog();
-      }
-    };
-  }
    // زر مسح الإشعارات (للمشرف فقط)
 const clearBtn = document.getElementById('clearNotifications');
 if (clearBtn) {
