@@ -203,8 +203,7 @@ function renderNotifications() {
       alert('خطأ أثناء المسح.');
     }
   });
-
-  // (6) إضافة إشعار جديد خارجي
+    // (6) إضافة إشعار جديد خارجي
   window.addNotification = ({ title, body, time }) => {
     const arr = window.serverNotifications || [];
     if (arr[0]?.title === title && arr[0].body === body) return;
@@ -216,7 +215,7 @@ function renderNotifications() {
 
   // (7) عند تحميل الصفحة، فقط ارسم الواجهة (عداد فقط)
   document.addEventListener('DOMContentLoaded', updateUI);
-})();
+})();   // ← إغلاق الـ IIFE مرة واحدة فقط
 
 // —————————————————————————————————————————
 // 6) خريطة حالات التأخير (مثال)
