@@ -28,6 +28,7 @@
       renderNotifications();
     }
   });
+  
 
   clearBtn.addEventListener('click', async () => {
     if (window.currentUser !== SUPERVISOR) return;
@@ -38,7 +39,18 @@
     window.serverNotifications = [];
     renderNotifications();
   });
-
+window.initNotifications = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/notifications`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('jwtToken')}` }
+    });
+    const data = await res.json();
+    window.serverNotifications = data.notifications || [];
+  } catch (e) {
+    console.error('فشل تحميل الإشعارات:', e);
+    window.serverNotifications = [];
+  }
+};
   window.addNotification = ({ title, body, time }) => {
     window.serverNotifications = window.serverNotifications || [];
     window.serverNotifications.unshift({ title, body, time });
