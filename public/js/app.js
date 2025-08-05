@@ -26,6 +26,25 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
+// —————————————————————————————————————————
+// 2.1) تهيئة Messaging واستقبال الإشعارات أثناء عمل الواجهة
+// —————————————————————————————————————————
+const messaging = firebase.messaging();
+
+// عندما تصل رسالة أثناء أن التطبيق مفتوح
+messaging.onMessage(payload => {
+  console.log('Received foreground message ', payload);
+  const { title = '', body = '' } = payload.notification || {};
+
+  // 1) عرض Notification API
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body });
+  }
+
+  // 2) إضافة السجل محليًّا
+  const now = new Date().toLocaleString();
+  window.addNotification({ title, body, time: now });
+});
 
 // —————————————————————————————————————————
 // 3) جلب التنبيهات الموحدة من الخادم
