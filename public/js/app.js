@@ -51,10 +51,10 @@ async function initNotifications() {
     if (!res.ok) throw new Error('فشل في جلب التنبيهات الموحدة');
     const { notifications } = await res.json();
     window.serverNotifications = notifications;
-    renderNotifications();    // ← استخدم renderNotifications لا updateUI
+    await openNotificationLog();
   } catch (e) {
     console.error('initNotifications:', e);
-    renderNotifications();    // ← أيضاً هنا
+    await openNotificationLog();
   }
 }
 // —————————————————————————————————————————
