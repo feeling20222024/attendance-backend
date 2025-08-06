@@ -27,47 +27,72 @@
                        https://fcm.googleapis.com
                        https://firebaseinstallations.googleapis.com
                        https://fcmregistrations.googleapis.com;
- 
-  <!-- ... بقية المحتوى ... -->
+        ">
+  <!-- ← تأكد من إغلاق علامتي " و > هنا -->
+
+  <!-- Tailwind + ستايلات عامة -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <style>
+    /* صنف عام للاختفاء */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- Header مع أيقونة الجرس والعداد -->
+  <header class="relative bg-blue-600 text-white">
+    <div class="container mx-auto px-4 py-4 text-center">
+      <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
+    </div>
+    <!-- الجرس مع العداد -->
+    <div id="notifBell"
+         class="absolute top-4 right-4 text-3xl cursor-pointer select-none">
+      🔔
+      <span id="notifCount"
+            class="hidden text-xs bg-red-500 text-white rounded-full px-1 align-top ml-1 pointer-events-none">
+        0
+      </span>
+    </div>
+  </header>
+
+  <!-- لوحة الإشعارات المنسدلة -->
+  <div id="notificationsPanel"
+       class="hidden absolute top-16 right-4 w-72 max-h-96 overflow-y-auto
+              bg-white border border-gray-300 shadow-lg p-2 z-50">
+    <h3 class="font-semibold mb-2">📩 سجل الإشعارات</h3>
+    <ul id="notificationsLog" class="list-none p-0 m-0 text-sm"></ul>
+    <button id="clearNotifications"
+            class="mt-2 bg-red-600 text-white px-2 py-1 rounded hidden cursor-pointer">
+      🗑️ مسح الإشعارات
+    </button>
+  </div>
+
+  <!-- Records Section -->
+  <main class="flex-grow container mx-auto px-4 py-8">
     <!-- Login Form -->
     <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
-      <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2>
-      <input id="codeInput" type="text" placeholder="كود الموظف"
-             class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
-      <input id="passwordInput" type="password" placeholder="كلمة المرور"
-             class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
-      <button id="loginBtn"
-              class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
-        دخول
-      </button>
+      <!-- ... -->
     </section>
 
-    <!-- Records Section -->
     <section id="records" class="hidden">
-
       <!-- Supervisor Push -->
       <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
-        <h3 class="text-xl font-semibold mb-4 text-gray-700">إرسال إشعار للمستخدمين</h3>
-        <input id="notifTitleInput" type="text" placeholder="عنوان الإشعار"
-               class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400" />
-        <textarea id="notifBodyInput" rows="3" placeholder="نص الإشعار"
-                  class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400"></textarea>
-        <button id="sendPushBtn"
-                class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition">
-          إرسال الإشعار
-        </button>
+        <!-- ... -->
       </div>
-<!-- ملاحظات عامة لجميع العاملين -->
-<div id="generalNoteBox" class="hidden …">
-  <h3>🌍 تنبيهات وملاحظات عامة لجميع العاملين</h3>
-  <div id="generalNoteText"></div>
-</div>
 
-<!-- ملاحظات خاصة بالعامل -->
-<div id="supervisorNotesSection" class="hidden …">
-  <h3>📢 تنبيهات وملاحظات خاصة بالعامل</h3>
-  <div id="supervisorNotes"></div>
-</div>
+      <!-- ملاحظات عامة لجميع العاملين -->
+      <div id="generalNoteBox" class="hidden mb-4 bg-white p-4 rounded shadow">
+        <h3>🌍 تنبيهات وملاحظات عامة لجميع العاملين</h3>
+        <div id="generalNoteText"></div>
+      </div>
+
+      <!-- ملاحظات خاصة بالعامل -->
+      <div id="supervisorNotesSection" class="hidden mb-4 bg-white p-4 rounded shadow">
+        <h3>📢 تنبيهات وملاحظات خاصة بالعامل</h3>
+        <div id="supervisorNotes"></div>
+      </div>
 
 
       <!-- Welcome -->
