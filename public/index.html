@@ -19,15 +19,15 @@
           script-src  'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com;
           style-src   'self' 'unsafe-inline' https://cdn.tailwindcss.com;
           connect-src 'self' https://dwam-app-by-omar.onrender.com https://www.googleapis.com https://fcm.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com;
-        ">
+        ">  <!-- ← تأكدنا من إغلاقه هنا -->
 
   <!-- Tailwind + ستايلات عامة -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/css/style.css" />
 
   <style>
-    /* صنف عام للاختفاء */
-    .hidden { display: none !important; }
+    /* لا تستخدم !important هنا حتى ينجح JS في إزالة الصنف */
+    .hidden { display: none; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
@@ -37,7 +37,6 @@
     <div class="container mx-auto px-4 py-4 text-center">
       <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
     </div>
-    <!-- الجرس مع العداد -->
     <div id="notifBell"
          class="absolute top-4 right-4 text-3xl cursor-pointer select-none">
       🔔
