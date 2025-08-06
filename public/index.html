@@ -27,37 +27,61 @@
                        https://fcm.googleapis.com
                        https://firebaseinstallations.googleapis.com
                        https://fcmregistrations.googleapis.com;
-        ">
-<!-- Tailwind + ستايلات عامة -->
+ <!-- Tailwind + ستايلات عامة -->
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="/css/style.css" />
+
 <style>
-  /* dropdown notifications */
+  /* لوحة الإشعارات */
   #notificationsPanel {
-    @apply absolute top-14 right-4 w-72 max-h-96 overflow-y-auto
-           bg-white border border-gray-300 shadow-lg p-2 z-50;
+    position: absolute;
+    top: 4rem;    /* تحت الهيدر */
+    right: 1rem;
+    width: 18rem; /* 72 */
+    max-height: 24rem; /* 96 */
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    padding: 0.5rem;
+    z-index: 1000;
   }
 
   /* أيقونة الجرس */
   #notifBell {
-    @apply absolute top-4 right-4 cursor-pointer text-3xl select-none;
-    /* تكبير الحجم وضمان ظهور المؤشر اليدي */
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 2.5rem;    /* يكبر الجرس */
+    cursor: pointer;      /* يظهر المؤشر يدي */
+    user-select: none;
   }
 
-  /* العداد داخل الجرس؛ نمنع منه اعتراض نقرات الفأرة */
-  #notifBell .badge {
-    @apply text-xs bg-red-500 text-white rounded-full px-1 align-top ml-1 pointer-events-none;
+  /* العداد داخل الجرس */
+  #notifCount {
+    font-size: 0.75rem;
+    background: red;
+    color: white;
+    border-radius: 9999px;
+    padding: 0 0.25rem;
+    vertical-align: top;
+    margin-left: 0.25rem;
+    pointer-events: none; /* لا يوقف نقر الجرس */
   }
 
   /* زر المسح */
   #clearNotifications {
-    @apply mt-2 bg-red-600 text-white px-2 py-1 rounded hidden cursor-pointer;
+    display: none;
+    margin-top: 0.5rem;
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
   }
 
-  /* صنف عام للاختفاء */
   .hidden { display: none !important; }
 </style>
-
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
 
@@ -67,9 +91,8 @@
       <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
     </div>
     <!-- الجرس مع العداد -->
-    <div id="notifBell" class="relative">
-      🔔
-      <span id="notifCount" class="badge hidden">0</span>
+    <div id="notifBell">
+      🔔<span id="notifCount" class="hidden">0</span>
     </div>
   </header>
 
@@ -82,7 +105,7 @@
 
   <!-- Main -->
   <main class="flex-grow container mx-auto px-4 py-8">
-
+  <!-- ... بقية المحتوى ... -->
     <!-- Login Form -->
     <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
       <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">تسجيل دخول الموظف</h2>
