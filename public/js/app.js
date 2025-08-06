@@ -177,7 +177,9 @@ function normalizeDigits(str) {
 
 
   // تسجيل الدخول / الخروج
-  const loginBtn  = document.getElementById('loginBtn');
+  const loginBtn  = document.getElementById('loginBtn
+      if (!panel.classList.contains('hidden')) {
+        await openNotificationLog();');
   const logoutBtn = document.getElementById('logoutBtn');
   if (loginBtn)  loginBtn.onclick  = login;
   if (logoutBtn) logoutBtn.onclick = logout;
@@ -196,8 +198,6 @@ function normalizeDigits(str) {
     bell.addEventListener('click', async (e) => {
       e.stopPropagation();
       panel.classList.toggle('hidden');
-      if (!panel.classList.contains('hidden')) {
-        await openNotificationLog();
       }
     });
     document.addEventListener('click', () => {
@@ -258,6 +258,25 @@ if (clearBtn) {
       .then(() => initNotifications())
       .catch(logout);
   }
+    
+// —————————————————————————————————————————
+// تسجيل الـ Service Worker وتهيئة Push
+// —————————————————————————————————————————
+async function registerSWand() {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('⚠️ Service Worker not supported');
+    return null;
+  }
+  try {
+    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    await navigator.serviceWorker.ready;
+    console.log('✅ SW registered and ready:', reg.scope);
+    return reg;
+  } catch (e) {
+    console.error('❌ SW registration failed:', e);
+    return null;
+  }
+}
 
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
