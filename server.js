@@ -166,26 +166,33 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     const userRows = data.filter(r =>
       normalizeDigits((r[idx]||'').trim()) === code
     );
-   const colPersonal = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
-    const colGeneral  = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
+
+  const colPersonal  = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
+  const colGeneral   = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
 
     const code = normalizeDigits(String(req.user.code).trim());
 
-    // استخراج صفوف الموظف فقط
+    // صفوف الموظف
     const userRows = data.filter(r =>
       normalizeDigits((r[idx] || '').trim()) === code
     );
 
-    // استخراج أول ملاحظة خاصة لهذا الموظف فقط (لن تبحث في كل الصفوف)
-    const personalNote = userRows[0]?.[colPersonal]?.trim() || '';
+    // أول صف للمشرف يحتوي فعلاً على ملاحظة خاصة
+    const personalRow = userRows.find(r =>
+      (r[colPersonal] || '').toString().trim() !== ''
+    );
+    const personalNote = personalRow
+      ? personalRow[colPersonal].toString().trim()
+      : '';
 
-    // استخراج الصفوف العامة (التي لا تحتوي على رقم موظف)
-    const generalRows = data.filter(r => !(r[idx] || '').toString().trim());
+    // استخراج أول صف عام (رقم الموظف فارغ) للملاحظة العامة
+    const generalRow = data.find(r =>
+      !(r[idx] || '').toString().trim()
+    );
+    const generalNote = generalRow
+      ? (generalRow[colGeneral] || '').toString().trim()
+      : '';
 
-    // أول ملاحظة عامة
-    const generalNote = generalRows[0]?.[colGeneral]?.trim() || '';
-
-    // إرسال الرد
     res.json({
       headers,
       data: userRows,
