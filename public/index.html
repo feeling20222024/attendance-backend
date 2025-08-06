@@ -69,62 +69,60 @@
     </button>
   </div>
 
-  <!-- Records Section -->
   <main class="flex-grow container mx-auto px-4 py-8">
 
-  <!-- Login Form -->
+  <!-- 1) نموذج تسجيل الدخول – يظهر أولاً -->
   <section id="loginSection"
            class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
     <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">
       تسجيل دخول الموظف
     </h2>
     <input id="codeInput" type="text" placeholder="كود الموظف"
-           class="w-full mb-3 border border-gray-300 px-3 py-2 rounded 
-                  focus:ring-2 focus:ring-blue-400" />
+           class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
     <input id="passwordInput" type="password" placeholder="كلمة المرور"
-           class="w-full mb-3 border border-gray-300 px-3 py-2 rounded 
-                  focus:ring-2 focus:ring-blue-400" />
+           class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
     <button id="loginBtn"
-            class="w-full bg-blue-600 text-white py-2 rounded 
-                   hover:bg-blue-700 transition">
+            class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
       دخول
     </button>
   </section>
 
-  <!-- Records Section -->
+  <!-- 2) القسم الرئيسي: مخفيّ افتراضيًا -->
   <section id="records" class="hidden">
-    <!-- ... باقي الصفحة ... -->
-  </section>
-</main>
 
-      <!-- ملاحظات عامة لجميع العاملين -->
-      <div id="generalNoteBox" class="hidden mb-4 bg-white p-4 rounded shadow">
-        <h3>🌍 تنبيهات وملاحظات عامة لجميع العاملين</h3>
-        <div id="generalNoteText"></div>
-      </div>
+    <!-- Supervisor Push (للمشرف فقط) -->
+    <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+      <!-- ... -->
+    </div>
 
-      <!-- ملاحظات خاصة بالعامل -->
-      <div id="supervisorNotesSection" class="hidden mb-4 bg-white p-4 rounded shadow">
-        <h3>📢 تنبيهات وملاحظات خاصة بالعامل</h3>
-        <div id="supervisorNotes"></div>
-      </div>
+    <!-- ملاحظات عامة -->
+    <div id="generalNoteBox" class="hidden mb-4 bg-white p-4 rounded shadow">
+      <h3>🌍 تنبيهات وملاحظات عامة لجميع العاملين</h3>
+      <div id="generalNoteText"></div>
+    </div>
 
-x
-      <!-- Welcome -->
-      <div class="mb-6 tet-center">
-        <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
-      </div>
-<!-- الأزرار الرئيسية في صف واحد -->
-<div class="flex flex-wrap justify-center gap-4 mb-6">
-  <button id="hwafezBtn"
-          class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition">
-    علامات الحوافز
-  </button>
-  <button id="tqeemBtn"
-        class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition">
-    التقييم السنوي
-  </button>
-</div>
+    <!-- ملاحظات خاصة -->
+    <div id="supervisorNotesSection" class="hidden mb-4 bg-white p-4 rounded shadow">
+      <h3>📢 تنبيهات وملاحظات خاصة بالعامل</h3>
+      <div id="supervisorNotes"></div>
+    </div>
+
+    <!-- رسالة الترحيب -->
+    <div class="mb-6 text-center">
+      <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
+    </div>
+
+    <!-- أزرار الحوافز والتقييم -->
+    <div class="flex flex-wrap justify-center gap-4 mb-6">
+      <button id="hwafezBtn"
+              class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition">
+        علامات الحوافز
+      </button>
+      <button id="tqeemBtn"
+              class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition">
+        التقييم السنوي
+      </button>
+    </div>
 <!-- أزرار ثانويّة (موازية للأزرار الرئيسية) -->
 <div class="flex flex-wrap justify-center gap-4 mb-6">
   <button id="aboutBtn"
