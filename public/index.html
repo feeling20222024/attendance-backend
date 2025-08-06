@@ -16,19 +16,10 @@
   <meta http-equiv="Content-Security-Policy"
         content="
           default-src 'self' data:;
-          script-src  'self' 'unsafe-inline' 'unsafe-eval'
-                       https://www.gstatic.com
-                       https://cdn.tailwindcss.com;
-          style-src   'self' 'unsafe-inline'
-                       https://cdn.tailwindcss.com;
-          connect-src 'self'
-                       https://dwam-app-by-omar.onrender.com
-                       https://www.googleapis.com
-                       https://fcm.googleapis.com
-                       https://firebaseinstallations.googleapis.com
-                       https://fcmregistrations.googleapis.com;
+          script-src  'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.tailwindcss.com;
+          style-src   'self' 'unsafe-inline' https://cdn.tailwindcss.com;
+          connect-src 'self' https://dwam-app-by-omar.onrender.com https://www.googleapis.com https://fcm.googleapis.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com;
         ">
-  <!-- ← تأكد من إغلاق علامتي " و > هنا -->
 
   <!-- Tailwind + ستايلات عامة -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -59,8 +50,8 @@
 
   <!-- لوحة الإشعارات المنسدلة -->
   <div id="notificationsPanel"
-       class="hidden absolute top-16 right-4 w-72 max-h-96 overflow-y-auto
-              bg-white border border-gray-300 shadow-lg p-2 z-50">
+       class="hidden absolute top-16 right-4 w-72 max-h-96 overflow-y-auto bg-white border border-gray-300 shadow-lg p-2 z-50"
+       onclick="event.stopPropagation()">
     <h3 class="font-semibold mb-2">📩 سجل الإشعارات</h3>
     <ul id="notificationsLog" class="list-none p-0 m-0 text-sm"></ul>
     <button id="clearNotifications"
@@ -71,70 +62,78 @@
 
   <main class="flex-grow container mx-auto px-4 py-8">
 
-  <!-- 1) نموذج تسجيل الدخول – يظهر أولاً -->
-  <section id="loginSection"
-           class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
-    <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">
-      تسجيل دخول الموظف
-    </h2>
-    <input id="codeInput" type="text" placeholder="كود الموظف"
-           class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
-    <input id="passwordInput" type="password" placeholder="كلمة المرور"
-           class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
-    <button id="loginBtn"
-            class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
-      دخول
-    </button>
-  </section>
-
-  <!-- 2) القسم الرئيسي: مخفيّ افتراضيًا -->
-  <section id="records" class="hidden">
-
-    <!-- Supervisor Push (للمشرف فقط) -->
-    <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
-      <!-- ... -->
-    </div>
-
-    <!-- ملاحظات عامة -->
-    <div id="generalNoteBox" class="hidden mb-4 bg-white p-4 rounded shadow">
-      <h3>🌍 تنبيهات وملاحظات عامة لجميع العاملين</h3>
-      <div id="generalNoteText"></div>
-    </div>
-
-    <!-- ملاحظات خاصة -->
-    <div id="supervisorNotesSection" class="hidden mb-4 bg-white p-4 rounded shadow">
-      <h3>📢 تنبيهات وملاحظات خاصة بالعامل</h3>
-      <div id="supervisorNotes"></div>
-    </div>
-
-    <!-- رسالة الترحيب -->
-    <div class="mb-6 text-center">
-      <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
-    </div>
-
-    <!-- أزرار الحوافز والتقييم -->
-    <div class="flex flex-wrap justify-center gap-4 mb-6">
-      <button id="hwafezBtn"
-              class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition">
-        علامات الحوافز
+    <!-- 1) نموذج تسجيل الدخول – يظهر أولاً -->
+    <section id="loginSection"
+             class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
+      <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">
+        تسجيل دخول الموظف
+      </h2>
+      <input id="codeInput" type="text" placeholder="كود الموظف"
+             class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
+      <input id="passwordInput" type="password" placeholder="كلمة المرور"
+             class="w-full mb-3 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-blue-400" />
+      <button id="loginBtn"
+              class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+        دخول
       </button>
-      <button id="tqeemBtn"
-              class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition">
-        التقييم السنوي
-      </button>
-    </div>
-<!-- أزرار ثانويّة (موازية للأزرار الرئيسية) -->
-<div class="flex flex-wrap justify-center gap-4 mb-6">
-  <button id="aboutBtn"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
-    حول التطبيق
-  </button>
-  <button id="logoutBtn"
-          class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
-    خروج
-  </button>
-</div>
+    </section>
 
+    <!-- 2) القسم الرئيسي: مخفيّ افتراضيًا -->
+    <section id="records" class="hidden">
+
+      <!-- Supervisor Push (للمشرف فقط) -->
+      <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">إرسال إشعار للمستخدمين</h3>
+        <input id="notifTitleInput" type="text" placeholder="عنوان الإشعار"
+               class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400" />
+        <textarea id="notifBodyInput" rows="3" placeholder="نص الإشعار"
+                  class="w-full mb-2 border border-gray-300 px-3 py-2 rounded focus:ring-2 focus:ring-purple-400"></textarea>
+        <button id="sendPushBtn"
+                class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition">
+          إرسال الإشعار
+        </button>
+      </div>
+
+      <!-- ملاحظات عامة لجميع العاملين -->
+      <div id="generalNoteBox" class="hidden mb-4 bg-white p-4 rounded shadow">
+        <h3 class="text-lg font-semibold mb-2">🌍 تنبيهات وملاحظات عامة لجميع العاملين</h3>
+        <div id="generalNoteText" class="text-gray-700"></div>
+      </div>
+
+      <!-- ملاحظات خاصة بالعامل -->
+      <div id="supervisorNotesSection" class="hidden mb-4 bg-white p-4 rounded shadow">
+        <h3 class="text-lg font-semibold mb-2">📢 تنبيهات وملاحظات خاصة بالعامل</h3>
+        <div id="supervisorNotes" class="text-gray-700"></div>
+      </div>
+
+      <!-- رسالة الترحيب -->
+      <div class="mb-6 text-center">
+        <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
+      </div>
+
+      <!-- أزرار الحوافز والتقييم -->
+      <div class="flex flex-wrap justify-center gap-4 mb-6">
+        <button id="hwafezBtn"
+                class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition">
+          علامات الحوافز
+        </button>
+        <button id="tqeemBtn"
+                class="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition">
+          التقييم السنوي
+        </button>
+      </div>
+
+      <!-- أزرار ثانويّة -->
+      <div class="flex flex-wrap justify-center gap-4 mb-6">
+        <button id="aboutBtn"
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+          حول التطبيق
+        </button>
+        <button id="logoutBtn"
+                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+          خروج
+        </button>
+      </div>
 
       <!-- Leave Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 max-w-4xl mx-auto">
