@@ -46,19 +46,19 @@ window.addNotification = ({ title, body, timestamp }) => {
 };
 
 window.openNotificationLog = async () => {
-  if (!window.jwtToken) {
-    renderNotifications();
-    return;
-  }
-  try {
-    const res = await fetch(`${API_BASE}/notifications`, {
-      headers:{ 'Authorization':`Bearer ${window.jwtToken}` }
-    });
-    if (!res.ok) throw 0;
-    const { notifications } = await res.json();
-    window.serverNotifications = notifications||[];
-  } catch {
-    window.serverNotifications = [];
+  // تخلّ عن شرط jwtToken — فقط حاول جلب من الخادم إذا متوفر
+  if (window.jwtToken) {
+    try {
+      const res = await fetch(`${API_BASE}/notifications`, {
+        headers:{ Authorization:`Bearer ${window.jwtToken}` }
+      });
+      if (res.ok) {
+        const { notifications } = await res.json();
+        window.serverNotifications = notifications;
+      }
+    } catch {
+      // فشل جلب الخادم: اترك local
+    }
   }
   renderNotifications();
 };
