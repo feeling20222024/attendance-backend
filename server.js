@@ -115,6 +115,7 @@ async function readSheet(title) {
   await sheet.loadHeaderRow();
   const headers = sheet.headerValues;
   const rows    = await sheet.getRows();
+  const headers = rawHeaders.map(h => h.trim());
   const data    = rows.map(r => headers.map(h => r[h] || ''));
   return { headers, data };
 }
