@@ -24,19 +24,14 @@ admin.initializeApp({
 });
 const db = getFirestore();
 
-
+// 3) إنشاء التطبيق وإعداد CORS
 const app = express();
-
 const corsOptions = {
   origin: 'https://dwam-app-by-omar.netlify.app',
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
-
-// دعم طلبات preflight لجميع المسارات أولاً
 app.options('*', cors(corsOptions));
-
-// ثم استخدم الـ middleware
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -70,12 +65,12 @@ async function sendPushTo(token, title, body, data = {}) {
 }
 
 // 6) إعدادات عامة
-const APP_VERSION       = process.env.APP_VERSION        || '1.0.0';
-const PORT              = process.env.PORT               || 3000;
-const JWT_SECRET        = process.env.JWT_SECRET;
-const SUPERVISOR_CODE   = process.env.SUPERVISOR_CODE;
-const SHEET_ID          = process.env.GOOGLE_SHEET_ID;
-const GOOGLE_SERVICE_KEY= process.env.GOOGLE_SERVICE_KEY;
+const APP_VERSION        = process.env.APP_VERSION        || '1.0.0';
+const PORT               = process.env.PORT               || 3000;
+const JWT_SECRET         = process.env.JWT_SECRET;
+const SUPERVISOR_CODE    = process.env.SUPERVISOR_CODE;
+const SHEET_ID           = process.env.GOOGLE_SHEET_ID;
+const GOOGLE_SERVICE_KEY = process.env.GOOGLE_SERVICE_KEY;
 
 if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY) {
   console.error('❌ بعض متغيرات البيئة مفقودة.');
@@ -99,6 +94,7 @@ try {
   console.error('❌ GOOGLE_SERVICE_KEY ليس JSON صالح.');
   process.exit(1);
 }
+
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
@@ -108,16 +104,23 @@ async function accessSheet() {
   await doc.loadInfo();
   return doc;
 }
+
 async function readSheet(title) {
   const doc   = await accessSheet();
   const sheet = doc.sheetsByTitle[title];
   if (!sheet) throw new Error(`Sheet "${title}" غير موجود`);
   await sheet.loadHeaderRow();
-  const headers = sheet.headerValues;
-  const rows    = await sheet.getRows();
-  const cleanHeaders = rawHeaders.map(h => h.trim());
-  const data    = rows.map(r => headers.map(h => r[h] || ''));
-  return { headers, data };
+
+  // نيّف العناوين (trim)
+  const rawHeaders    = sheet.headerValues;
+  const cleanHeaders  = rawHeaders.map(h => h.trim());
+
+  const rows = await sheet.getRows();
+  const data = rows.map(r =>
+    cleanHeaders.map(h => r[h] != null ? r[h] : '')
+  );
+
+  return { headers: cleanHeaders, data };
 }
 
 // 9) JWT Middleware
@@ -161,33 +164,26 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
-    const idx  = headers.indexOf('رقم الموظف');
-    const code = normalizeDigits(String(req.user.code).trim());
+
+    // أعمدة البحث
+    const idxEmp       = headers.indexOf('رقم الموظف');
+    const colPersonal  = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
+    const colGeneral   = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
+
+    // رمز الموظف الحالي
+    const empCode = normalizeDigits(String(req.user.code).trim());
+
+    // صفوف هذا الموظف فقط
     const userRows = data.filter(r =>
-      normalizeDigits((r[idx]||'').trim()) === code
+      normalizeDigits((r[idxEmp] || '').trim()) === empCode
     );
 
-  const colPersonal  = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
-  const colGeneral   = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
+    // أول ملاحظة شخصية لهذا الموظف
+    const personalNote = userRows[0]?.[colPersonal]?.toString().trim() || '';
 
-    const code = normalizeDigits(String(req.user.code).trim());
-
-    // صفوف الموظف
-    const userRows = data.filter(r =>
-      normalizeDigits((r[idx] || '').trim()) === code
-    );
-
-    // أول صف للمشرف يحتوي فعلاً على ملاحظة خاصة
-    const personalRow = userRows.find(r =>
-      (r[colPersonal] || '').toString().trim() !== ''
-    );
-    const personalNote = personalRow
-      ? personalRow[colPersonal].toString().trim()
-      : '';
-
-    // استخراج أول صف عام (رقم الموظف فارغ) للملاحظة العامة
+    // أول ملاحظة عامة (صفوف لا تحتوي على رقم موظف)
     const generalRow = data.find(r =>
-      !(r[idx] || '').toString().trim()
+      !(r[idxEmp] || '').toString().trim()
     );
     const generalNote = generalRow
       ? (generalRow[colGeneral] || '').toString().trim()
@@ -209,10 +205,10 @@ app.get('/api/attendance', authenticate, async (req, res) => {
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
-    const idx  = headers.indexOf('رقم الموظف');
-    const code = normalizeDigits(String(req.user.code).trim());
+    const idx = headers.indexOf('رقم الموظف');
+    const empCode = normalizeDigits(String(req.user.code).trim());
     const filtered = data.filter(r =>
-      normalizeDigits((r[idx]||'').trim()) === code
+      normalizeDigits((r[idx]||'').trim()) === empCode
     );
     res.json({ headers, data: filtered });
   } catch (e) {
@@ -225,10 +221,10 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
 app.get('/api/tqeem', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('tqeem');
-    const idx  = headers.indexOf('رقم الموظف');
-    const code = normalizeDigits(String(req.user.code).trim());
+    const idx = headers.indexOf('رقم الموظف');
+    const empCode = normalizeDigits(String(req.user.code).trim());
     const filtered = data.filter(r =>
-      normalizeDigits((r[idx]||'').trim()) === code
+      normalizeDigits((r[idx]||'').trim()) === empCode
     );
     res.json({ headers, data: filtered });
   } catch (e) {
