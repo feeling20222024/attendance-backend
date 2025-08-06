@@ -260,25 +260,6 @@ if (clearBtn) {
   }
 
 // —————————————————————————————————————————
-// تسجيل الـ Service Worker وتهيئة Push
-// —————————————————————————————————————————
-async function registerSWand() {
-  if (!('serviceWorker' in navigator)) {
-    console.warn('⚠️ Service Worker not supported');
-    return null;
-  }
-  try {
-    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    await navigator.serviceWorker.ready;
-    console.log('✅ SW registered and ready:', reg.scope);
-    return reg;
-  } catch (e) {
-    console.error('❌ SW registration failed:', e);
-    return null;
-  }
-}
-
-// —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
 async function login() {
