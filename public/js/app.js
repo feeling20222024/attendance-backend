@@ -691,3 +691,23 @@ function logout() {
   );
   document.getElementById('loginSection').classList.remove('hidden');
 }
+
+// —————————————————————————————————————————
+// تسجيل الـ SW والاستماع لرسائل FCM في الخلفية
+// —————————————————————————————————————————
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then(reg => console.log('✅ SW registered:', reg.scope))
+    .catch(err => console.warn('❌ SW register failed', err));
+
+  navigator.serviceWorker.addEventListener('message', event => {
+    const msg = event.data;
+    if (msg?.type === 'NEW_NOTIFICATION') {
+      window.addNotification({
+        title: msg.title,
+        body: msg.body,
+        timestamp: msg.timestamp
+      });
+    }
+  });
+}
