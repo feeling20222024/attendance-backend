@@ -31,26 +31,30 @@
 <!-- Tailwind + ستايلات عامة -->
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="/css/style.css" />
-
 <style>
   /* dropdown notifications */
   #notificationsPanel {
     @apply absolute top-14 right-4 w-72 max-h-96 overflow-y-auto
            bg-white border border-gray-300 shadow-lg p-2 z-50;
   }
+
+  /* أيقونة الجرس */
   #notifBell {
-    @apply absolute top-4 right-4 cursor-pointer text-2xl;
+    @apply absolute top-4 right-4 cursor-pointer text-3xl select-none;
+    /* تكبير الحجم وضمان ظهور المؤشر اليدي */
   }
+
+  /* العداد داخل الجرس؛ نمنع منه اعتراض نقرات الفأرة */
   #notifBell .badge {
-    @apply text-xs bg-red-500 text-white rounded-full px-1 align-top ml-1;
+    @apply text-xs bg-red-500 text-white rounded-full px-1 align-top ml-1 pointer-events-none;
   }
+
+  /* زر المسح */
   #clearNotifications {
     @apply mt-2 bg-red-600 text-white px-2 py-1 rounded hidden cursor-pointer;
   }
-</style>
 
-<!-- صنف عام للاختفاء -->
-<style>
+  /* صنف عام للاختفاء */
   .hidden { display: none !important; }
 </style>
 
