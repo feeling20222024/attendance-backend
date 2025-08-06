@@ -206,13 +206,15 @@ function normalizeDigits(str) {
       }
     });
   }
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', event => {
-      if (event.data?.action === 'openNotifications') {
-        openNotificationLog();
-      }
-    });
+ // داخل تسجيل الـ SW في login() أو عند بداية التشغيل:
+navigator.serviceWorker.addEventListener('message', event => {
+  const msg = event.data;
+  if (msg?.type === 'NEW_NOTIFICATION') {
+    // أضفها للسجل المحلي مباشرة بدون انتظار فتح اللوحة
+    window.addNotification({ title: msg.title, body: msg.body, timestamp: msg.timestamp });
   }
+});
+
 
    // زر مسح الإشعارات (للمشرف فقط)
 const clearBtn = document.getElementById('clearNotifications');
