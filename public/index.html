@@ -27,84 +27,87 @@
                        https://fcm.googleapis.com
                        https://firebaseinstallations.googleapis.com
                        https://fcmregistrations.googleapis.com;
- <!-- Tailwind + ستايلات عامة -->
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="/css/style.css" />
+ 
+  <!-- Tailwind + ستايلات عامة -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css" />
 
-<style>
-  /* لوحة الإشعارات */
-  #notificationsPanel {
-    position: absolute;
-    top: 4rem;    /* تحت الهيدر */
-    right: 1rem;
-    width: 18rem; /* 72 */
-    max-height: 24rem; /* 96 */
-    overflow-y: auto;
-    background: #fff;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    padding: 0.5rem;
-    z-index: 1000;
-  }
-
-  /* أيقونة الجرس */
-  #notifBell {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    font-size: 2.5rem;    /* يكبر الجرس */
-    cursor: pointer;      /* يظهر المؤشر يدي */
-    user-select: none;
-  }
-
-  /* العداد داخل الجرس */
-  #notifCount {
-    font-size: 0.75rem;
-    background: red;
-    color: white;
-    border-radius: 9999px;
-    padding: 0 0.25rem;
-    vertical-align: top;
-    margin-left: 0.25rem;
-    pointer-events: none; /* لا يوقف نقر الجرس */
-  }
-
-  /* زر المسح */
-  #clearNotifications {
-    display: none;
-    margin-top: 0.5rem;
-    background: #f44336;
-    color: white;
-    border: none;
-    padding: 0.25rem 0.5rem;
-    cursor: pointer;
-  }
-
-  .hidden { display: none !important; }
-</style>
+  <style>
+    /* dropdown notifications */
+    #notificationsPanel {
+      position: absolute; top: 3.5rem; right: 1rem;
+      width: 300px; max-height: 400px; overflow-y: auto;
+      background: #fff; border: 1px solid #ccc;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      padding: 0.5rem; display: none; z-index: 1000;
+    }
+    #notifBell {
+      position: absolute; top: 1rem; right: 1rem;
+      cursor: pointer; font-size: 1.5rem;
+    }
+    #notifBell .badge {
+      font-size: 0.75rem; background: red; color: white;
+      border-radius: 50%; padding: 0 5px;
+      vertical-align: top; margin-left: 4px;
+    }
+    #clearNotifications {
+      display: none; margin: 0.5rem auto 0;
+      background: #f44336; color: white; border: none;
+      padding: 0.25rem 0.5rem; cursor: pointer;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
 
+<body class="bg-gray-100 min-h-screen flex flex-col">
   <!-- Header مع أيقونة الجرس والعداد -->
   <header class="relative bg-blue-600 text-white">
-    <div class="container mx-auto px-4 py-4 text-center">
-      <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
-    </div>
-    <!-- الجرس مع العداد -->
-    <div id="notifBell">
-      🔔<span id="notifCount" class="hidden">0</span>
-    </div>
-  </header>
-
-  <!-- لوحة الإشعارات المنسدلة -->
-  <div id="notificationsPanel" class="hidden">
-    <h3 class="font-semibold mb-2">📩 سجل الإشعارات</h3>
-    <ul id="notificationsLog" class="list-none p-0 m-0 text-sm"></ul>
-    <button id="clearNotifications">🗑️ مسح الإشعارات</button>
+  <div class="container mx-auto px-4 py-4 text-center">
+    <h1 class="text-3xl font-bold">تطبيق متابعة الدوام</h1>
   </div>
+  <div id="notifBell" style="position:absolute; top:1rem; right:1rem; cursor:pointer;">
+    🔔<span id="notifCount" class="badge" style="
+        font-size:0.75rem;
+        background:red;
+        color:white;
+        border-radius:50%;
+        padding:0 5px;
+        vertical-align:top;
+        margin-left:2px;
+      ">0</span>
+  </div>
+</header>
+
+<!-- لوحة الإشعارات المنسدلة -->
+<div id="notificationsPanel" style="
+     display:none;
+     position:absolute;
+     top:4rem; /* تحت الهيدر */
+     right:1rem;
+     width:300px;
+     max-height:400px;
+     overflow-y:auto;
+     background:#fff;
+     border:1px solid #ccc;
+     box-shadow:0 2px 6px rgba(0,0,0,0.2);
+     padding:0.5rem;
+     z-index:1000;
+">
+  <h3>📩 سجل الإشعارات</h3>
+  <ul id="notificationsLog" class="list-none p-0 m-0"></ul>
+  <button id="clearNotifications" style="
+      display:none;
+      margin-top:0.5rem;
+      background:#f44336;
+      color:white;
+      border:none;
+      padding:0.25rem 0.5rem;
+      cursor:pointer;
+    ">🗑️ مسح الإشعارات</button>
+</div>
 
   <!-- Main -->
   <main class="flex-grow container mx-auto px-4 py-8">
+
   <!-- ... بقية المحتوى ... -->
     <!-- Login Form -->
     <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
