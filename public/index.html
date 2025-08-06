@@ -71,16 +71,31 @@
 
   <!-- Records Section -->
   <main class="flex-grow container mx-auto px-4 py-8">
-    <!-- Login Form -->
-    <section id="loginSection" class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
-      <!-- ... -->
-    </section>
 
-    <section id="records" class="hidden">
-      <!-- Supervisor Push -->
-      <div id="pushSection" class="hidden mb-6 bg-white p-6 rounded-lg shadow-md max-w-md mx-auto">
-        <!-- ... -->
-      </div>
+  <!-- Login Form -->
+  <section id="loginSection"
+           class="bg-white p-6 rounded-lg shadow-md max-w-md mx-auto mb-8">
+    <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">
+      تسجيل دخول الموظف
+    </h2>
+    <input id="codeInput" type="text" placeholder="كود الموظف"
+           class="w-full mb-3 border border-gray-300 px-3 py-2 rounded 
+                  focus:ring-2 focus:ring-blue-400" />
+    <input id="passwordInput" type="password" placeholder="كلمة المرور"
+           class="w-full mb-3 border border-gray-300 px-3 py-2 rounded 
+                  focus:ring-2 focus:ring-blue-400" />
+    <button id="loginBtn"
+            class="w-full bg-blue-600 text-white py-2 rounded 
+                   hover:bg-blue-700 transition">
+      دخول
+    </button>
+  </section>
+
+  <!-- Records Section -->
+  <section id="records" class="hidden">
+    <!-- ... باقي الصفحة ... -->
+  </section>
+</main>
 
       <!-- ملاحظات عامة لجميع العاملين -->
       <div id="generalNoteBox" class="hidden mb-4 bg-white p-4 rounded shadow">
@@ -94,9 +109,9 @@
         <div id="supervisorNotes"></div>
       </div>
 
-
+x
       <!-- Welcome -->
-      <div class="mb-6 text-center">
+      <div class="mb-6 tet-center">
         <h2 id="welcomeMsg" class="text-2xl font-bold text-gray-800">مرحباً</h2>
       </div>
 <!-- الأزرار الرئيسية في صف واحد -->
