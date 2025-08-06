@@ -177,44 +177,39 @@ function normalizeDigits(str) {
 
 
   // تسجيل الدخول / الخروج
-  const loginBtn  = document.getElementById('loginBtn
-      if (!panel.classList.contains('hidden')) {
-        await openNotificationLog();');
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (loginBtn)  loginBtn.onclick  = login;
-  if (logoutBtn) logoutBtn.onclick = logout;
+  const loginBtn  = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+if (loginBtn)  loginBtn.onclick  = login;
+if (logoutBtn) logoutBtn.onclick = logout;
 
-  // أزرار القائمة الأخرى
-  const aboutBtn    = document.getElementById('aboutBtn');
-  const hwafezBtn   = document.getElementById('hwafezBtn');
-  const tqeemBtn    = document.getElementById('tqeemBtn');
-  if (aboutBtn)  aboutBtn.onclick  = () =>
-    alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
-  if (hwafezBtn) hwafezBtn.onclick = showHwafez;
-  if (tqeemBtn)  tqeemBtn.onclick  = showTqeem;
-  const bell  = document.getElementById('notifBell');
-  const panel = document.getElementById('notificationsPanel');
-  if (bell && panel) {
-    bell.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      panel.classList.toggle('hidden');
-      }
-    });
-    document.addEventListener('click', () => {
-      if (!panel.classList.contains('hidden')) {
-        panel.classList.add('hidden');
-      }
-    });
-  }
- // داخل تسجيل الـ SW في login() أو عند بداية التشغيل:
-navigator.serviceWorker.addEventListener('message', event => {
-  const msg = event.data;
-  if (msg?.type === 'NEW_NOTIFICATION') {
-    // أضفها للسجل المحلي مباشرة بدون انتظار فتح اللوحة
-    window.addNotification({ title: msg.title, body: msg.body, timestamp: msg.timestamp });
-  }
-});
+// أزرار القائمة الأخرى
+const aboutBtn  = document.getElementById('aboutBtn');
+const hwafezBtn = document.getElementById('hwafezBtn');
+const tqeemBtn  = document.getElementById('tqeemBtn');
+if (aboutBtn)  aboutBtn.onclick  = () =>
+  alert('فكرة وإعداد وتصميم عمر عونـي الماضي   دائرة الموارد البشرية – فرع اتصالات دمشق');
+if (hwafezBtn) hwafezBtn.onclick = showHwafez;
+if (tqeemBtn)  tqeemBtn.onclick  = showTqeem;
 
+// لا تكرّر ربط زر الجرس هنا—لقد فعلناه في DOMContentLoaded سابقًا
+
+// تسجيل السيرفس وركر والاستماع للرسائل في الخلفية
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then(reg => console.log('✅ SW registered:', reg.scope))
+    .catch(err => console.warn('❌ SW register failed', err));
+
+  navigator.serviceWorker.addEventListener('message', event => {
+    const msg = event.data;
+    if (msg?.type === 'NEW_NOTIFICATION') {
+      window.addNotification({
+        title: msg.title,
+        body: msg.body,
+        timestamp: msg.timestamp
+      });
+    }
+  });
+}
 
    // زر مسح الإشعارات (للمشرف فقط)
 const clearBtn = document.getElementById('clearNotifications');
@@ -690,24 +685,4 @@ function logout() {
     document.getElementById(id).classList.add('hidden')
   );
   document.getElementById('loginSection').classList.remove('hidden');
-}
-
-// —————————————————————————————————————————
-// تسجيل الـ SW والاستماع لرسائل FCM في الخلفية
-// —————————————————————————————————————————
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    .then(reg => console.log('✅ SW registered:', reg.scope))
-    .catch(err => console.warn('❌ SW register failed', err));
-
-  navigator.serviceWorker.addEventListener('message', event => {
-    const msg = event.data;
-    if (msg?.type === 'NEW_NOTIFICATION') {
-      window.addNotification({
-        title: msg.title,
-        body: msg.body,
-        timestamp: msg.timestamp
-      });
-    }
-  });
 }
