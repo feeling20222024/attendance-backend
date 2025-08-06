@@ -166,12 +166,32 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     const userRows = data.filter(r =>
       normalizeDigits((r[idx]||'').trim()) === code
     );
-    const colPersonal = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
-    const personalNote = userRows.find(r => r[colPersonal]?.trim())?.[colPersonal]?.trim() || '';
-    const generalRows = data.filter(r => !(r[idx]||'').toString().trim());
+   const colPersonal = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
     const colGeneral  = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
+
+    const code = normalizeDigits(String(req.user.code).trim());
+
+    // استخراج صفوف الموظف فقط
+    const userRows = data.filter(r =>
+      normalizeDigits((r[idx] || '').trim()) === code
+    );
+
+    // استخراج أول ملاحظة خاصة لهذا الموظف فقط (لن تبحث في كل الصفوف)
+    const personalNote = userRows[0]?.[colPersonal]?.trim() || '';
+
+    // استخراج الصفوف العامة (التي لا تحتوي على رقم موظف)
+    const generalRows = data.filter(r => !(r[idx] || '').toString().trim());
+
+    // أول ملاحظة عامة
     const generalNote = generalRows[0]?.[colGeneral]?.trim() || '';
-    res.json({ headers, data: userRows, personalNote, generalNote });
+
+    // إرسال الرد
+    res.json({
+      headers,
+      data: userRows,
+      personalNote,
+      generalNote
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: e.message });
