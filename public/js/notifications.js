@@ -44,21 +44,22 @@ function renderNotifications() {
 // —————————————————————————————————————————
 // 2) جلب سجل الإشعارات من الخادم
 // —————————————————————————————————————————
-async function openNotificationLog() {
-  // حاول دائماً الجلب، حتى لو لم يكن المستخدم مسجّلاً (يتجاهل 401)
-  if (window.jwtToken) {
+// جلب سجل الإشعارات
+window.openNotificationLog = async () => {
+  if (window.jwtToken) {  // ← هنا تتحقّق من window.jwtToken
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
-        headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+        headers: { Authorization: `Bearer ${window.jwtToken}` }
       });
       if (res.ok) {
         const { notifications } = await res.json();
         window.serverNotifications = notifications;
       }
-    } catch (err) { /* تجاهل الأخطاء */ }
+    } catch { /* ignore */ }
   }
   renderNotifications();
-}
+};
+
 
 // —————————————————————————————————————————
 // 3) إضافة إشعار جديد محليّاً (من الفيروسرسوكر أو push)
