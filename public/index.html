@@ -272,15 +272,6 @@
   </main>
   <!-- Scripts -->
 
-  <!-- 1) تسجيل Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(r => console.log('✅ SW registered:', r.scope))
-        .catch(e => console.warn('❌ SW register failed', e));
-    }
-  </script>
-
 <!-- 3) Push initialisation -->
 
 <script type="module" src="/js/push.js"></script>
