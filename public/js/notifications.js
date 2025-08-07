@@ -1,7 +1,18 @@
-// notifications.js
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
-window.serverNotifications = [];
+
+// نقرأ التخزين السابق (أو نعطي مصفوفة فارغة إن لم يوجد)
+window.serverNotifications = JSON.parse(
+  localStorage.getItem('serverNotifications') || '[]'
+);
+
+// دالة لمزامنة الـ localStorage
+function persistNotifications() {
+  localStorage.setItem(
+    'serverNotifications',
+    JSON.stringify(window.serverNotifications)
+  );
+}
 
 // رسم الإشعارات
 function renderNotifications() {
@@ -42,10 +53,11 @@ window.addNotification = ({title, body, timestamp}) => {
   if (arr[0]?.title===title && arr[0]?.body===body) return;
   arr.unshift({title, body, timestamp: now});
   window.serverNotifications = arr.slice(0,50);
+  persistNotifications();     // ← مزامنة الـ localStorage
   renderNotifications();
 };
 
-// جلب سجل الإشعارات
+// جلب سجل الإشعارات من الخادم (إذا سجل المستخدم)
 window.openNotificationLog = async () => {
   if (window.jwtToken) {
     try {
@@ -55,13 +67,14 @@ window.openNotificationLog = async () => {
       if (res.ok) {
         const {notifications} = await res.json();
         window.serverNotifications = notifications||[];
+        persistNotifications(); // ← عملية مزامنة جديدة
       }
     } catch{/*ignore*/}
   }
   renderNotifications();
 };
 
-// ربط زر الجرس والعداد عند الـ DOMContentLoaded
+// ربط زر الجرس والعداد بعد التحميل
 document.addEventListener('DOMContentLoaded', () => {
   const panel = document.getElementById('notificationsPanel');
   const bell  = document.getElementById('notifBell');
@@ -86,8 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
       headers:{Authorization:`Bearer ${window.jwtToken}`}
     });
     window.serverNotifications=[];
+    persistNotifications();  // ← مزامنة بعد المسح
     renderNotifications();
   });
 
+  // نعرض ما في التخزين حتى قبل التسجيل
   renderNotifications();
 });
