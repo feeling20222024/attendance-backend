@@ -1,6 +1,4 @@
-// public/sw.js
-
-// 0) استيراد مكتبات Firebase Messaging compat
+// 0) Firebase-compat + FCM compat
 importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js');
 
@@ -15,63 +13,36 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// 1) استماع لرسائل الخلفية من FCM
+// 1) إشعارات الخلفية
 messaging.onBackgroundMessage(payload => {
-  const { title = '', body = '' } = payload.notification || {};
+  const { title='', body='' } = payload.notification||{};
   const timestamp = Date.now();
 
-  // 1.a) عرض الإشعار
+  // (a) عرضها
   self.registration.showNotification(title, { body });
 
-  // 1.b) إرسالها للصفحات المفتوحة عبر postMessage
-  self.clients.matchAll({ includeUncontrolled: true }).then(clients => {
-    clients.forEach(client => {
-      client.postMessage({
-        type:      'NEW_NOTIFICATION',
-        title,
-        body,
-        timestamp
-      });
-    });
+  // (b) بعثها لكل النوافذ
+  self.clients.matchAll({ includeUncontrolled: true }).then(clients=>{
+    clients.forEach(c => c.postMessage({ 
+      type:'NEW_NOTIFICATION', title, body, timestamp 
+    }));
   });
 });
 
-// 2) تعريف قائمة الملفات التي نريد كاشنجها
+// 2) Cache لحالة SPA
 const CACHE_NAME = 'v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/push.js',
-  // أضف هنا أي ملفات ثابتة أخرى تحتاجها
-];
+const ASSETS = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/push.js'];
 
-// 3) تثبيت Service Worker وعمل Cache للـ ASSETS
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting())
-  );
+self.addEventListener('install', e=>{
+  e.waitUntil(caches.open(CACHE_NAME)
+    .then(c=>c.addAll(ASSETS))
+    .then(()=>self.skipWaiting()));
 });
 
-// 4) تفعيل SW واحتلال الصفحات فورًا
-self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
-});
+self.addEventListener('activate', e=> e.waitUntil(self.clients.claim()));
 
-// 5) اعتراض جميع طلبات الـ fetch للاستجابة من الكاش أولًا
-self.addEventListener('fetch', event => {
-  const reqUrl = new URL(event.request.url);
-
-  // إذا كان origin مختلف، اترك الطلب يمر (مثلاً API calls)
-  if (reqUrl.origin !== self.location.origin) {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request)
-      .then(cached => cached || fetch(event.request))
-  );
+self.addEventListener('fetch', e=>{
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+  e.respondWith(caches.match(e.request).then(c=>c || fetch(e.request)));
 });
