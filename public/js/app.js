@@ -125,12 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
   window.renderNotifications();
 });
 
-// 5) دالة registerSWand للحصول على Registration الجاهز
-// —————————————————————————————————————————
-async function registerSWand() {
-  return await navigator.serviceWorker.ready;
-}
-
 // 6) إعداد Firebase Messaging للرسائل الحيّة في الواجهة
 // —————————————————————————————————————————
 const firebaseConfig = {
