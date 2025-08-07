@@ -2,6 +2,7 @@
 
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
+window.serverNotifications = [];
 
 // —————————————————————————————————————————
 // 0) تحميل الإشعارات المُخزَّنة (إن وُجدت) من localStorage
@@ -70,9 +71,7 @@ window.addNotification = ({ title, body, timestamp }) => {
   renderNotifications();
 };
 
-// —————————————————————————————————————————
-// 3) جلب سجل الإشعارات من الخادم (بعد تسجيل الدخول)
-// —————————————————————————————————————————
+// جلب سجل الإشعارات
 window.openNotificationLog = async () => {
   if (window.jwtToken) {
     try {
@@ -81,24 +80,18 @@ window.openNotificationLog = async () => {
       });
       if (res.ok) {
         const { notifications } = await res.json();
-        window.serverNotifications = notifications || [];
-        persistNotifications();
+        window.serverNotifications = notifications;
       }
-    } catch (_) { /* ignore */ }
+    } catch { /* ignore */ }
   }
   renderNotifications();
 };
-
-// —————————————————————————————————————————
-// 4) ربط زر الجرس والعداد عند تحميل الـ DOM
-// —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   const panel = document.getElementById('notificationsPanel');
   const bell  = document.getElementById('notifBell');
   const clear = document.getElementById('clearNotifications');
   if (!panel || !bell) return;
 
-  // فتح/إغلاق اللوحة
   panel.addEventListener('click', e => e.stopPropagation());
   bell.addEventListener('click', async e => {
     e.stopPropagation();
@@ -109,22 +102,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.body.addEventListener('click', () => panel.classList.add('hidden'));
 
-  // زر المسح
   clear.addEventListener('click', async e => {
     e.stopPropagation();
     if (window.currentUser !== SUPERVISOR_CODE) return;
     if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
-    try {
-      await fetch(`${API_BASE}/notifications`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${window.jwtToken}` }
-      });
-      window.serverNotifications = [];
-      persistNotifications();
-      renderNotifications();
-    } catch (_) { /* ignore */ }
+    await fetch(`${API_BASE}/notifications`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${window.jwtToken}` }
+    });
+    window.serverNotifications = [];
+    renderNotifications();
   });
 
-  // عرض تخزين الجلسة الحالية حتى قبل تسجيل الدخول
-  renderNotifications();
+  // **هنا**: إذا كان لدينا jwtToken مخزّن، جلب السجل أولاً
+  if (window.jwtToken) {
+    openNotificationLog();
+  } else {
+    // وإلا فقط عرض ما في الذاكرة المحلية (غالبًا none)
+    renderNotifications();
+  }
 });
+
