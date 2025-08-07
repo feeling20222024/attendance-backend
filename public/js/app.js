@@ -193,12 +193,15 @@ if (tqeemBtn)  tqeemBtn.onclick  = showTqeem;
 
 // لا تكرّر ربط زر الجرس هنا—لقد فعلناه في DOMContentLoaded سابقًا
 
-// تسجيل السيرفس وركر والاستماع للرسائل في الخلفية
+// ──────────────────────────────────────────────────
+// تسجيل Service Worker لمرة واحدة عند التحميل
+// ──────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/firebase-messaging-sw.js')
     .then(reg => console.log('✅ SW registered:', reg.scope))
     .catch(err => console.warn('❌ SW register failed', err));
 
+  // استقبال الرسائل من الخلفية
   navigator.serviceWorker.addEventListener('message', event => {
     const msg = event.data;
     if (msg?.type === 'NEW_NOTIFICATION') {
@@ -210,6 +213,7 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+
 
    // زر مسح الإشعارات (للمشرف فقط)
 const clearBtn = document.getElementById('clearNotifications');
