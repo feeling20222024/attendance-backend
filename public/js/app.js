@@ -251,12 +251,15 @@ async function login() {
 
     // (3) استلام الـ JWT
     const { token, user } = await res.json();
-    jwtToken      = token;
-    localStorage.setItem('jwtToken', jwtToken);
-    currentUser   = user.code ?? user['كود الموظف'];
-    window.currentUser = currentUser;
+   // ← داخل دالة login، فور استلام الـ token:
+jwtToken = token;
+localStorage.setItem('jwtToken', jwtToken);
+window.jwtToken = jwtToken;            // ← هذا السطر مفقود أصلًا
+currentUser = user.code ?? user['كود الموظف'];
+window.currentUser = currentUser;
 
-    // (4) انتظر الـ SW يصير جاهز וריצת initPush
+
+    // (4) انتظر الـ SW يصير جاهز  initPush
     const swReg = await navigator.serviceWorker.ready;
     await window.initPush(swReg);
 
