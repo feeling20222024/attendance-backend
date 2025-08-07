@@ -191,30 +191,6 @@ if (aboutBtn)  aboutBtn.onclick  = () =>
 if (hwafezBtn) hwafezBtn.onclick = showHwafez;
 if (tqeemBtn)  tqeemBtn.onclick  = showTqeem;
 
-// لا تكرّر ربط زر الجرس هنا—لقد فعلناه في DOMContentLoaded سابقًا
-
-// ──────────────────────────────────────────────────
-// تسجيل Service Worker لمرة واحدة عند التحميل
-// ──────────────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    .then(reg => console.log('✅ SW registered:', reg.scope))
-    .catch(err => console.warn('❌ SW register failed', err));
-
-  // استقبال الرسائل من الخلفية
-  navigator.serviceWorker.addEventListener('message', event => {
-    const msg = event.data;
-    if (msg?.type === 'NEW_NOTIFICATION') {
-      window.addNotification({
-        title: msg.title,
-        body: msg.body,
-        timestamp: msg.timestamp
-      });
-    }
-  });
-}
-
-
    // زر مسح الإشعارات (للمشرف فقط)
 const clearBtn = document.getElementById('clearNotifications');
 if (clearBtn) {
@@ -309,8 +285,7 @@ async function login() {
     currentUser = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
 // (4) تسجيل الـ SW وتهيئة Push
-const reg = await registerSWand(); // احفظ كائن الـ registration
-
+const reg = await navigator.serviceWorker.ready;
 // (5) طلب إذن الإشعارات وتسجيل FCM token
 const messaging = firebase.messaging();
 const perm = await Notification.requestPermission();
