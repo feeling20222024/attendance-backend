@@ -272,6 +272,7 @@
   </main>
 
   <!-- 1) تسجيل Service Worker -->
+<!-- 1) تسجيل Service Worker واحد فقط -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
@@ -281,9 +282,7 @@
 </script>
 
 <!-- 3) Push initialisation -->
-
 <script type="module" src="/js/push.js"></script>
-
 <!-- 2) منطق التطبيق العام -->
 <script type="module" src="/js/app.js"></script>
 
