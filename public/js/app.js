@@ -12,25 +12,7 @@ let currentUser      = null;
 let jwtToken         = localStorage.getItem('jwtToken') || null;
 window.serverNotifications = [];
 
-// 2) تسجيل الـ Service Worker والاستماع لرسائل الخلفية
-// —————————————————————————————————————————
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    .then(reg => {
-      console.log('✅ SW registered:', reg.scope);
-      navigator.serviceWorker.addEventListener('message', event => {
-        const msg = event.data;
-        if (msg?.type === 'NEW_NOTIFICATION') {
-          window.addNotification({
-            title: msg.title,
-            body:  msg.body,
-            time:  new Date(msg.timestamp).toLocaleString()
-          });
-        }
-      });
-    })
-    .catch(err => console.warn('❌ SW register failed', err));
-}
+
 
 // 3) دوال التنبيهات
 // —————————————————————————————————————————
