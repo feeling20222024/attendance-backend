@@ -136,23 +136,32 @@ function authenticate(req, res, next) {
 }
 
 // 10) تسجيل الدخول
-app.post('/api/login', async (req, res) => {
+const cors = require('cors');
+
+// نقطة النهاية لتسجيل الدخول مع دعم CORS
+app.post('/api/login', cors(corsOptions), async (req, res) => {
   let { code, pass } = req.body;
   if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
+
   code = normalizeDigits(code.trim());
   pass = normalizeDigits(pass.trim());
+
   try {
     const { headers, data } = await readSheet('Users');
     const iC = headers.indexOf('كود الموظف');
     const iP = headers.indexOf('كلمة المرور');
     const iN = headers.indexOf('الاسم');
+
     const row = data.find(r =>
-      normalizeDigits((r[iC]||'').trim()) === code &&
-      normalizeDigits((r[iP]||'').trim()) === pass
+      normalizeDigits((r[iC] || '').trim()) === code &&
+      normalizeDigits((r[iP] || '').trim()) === pass
     );
+
     if (!row) return res.status(401).json({ error: 'Invalid credentials' });
+
     const payload = { code, name: row[iN] };
-    const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+
     res.json({ token, user: payload });
   } catch (e) {
     console.error(e);
