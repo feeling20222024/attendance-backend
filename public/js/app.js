@@ -11,6 +11,51 @@ let headersTq            = [], tqeemData         = [];
 let currentUser          = null;
 let jwtToken             = localStorage.getItem('jwtToken') || null;
 window.serverNotifications = [];
+// —————————————————————————————————————————
+// تسجيل الـ Service Worker و الاستماع لرسائل الخلفية
+// —————————————————————————————————————————
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then(reg => {
+      console.log('✅ SW registered:', reg.scope);
+
+      // استمع لرسائل الـ SW (إشعارات الخلفية)
+      navigator.serviceWorker.addEventListener('message', event => {
+        const msg = event.data;
+        if (msg?.type === 'NEW_NOTIFICATION') {
+          window.addNotification({
+            title: msg.title,
+            body:  msg.body,
+            time:  new Date(msg.timestamp).toLocaleString()
+          });
+        }
+      });
+    })
+    .catch(err => console.warn('❌ SW register failed', err));
+}
+window.renderNotifications = function(arr = window.serverNotifications) { /* … */ };
+window.openNotificationLog = async function() { /* … */ };
+async function initNotifications() { /* … */ }
+window.addNotification = ({ title, body, time }) => { /* … */ };
+// —————————————————————————————————————————
+// 3) إذا كان المستخدم سابقاً مسجلاً
+// —————————————————————————————————————————
+const saved = localStorage.getItem('jwtToken');
+if (saved) {
+  jwtToken = saved;
+  fetchAndRender()
+    .then(() => initNotifications())
+    .catch(logout);
+}
+
+// —————————————————————————————————————————
+// 4) دالة registerSWand (لـ getToken فقط)
+// —————————————————————————————————————————
+async function registerSWand() {
+  const reg = await navigator.serviceWorker.ready;
+  return reg;
+}
+
 
 // —————————————————————————————————————————
 // 2) تابع رسم التنبيهات العام
@@ -224,33 +269,6 @@ if (clearBtn) {
     };
   }
 
-  // إذا كان المستخدم سابقاً مسجلاً
-  const saved = localStorage.getItem('jwtToken');
-  if (saved) {
-    jwtToken = saved;
-    fetchAndRender()
-      .then(() => initNotifications())
-      .catch(logout);
-  }
-    
-// —————————————————————————————————————————
-// تسجيل الـ Service Worker وتهيئة Push
-// —————————————————————————————————————————
-async function registerSWand() {
-  if (!('serviceWorker' in navigator)) {
-    console.warn('⚠️ Service Worker not supported');
-    return null;
-  }
-  try {
-    const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    await navigator.serviceWorker.ready;
-    console.log('✅ SW registered and ready:', reg.scope);
-    return reg;
-  } catch (e) {
-    console.error('❌ SW registration failed:', e);
-    return null;
-  }
-}
 
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
