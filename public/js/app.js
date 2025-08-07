@@ -115,42 +115,41 @@ window.addNotification = ({ title, body, time }) => {
 // 7) ربط DOMContentLoaded: زر الجرس وأحداث الإشعارات
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  const bell       = document.getElementById('notifBell');
-  const panel      = document.getElementById('notificationsPanel');
-  const clearBtn   = document.getElementById('clearNotifications');
+  const bell     = document.getElementById('notifBell');
+  const panel    = document.getElementById('notificationsPanel');
+  const clearBtn = document.getElementById('clearNotifications');
 
-  if (bell && panel) {
-    panel.addEventListener('click', e => e.stopPropagation());
-    bell.addEventListener('click', async e => {
-      e.stopPropagation();
-      panel.classList.toggle('hidden');
-      if (!panel.classList.contains('hidden')) {
-        await openNotificationLog();
-      }
-    });
-    document.body.addEventListener('click', () => {
-      if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
-    });
-  }
+  if (!bell || !panel) return;
 
-  if (clearBtn) {
-    clearBtn.addEventListener('click', async e => {
-      e.stopPropagation();
-      if (window.currentUser !== SUPERVISOR_CODE) return;
-      if (!confirm('مسح جميع الإشعارات؟')) return;
-      await fetch(`${API_BASE}/notifications`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${window.jwtToken}` }
-      });
-      window.serverNotifications = [];
-      window.renderNotifications();
+  panel.addEventListener('click', e => e.stopPropagation());
+
+  bell.addEventListener('click', async e => {
+    e.stopPropagation();
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+      await openNotificationLog();
+    }
+  });
+
+  document.body.addEventListener('click', () => {
+    if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
+  });
+
+  clearBtn?.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (window.currentUser !== SUPERVISOR_CODE) return;
+    if (!confirm('مسح جميع الإشعارات؟')) return;
+    await fetch(`${API_BASE}/notifications`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${window.jwtToken}` }
     });
-  }
+    window.serverNotifications = [];
+    renderNotifications();
+  });
 
   // تحديث أولي للعداد
-  window.renderNotifications();
+  renderNotifications();
 });
-
 // —————————————————————————————————————————
 // بقية app.js: تسجيل الدخول، جلب البيانات، الخ…
 /* … تابع باقية دوال login, fetchAndRender, renderRecords, showHwafez, showTqeem, sendSupervisorNotification, logout … */
