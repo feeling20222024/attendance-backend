@@ -151,14 +151,6 @@ const firebaseConfig = {
 };
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-const messaging = firebase.messaging();
-messaging.onMessage(payload => {
-  const { title = '', body = '' } = payload.notification || {};
-  if (Notification.permission === 'granted') {
-    new Notification(title, { body });
-  }
-  window.addNotification({ title, body, time: new Date().toLocaleString() });
-});
 
 // 7) إذا كان المستخدم سابقاً مُسجَّلاً فاجلب بياناته وتهيئة التنبيهات
 // —————————————————————————————————————————
