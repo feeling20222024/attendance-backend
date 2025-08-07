@@ -271,16 +271,6 @@
   </section>
   </main>
 
-  <!-- 1) تسجيل Service Worker -->
-<!-- 1) تسجيل Service Worker واحد فقط -->
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(r => console.log('✅ SW registered:', r.scope))
-      .catch(e => console.warn('❌ SW register failed', e));
-  }
-</script>
-
 <!-- 3) Push initialisation -->
 <script type="module" src="/js/push.js"></script>
 <!-- 2) منطق التطبيق العام -->
