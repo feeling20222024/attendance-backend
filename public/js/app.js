@@ -1,3 +1,24 @@
+// 1) تسجيل SW واحد فقط + تهيئة Push بعده
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(async reg => {
+      console.log('✅ SW registered:', reg.scope);
+      // بعد أن يصبح SW جاهزاً، نهيّئ Push
+      await window.initPush(reg);
+      // نستقبل إشعارات الخلفية
+      navigator.serviceWorker.addEventListener('message', e => {
+        const msg = e.data;
+        if (msg?.type === 'NEW_NOTIFICATION') {
+          window.addNotification({
+            title: msg.title,
+            body:  msg.body,
+            time:  new Date(msg.timestamp).toLocaleString()
+          });
+        }
+      });
+    })
+    .catch(err => console.warn('❌ SW register failed', err));
+}
 // —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
