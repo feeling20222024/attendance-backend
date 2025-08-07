@@ -104,15 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const panel    = document.getElementById('notificationsPanel');
   const clearBtn = document.getElementById('clearNotifications');
 
-  if (bell && panel) {
-    panel.addEventListener('click', e => e.stopPropagation());
-    bell.addEventListener('click', async e => {
-      e.stopPropagation();
-      panel.classList.toggle('hidden');
-      if (!panel.classList.contains('hidden')) {
-        await openNotificationLog();
-      }
-    });
     document.body.addEventListener('click', () => {
       if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
     });
