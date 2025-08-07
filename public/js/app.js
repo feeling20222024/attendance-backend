@@ -5,21 +5,19 @@ const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const LOGIN_ENDPOINT  = `${API_BASE}/login`;
 const SUPERVISOR_CODE = '35190';
 
-let headersAtt           = [], attendanceData   = [];
-let headersHw            = [], hwafezData        = [];
-let headersTq            = [], tqeemData         = [];
-let currentUser          = null;
-let jwtToken             = localStorage.getItem('jwtToken') || null;
+let headersAtt       = [], attendanceData = [];
+let headersHw        = [], hwafezData      = [];
+let headersTq        = [], tqeemData       = [];
+let currentUser      = null;
+let jwtToken         = localStorage.getItem('jwtToken') || null;
 window.serverNotifications = [];
-// —————————————————————————————————————————
-// تسجيل الـ Service Worker و الاستماع لرسائل الخلفية
+
+// 2) تسجيل الـ Service Worker والاستماع لرسائل الخلفية
 // —————————————————————————————————————————
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/firebase-messaging-sw.js')
     .then(reg => {
       console.log('✅ SW registered:', reg.scope);
-
-      // استمع لرسائل الـ SW (إشعارات الخلفية)
       navigator.serviceWorker.addEventListener('message', event => {
         const msg = event.data;
         if (msg?.type === 'NEW_NOTIFICATION') {
@@ -33,33 +31,11 @@ if ('serviceWorker' in navigator) {
     })
     .catch(err => console.warn('❌ SW register failed', err));
 }
-window.renderNotifications = function(arr = window.serverNotifications) { /* … */ };
-window.openNotificationLog = async function() { /* … */ };
-async function initNotifications() { /* … */ }
-window.addNotification = ({ title, body, time }) => { /* … */ };
-// —————————————————————————————————————————
-// 3) إذا كان المستخدم سابقاً مسجلاً
-// —————————————————————————————————————————
-const saved = localStorage.getItem('jwtToken');
-if (saved) {
-  jwtToken = saved;
-  fetchAndRender()
-    .then(() => initNotifications())
-    .catch(logout);
-}
 
+// 3) دوال التنبيهات
 // —————————————————————————————————————————
-// 4) دالة registerSWand (لـ getToken فقط)
-// —————————————————————————————————————————
-async function registerSWand() {
-  const reg = await navigator.serviceWorker.ready;
-  return reg;
-}
 
-
-// —————————————————————————————————————————
-// 2) تابع رسم التنبيهات العام
-// —————————————————————————————————————————
+// 3.1) رسم العداد وسجل الإشعارات
 window.renderNotifications = function(arr = window.serverNotifications) {
   const list       = document.getElementById('notificationsLog');
   const countBadge = document.getElementById('notifCount');
@@ -76,16 +52,13 @@ window.renderNotifications = function(arr = window.serverNotifications) {
       `).join('')
     : '<li class="text-gray-500">لا توجد إشعارات</li>';
 
-  countBadge.textContent = arr.length;
-  countBadge.style.display = arr.length ? 'inline-block' : 'none';
-  clearBtn.style.display = (window.currentUser === SUPERVISOR_CODE && arr.length)
-    ? 'block'
-    : 'none';
+  countBadge.textContent    = arr.length;
+  countBadge.style.display  = arr.length ? 'inline-block' : 'none';
+  clearBtn.style.display    = (window.currentUser === SUPERVISOR_CODE && arr.length)
+                             ? 'block' : 'none';
 };
 
-// —————————————————————————————————————————
-// 3) تابع فتح سجل الإشعارات العام
-// —————————————————————————————————————————
+// 3.2) جلب سجل الإشعارات من الخادم
 window.openNotificationLog = async function() {
   if (!window.jwtToken) {
     window.renderNotifications();
@@ -93,7 +66,10 @@ window.openNotificationLog = async function() {
   }
   try {
     const res = await fetch(`${API_BASE}/notifications`, {
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${window.jwtToken}` }
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${window.jwtToken}`
+      }
     });
     if (!res.ok) throw new Error();
     const { notifications } = await res.json();
@@ -104,8 +80,66 @@ window.openNotificationLog = async function() {
   window.renderNotifications();
 };
 
+// 3.3) تهيئة التنبيهات عند تحميل الواجهة (تعبئة العداد أوليًّا)
+async function initNotifications() {
+  if (!jwtToken) return;
+  await openNotificationLog();
+}
+
+// 3.4) إضافة إشعار جديد محليًّا وتجنّب التكرار
+window.addNotification = ({ title, body, time }) => {
+  const arr = window.serverNotifications || [];
+  if (arr[0]?.title === title && arr[0]?.body === body) return;
+  arr.unshift({ title, body, time });
+  if (arr.length > 50) arr.pop();
+  window.serverNotifications = arr;
+  window.renderNotifications();
+};
+
+// 4) ربط أحداث الـ DOM بعد التحميل
 // —————————————————————————————————————————
-// 4) تهيئة Firebase واستقبال الرسائل الحية
+document.addEventListener('DOMContentLoaded', () => {
+  const bell     = document.getElementById('notifBell');
+  const panel    = document.getElementById('notificationsPanel');
+  const clearBtn = document.getElementById('clearNotifications');
+
+  if (bell && panel) {
+    panel.addEventListener('click', e => e.stopPropagation());
+    bell.addEventListener('click', async e => {
+      e.stopPropagation();
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        await openNotificationLog();
+      }
+    });
+    document.body.addEventListener('click', () => {
+      if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
+    });
+  }
+
+  clearBtn?.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (window.currentUser !== SUPERVISOR_CODE) return;
+    if (!confirm('مسح جميع الإشعارات؟')) return;
+    await fetch(`${API_BASE}/notifications`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+    });
+    window.serverNotifications = [];
+    window.renderNotifications();
+  });
+
+  // تحديث أولي للعداد
+  window.renderNotifications();
+});
+
+// 5) دالة registerSWand للحصول على Registration الجاهز
+// —————————————————————————————————————————
+async function registerSWand() {
+  return await navigator.serviceWorker.ready;
+}
+
+// 6) إعداد Firebase Messaging للرسائل الحيّة في الواجهة
 // —————————————————————————————————————————
 const firebaseConfig = {
   apiKey:            "AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y",
@@ -126,75 +160,17 @@ messaging.onMessage(payload => {
   window.addNotification({ title, body, time: new Date().toLocaleString() });
 });
 
+// 7) إذا كان المستخدم سابقاً مُسجَّلاً فاجلب بياناته وتهيئة التنبيهات
 // —————————————————————————————————————————
-// 5) initNotifications: جلب أولي وتنفيذ الواجهة
-// —————————————————————————————————————————
-async function initNotifications() {
-  if (!jwtToken) return;
-  try {
-    const res = await fetch(`${API_BASE}/notifications`, {
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwtToken}` }
-    });
-    if (!res.ok) throw new Error();
-    const { notifications } = await res.json();
-    window.serverNotifications = notifications;
-  } catch {
-    window.serverNotifications = [];
-  }
-  await openNotificationLog();
+const saved = localStorage.getItem('jwtToken');
+if (saved) {
+  jwtToken = saved;
+  fetchAndRender()
+    .then(() => initNotifications())
+    .catch(logout);
 }
 
-// —————————————————————————————————————————
-// 6) إضافة إشعار جديد مع تجنّب التكرار
-// —————————————————————————————————————————
-window.addNotification = ({ title, body, time }) => {
-  const arr = window.serverNotifications || [];
-  if (arr[0]?.title === title && arr[0]?.body === body) return;
-  arr.unshift({ title, body, time });
-  if (arr.length > 50) arr.pop();
-  window.serverNotifications = arr;
-  window.renderNotifications();
-};
 
-// —————————————————————————————————————————
-// 7) ربط DOMContentLoaded: زر الجرس وأحداث الإشعارات
-// —————————————————————————————————————————
-document.addEventListener('DOMContentLoaded', () => {
-  const bell     = document.getElementById('notifBell');
-  const panel    = document.getElementById('notificationsPanel');
-  const clearBtn = document.getElementById('clearNotifications');
-
-  if (!bell || !panel) return;
-
-  panel.addEventListener('click', e => e.stopPropagation());
-
-  bell.addEventListener('click', async e => {
-    e.stopPropagation();
-    panel.classList.toggle('hidden');
-    if (!panel.classList.contains('hidden')) {
-      await openNotificationLog();
-    }
-  });
-
-  document.body.addEventListener('click', () => {
-    if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
-  });
-
-  clearBtn?.addEventListener('click', async e => {
-    e.stopPropagation();
-    if (window.currentUser !== SUPERVISOR_CODE) return;
-    if (!confirm('مسح جميع الإشعارات؟')) return;
-    await fetch(`${API_BASE}/notifications`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${window.jwtToken}` }
-    });
-    window.serverNotifications = [];
-    renderNotifications();
-  });
-
-  // تحديث أولي للعداد
-  renderNotifications();
-});
 // —————————————————————————————————————————
 // بقية app.js: تسجيل الدخول، جلب البيانات، الخ…
 /* … تابع باقية دوال login, fetchAndRender, renderRecords, showHwafez, showTqeem, sendSupervisorNotification, logout … */
