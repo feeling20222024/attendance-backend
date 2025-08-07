@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('click', () => {
       if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
     });
-  }
+  
 
   clearBtn?.addEventListener('click', async e => {
     e.stopPropagation();
