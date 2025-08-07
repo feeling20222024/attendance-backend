@@ -1,17 +1,16 @@
-// notifications.js
+// public/js/notifications.js
 
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
-window.serverNotifications = [];
 
 // —————————————————————————————————————————
-// 0) تحميل الإشعارات المُخزَّنة (إن وُجدت) من localStorage
+// 0) البداية: حمّل الإشعارات من الـ localStorage (إن وُجدت)
 // —————————————————————————————————————————
 window.serverNotifications = JSON.parse(
   localStorage.getItem('serverNotifications') || '[]'
 );
 
-// دالة لمزامنة التخزين
+// دالة للحفظ في الـ localStorage
 function persistNotifications() {
   localStorage.setItem(
     'serverNotifications',
@@ -20,7 +19,7 @@ function persistNotifications() {
 }
 
 // —————————————————————————————————————————
-// 1) رسم الإشعارات
+// 1) رسم الإشعارات في اللوحة
 // —————————————————————————————————————————
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
@@ -29,38 +28,42 @@ function renderNotifications() {
   if (!list || !badge || !clear) return;
 
   list.innerHTML = '';
-  if (!window.serverNotifications.length) {
+  if (window.serverNotifications.length === 0) {
     list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     badge.classList.add('hidden');
   } else {
-    window.serverNotifications.slice(0,50).forEach(n => {
+    window.serverNotifications.slice(0, 50).forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
       const timeStr = new Date(n.timestamp).toLocaleString('ar-EG', {
-        dateStyle:'short', timeStyle:'short'
+        dateStyle: 'short',
+        timeStyle: 'short'
       });
-      li.innerHTML = `<strong>${n.title}</strong><br>
+      li.innerHTML = `
+        <strong>${n.title}</strong><br>
         <small>${n.body}</small><br>
-        <small class="text-gray-400">${timeStr}</small>`;
+        <small class="text-gray-400">${timeStr}</small>
+      `;
       list.appendChild(li);
     });
     badge.textContent = window.serverNotifications.length;
     badge.classList.remove('hidden');
   }
 
-  clear.style.display = 
+  clear.style.display =
     (window.currentUser === SUPERVISOR_CODE && window.serverNotifications.length)
-      ? 'block' : 'none';
+      ? 'block'
+      : 'none';
 }
 
 // —————————————————————————————————————————
-// 2) إضافة إشعار جديد محليًّا وتجنّب التكرار
+// 2) إضافة إشعار جديد إلى الذاكرة وتجنّب التكرار
 // —————————————————————————————————————————
 window.addNotification = ({ title, body, timestamp }) => {
   const now = timestamp || Date.now();
   const arr = window.serverNotifications;
 
-  // إذا نفس العنوان والنص في أعلى القائمة، تجاهل
+  // إذا هو نفس العنوان والنص في أول عنصر، تجاهل
   if (arr[0]?.title === title && arr[0]?.body === body) return;
 
   arr.unshift({ title, body, timestamp: now });
@@ -71,7 +74,9 @@ window.addNotification = ({ title, body, timestamp }) => {
   renderNotifications();
 };
 
-// جلب سجل الإشعارات
+// —————————————————————————————————————————
+// 3) جلب سجلّ الإشعارات من الخادم (إذا كان المستخدم مسجّلاً)
+// —————————————————————————————————————————
 window.openNotificationLog = async () => {
   if (window.jwtToken) {
     try {
@@ -80,19 +85,29 @@ window.openNotificationLog = async () => {
       });
       if (res.ok) {
         const { notifications } = await res.json();
-        window.serverNotifications = notifications;
+        window.serverNotifications = notifications || [];
+        persistNotifications();
       }
-    } catch { /* ignore */ }
+    } catch {
+      // نتجاهل أي خطأ في الشبكة
+    }
   }
   renderNotifications();
 };
+
+// —————————————————————————————————————————
+// 4) ربط الأحداث عند تحميل الصفحة
+// —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   const panel = document.getElementById('notificationsPanel');
   const bell  = document.getElementById('notifBell');
   const clear = document.getElementById('clearNotifications');
   if (!panel || !bell) return;
 
+  // منع الإغلاق عند الضغط داخل اللوحة
   panel.addEventListener('click', e => e.stopPropagation());
+
+  // فتح/إغلاق اللوحة عند الضغط على الأيقونة
   bell.addEventListener('click', async e => {
     e.stopPropagation();
     panel.classList.toggle('hidden');
@@ -100,8 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
       await openNotificationLog();
     }
   });
-  document.body.addEventListener('click', () => panel.classList.add('hidden'));
 
+  // إغلاق اللوحة عند الضغط في أي مكان آخر
+  document.body.addEventListener('click', () => {
+    panel.classList.add('hidden');
+  });
+
+  // زر مسح جميع الإشعارات (للمشرف فقط)
   clear.addEventListener('click', async e => {
     e.stopPropagation();
     if (window.currentUser !== SUPERVISOR_CODE) return;
@@ -111,15 +131,16 @@ document.addEventListener('DOMContentLoaded', () => {
       headers: { Authorization: `Bearer ${window.jwtToken}` }
     });
     window.serverNotifications = [];
+    persistNotifications();
     renderNotifications();
   });
 
-  // **هنا**: إذا كان لدينا jwtToken مخزّن، جلب السجل أولاً
+  // عند التحميل: 
+  // - إذا المستخدم مسجّل (jwtToken موجود) نحمّل من الخادم
+  // - وإن لم يكن مسجّلاً نعرض ما تبقى في localStorage
   if (window.jwtToken) {
     openNotificationLog();
   } else {
-    // وإلا فقط عرض ما في الذاكرة المحلية (غالبًا none)
     renderNotifications();
   }
 });
-
