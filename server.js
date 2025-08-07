@@ -134,15 +134,16 @@ function authenticate(req, res, next) {
     res.status(401).json({ error: 'Invalid token' });
   }
 }
-
 // 10) تسجيل الدخول
-const cors = require('cors');
-
+// —————————————————————————————————————————
 // نقطة النهاية لتسجيل الدخول مع دعم CORS
 app.post('/api/login', cors(corsOptions), async (req, res) => {
   let { code, pass } = req.body;
-  if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
+  if (!code || !pass) {
+    return res.status(400).json({ error: 'code and pass required' });
+  }
 
+  // تطبيع الأرقام
   code = normalizeDigits(code.trim());
   pass = normalizeDigits(pass.trim());
 
@@ -152,15 +153,19 @@ app.post('/api/login', cors(corsOptions), async (req, res) => {
     const iP = headers.indexOf('كلمة المرور');
     const iN = headers.indexOf('الاسم');
 
+    // البحث عن السجل المطابق
     const row = data.find(r =>
       normalizeDigits((r[iC] || '').trim()) === code &&
       normalizeDigits((r[iP] || '').trim()) === pass
     );
 
-    if (!row) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!row) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
+    // إنشاء الـ JWT
     const payload = { code, name: row[iN] };
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
 
     res.json({ token, user: payload });
   } catch (e) {
@@ -168,6 +173,7 @@ app.post('/api/login', cors(corsOptions), async (req, res) => {
     res.status(500).json({ error: 'Login failed' });
   }
 });
+
 
 // 11) حضور + ملاحظات
 app.get('/api/attendance', authenticate, async (req, res) => {
