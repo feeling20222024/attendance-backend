@@ -4,7 +4,6 @@ navigator.serviceWorker.register('/sw.js')
     // انتظر الـ SW يصير READY (مفعل بالكامل)
     const swReg = await navigator.serviceWorker.ready;
     console.log('✅ SW ready:', swReg.scope);
-    await window.initPush(swReg);
     
     // استمع لرسائل الخلفية
     navigator.serviceWorker.addEventListener('message', event => {
@@ -268,35 +267,16 @@ async function login() {
 
     // (3) استلام الـ JWT
     const { token, user } = await res.json();
-    jwtToken = token;
+    jwtToken      = token;
     localStorage.setItem('jwtToken', jwtToken);
-    currentUser = user.code ?? user['كود الموظف'];
+    currentUser   = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
-// (4) تسجيل الـ SW وتهيئة Push
-const reg = await navigator.serviceWorker.ready;
-// (5) طلب إذن الإشعارات وتسجيل FCM token
-const messaging = firebase.messaging();
-const perm = await Notification.requestPermission();
-if (perm === 'granted') {
-  const fcmToken = await messaging.getToken({
-    vapidKey: 'BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ',
-    serviceWorkerRegistration: reg  // ← حل المشكلة هنا
-  });
 
-  if (fcmToken) {
-    await fetch(`${API_BASE}/register-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      body: JSON.stringify({ token: fcmToken })
-    });
-    console.log('✅ FCM token registered:', fcmToken);
-  }
-}
+    // (4) انتظر الـ SW يصير جاهز וריצת initPush
+    const swReg = await navigator.serviceWorker.ready;
+    await window.initPush(swReg);
 
-    // (6) جلب البيانات وتهيئة سجل الإشعارات
+    // (5) بعد تسجيل التوكن بالفونت، جلب البيانات وتهيئة التنبيهات
     await fetchAndRender();
     await initNotifications();
 
@@ -305,6 +285,7 @@ if (perm === 'granted') {
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
 } // ← إغلاق دالة login()
+
 
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
