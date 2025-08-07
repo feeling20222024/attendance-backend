@@ -2,24 +2,10 @@
 
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
+window.serverNotifications = []; // دائماً نبدأ بمصفوفة نظيفة
 
 // —————————————————————————————————————————
-// 0) البداية: حمّل الإشعارات من الـ localStorage (إن وُجدت)
-// —————————————————————————————————————————
-window.serverNotifications = JSON.parse(
-  localStorage.getItem('serverNotifications') || '[]'
-);
-
-// دالة للحفظ في الـ localStorage
-function persistNotifications() {
-  localStorage.setItem(
-    'serverNotifications',
-    JSON.stringify(window.serverNotifications)
-  );
-}
-
-// —————————————————————————————————————————
-// 1) رسم الإشعارات في اللوحة
+// 1) رسم الإشعارات
 // —————————————————————————————————————————
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
@@ -32,12 +18,11 @@ function renderNotifications() {
     list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     badge.classList.add('hidden');
   } else {
-    window.serverNotifications.slice(0, 50).forEach(n => {
+    window.serverNotifications.forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
-      const timeStr = new Date(n.timestamp).toLocaleString('ar-EG', {
-        dateStyle: 'short',
-        timeStyle: 'short'
+      const timeStr = new Date(n.time || n.timestamp).toLocaleString('ar-EG', {
+        dateStyle: 'short', timeStyle: 'short'
       });
       li.innerHTML = `
         <strong>${n.title}</strong><br>
@@ -50,53 +35,50 @@ function renderNotifications() {
     badge.classList.remove('hidden');
   }
 
-  clear.style.display =
+  clear.style.display = 
     (window.currentUser === SUPERVISOR_CODE && window.serverNotifications.length)
       ? 'block'
       : 'none';
 }
 
 // —————————————————————————————————————————
-// 2) إضافة إشعار جديد إلى الذاكرة وتجنّب التكرار
+// 2) جلب سجل الإشعارات من الخادم
 // —————————————————————————————————————————
-window.addNotification = ({ title, body, timestamp }) => {
-  const now = timestamp || Date.now();
-  const arr = window.serverNotifications;
-
-  // إذا هو نفس العنوان والنص في أول عنصر، تجاهل
-  if (arr[0]?.title === title && arr[0]?.body === body) return;
-
-  arr.unshift({ title, body, timestamp: now });
-  if (arr.length > 50) arr.pop();
-
-  window.serverNotifications = arr;
-  persistNotifications();
-  renderNotifications();
-};
-
-// —————————————————————————————————————————
-// 3) جلب سجلّ الإشعارات من الخادم (إذا كان المستخدم مسجّلاً)
-// —————————————————————————————————————————
-window.openNotificationLog = async () => {
+async function openNotificationLog() {
+  // حاول دائماً الجلب، حتى لو لم يكن المستخدم مسجّلاً (يتجاهل 401)
   if (window.jwtToken) {
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
-        headers: { Authorization: `Bearer ${window.jwtToken}` }
+        headers: { 'Authorization': `Bearer ${window.jwtToken}` }
       });
       if (res.ok) {
         const { notifications } = await res.json();
-        window.serverNotifications = notifications || [];
-        persistNotifications();
+        window.serverNotifications = notifications;
       }
-    } catch {
-      // نتجاهل أي خطأ في الشبكة
-    }
+    } catch (err) { /* تجاهل الأخطاء */ }
+  }
+  renderNotifications();
+}
+
+// —————————————————————————————————————————
+// 3) إضافة إشعار جديد محليّاً (من الفيروسرسوكر أو push)
+// —————————————————————————————————————————
+window.addNotification = ({ title, body, timestamp, time }) => {
+  const t = timestamp || time || Date.now();
+  // تجنّب التكرار
+  if (window.serverNotifications[0]?.title === title &&
+      window.serverNotifications[0]?.body === body) {
+    return;
+  }
+  window.serverNotifications.unshift({ title, body, time: t });
+  if (window.serverNotifications.length > 50) {
+    window.serverNotifications.pop();
   }
   renderNotifications();
 };
 
 // —————————————————————————————————————————
-// 4) ربط الأحداث عند تحميل الصفحة
+// 4) تعامل مع DOMContentLoaded
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   const panel = document.getElementById('notificationsPanel');
@@ -104,10 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clear = document.getElementById('clearNotifications');
   if (!panel || !bell) return;
 
-  // منع الإغلاق عند الضغط داخل اللوحة
   panel.addEventListener('click', e => e.stopPropagation());
-
-  // فتح/إغلاق اللوحة عند الضغط على الأيقونة
   bell.addEventListener('click', async e => {
     e.stopPropagation();
     panel.classList.toggle('hidden');
@@ -115,32 +94,22 @@ document.addEventListener('DOMContentLoaded', () => {
       await openNotificationLog();
     }
   });
+  document.body.addEventListener('click', () => panel.classList.add('hidden'));
 
-  // إغلاق اللوحة عند الضغط في أي مكان آخر
-  document.body.addEventListener('click', () => {
-    panel.classList.add('hidden');
-  });
-
-  // زر مسح جميع الإشعارات (للمشرف فقط)
   clear.addEventListener('click', async e => {
     e.stopPropagation();
     if (window.currentUser !== SUPERVISOR_CODE) return;
     if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
-    await fetch(`${API_BASE}/notifications`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${window.jwtToken}` }
-    });
-    window.serverNotifications = [];
-    persistNotifications();
-    renderNotifications();
+    try {
+      await fetch(`${API_BASE}/notifications`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${window.jwtToken}` }
+      });
+      window.serverNotifications = [];
+      renderNotifications();
+    } catch { /* ignore */ }
   });
 
-  // عند التحميل: 
-  // - إذا المستخدم مسجّل (jwtToken موجود) نحمّل من الخادم
-  // - وإن لم يكن مسجّلاً نعرض ما تبقى في localStorage
-  if (window.jwtToken) {
-    openNotificationLog();
-  } else {
-    renderNotifications();
-  }
+  // فور التحميل، حاول عرض أي إشعارات حتى لو لم يُسجّل المستخدم
+  renderNotifications();
 });
