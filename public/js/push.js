@@ -1,63 +1,48 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-import {
-  getMessaging,
-  getToken,
-  onMessage
-} from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging.js';
+// 0) Firebase-compat + FCM compat
+importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js');
 
-// —————————————————————————————————————————
-// ثوابت
-// —————————————————————————————————————————
-const API_BASE         = 'https://dwam-app-by-omar.onrender.com/api';
-const firebaseConfig   = { /* ... */ };
-const VAPID_PUBLIC_KEY = "BIvZq29UIB5CgKiIXUOCVVVDX0DtyKuixDyXm6WpCc1f18go2a6oWWw0VrMBYPLSxco2-44GyDVH0U5BHn7ktiQ";
-// —————————————————————————————————————————
-// دالة تهيئة FCM
-// —————————————————————————————————————————
-export async function initPush(swReg) {
-  const app       = initializeApp(firebaseConfig);
-  const messaging = getMessaging(app);
+firebase.initializeApp({
+  apiKey:            'AIzaSyClFXniBltSeJrp3sxS3_bAgbrZPo0vP3Y',
+  authDomain:        'device-streaming-47cbe934.firebaseapp.com',
+  projectId:         'device-streaming-47cbe934',
+  storageBucket:     'device-streaming-47cbe934.appspot.com',
+  messagingSenderId: '235398312189',
+  appId:             '1:235398312189:web:8febe5e63f7b134b808e94'
+});
 
-  try {
-    const token = await getToken(messaging, {
-      vapidKey: VAPID_PUBLIC_KEY,
-      serviceWorkerRegistration: swReg
-    });
-    console.log('✅ FCM token:', token);
+const messaging = firebase.messaging();
 
-    if (localStorage.getItem('fcmTokenSent') !== token) {
-      await fetch(`${API_BASE}/register-token`, {
-        method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
-        },
-        body: JSON.stringify({ token })
-      });
-      localStorage.setItem('fcmTokenSent', token);
-      // بعدها حدّث العداد فوراً
-      window.initNotifications?.();
-    }
+// 1) إشعارات الخلفية
+messaging.onBackgroundMessage(payload => {
+  const { title='', body='' } = payload.notification||{};
+  const timestamp = Date.now();
 
-    onMessage(messaging, payload => {
-      const { title = '', body = '' } = payload.notification || {};
-      if (Notification.permission === 'granted') {
-        new Notification(title, { body });
-      }
-      window.addNotification?.({
-        title,
-        body,
-        time: new Date().toLocaleString() // استخدم toLocaleString بدل ISO
-      });
-    });
+  // (a) عرضها
+  self.registration.showNotification(title, { body });
 
-  } catch (err) {
-    console.error('❌ initPush failed:', err);
-  }
-}  // ← إغلاق دالة initPush
+  // (b) بعثها لكل النوافذ
+  self.clients.matchAll({ includeUncontrolled: true }).then(clients=>{
+    clients.forEach(c => c.postMessage({ 
+      type:'NEW_NOTIFICATION', title, body, timestamp 
+    }));
+  });
+});
 
-// —————————————————————————————————————————
-// ربط للواجهة
-// —————————————————————————————————————————
-window.initPush = initPush;
+// 2) Cache لحالة SPA
+const CACHE_NAME = 'v1';
+const ASSETS = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/push.js'];
+
+self.addEventListener('install', e=>{
+  e.waitUntil(caches.open(CACHE_NAME)
+    .then(c=>c.addAll(ASSETS))
+    .then(()=>self.skipWaiting()));
+});
+
+self.addEventListener('activate', e=> e.waitUntil(self.clients.claim()));
+
+self.addEventListener('fetch', e=>{
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+  e.respondWith(caches.match(e.request).then(c=>c || fetch(e.request)));
+});
