@@ -101,7 +101,6 @@ window.addNotification = ({ title, body, time }) => {
 // 4) ربط أحداث الـ DOM بعد التحميل
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
-  const bell     = document.getElementById('notifBell');
   const panel    = document.getElementById('notificationsPanel');
   const clearBtn = document.getElementById('clearNotifications');
 
