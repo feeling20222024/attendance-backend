@@ -235,12 +235,17 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
 
 // 14) تسجيل توكن FCM
 const tokens = new Map();
-app.post('/api/register-token', authenticate, (req, res) => {
-  const { token } = req.body;
-  if (!token) return res.status(400).json({ error: 'token required' });
-  tokens.set(token, req.user);
-  res.json({ success: true });
-});
+app.post(
+  '/api/register-token',
+  cors(corsOptions),          // ← أضف هذه السطر
+  authenticate,
+  (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'token required' });
+    tokens.set(token, req.user);
+    res.json({ success: true });
+  }
+);
 
 // 15) إشعار للجميع + تخزين
 const userNotifications = {};
