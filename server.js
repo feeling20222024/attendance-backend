@@ -1,5 +1,4 @@
-// server.js
-
+// server.js (محدَّث كامل)
 // 1) تحميل متغيّرات البيئة
 require('dotenv').config();
 
@@ -36,35 +35,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 4) حذف التوكن غير الصالح من Firestore
-async function deleteTokenFromFirestore(token) {
-  const snapshot = await db.collection('fcm_tokens')
-    .where('token', '==', token)
-    .get();
-  snapshot.forEach(doc => doc.ref.delete());
-}
-
-// 5) دالة إرسال إشعار FCM مع تنظيف التوكنات
-async function sendPushTo(token, title, body, data = {}) {
-  const message = {
-    token,
-    notification: { title, body },
-    android: { ttl: 48 * 60 * 60 * 1000, priority: 'high' },
-    data
-  };
-  try {
-    await admin.messaging().send(message);
-    console.log(`✅ تم الإرسال بنجاح إلى ${token}`);
-  } catch (err) {
-    console.error(`❌ فشل الإرسال إلى ${token}:`, err);
-    if (err.errorInfo?.code === 'messaging/registration-token-not-registered') {
-      console.warn(`🗑️ حذف التوكن غير الصالح: ${token}`);
-      await deleteTokenFromFirestore(token);
-    }
-  }
-}
-
-// 6) إعدادات عامة
+// 4) إعدادات عامة
 const APP_VERSION        = process.env.APP_VERSION        || '1.0.0';
 const PORT               = process.env.PORT               || 3000;
 const JWT_SECRET         = process.env.JWT_SECRET;
@@ -77,7 +48,7 @@ if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY) {
   process.exit(1);
 }
 
-// 7) تطبيع الأرقام عربية→غربية
+// 5) تطبيع الأرقام عربية→غربية
 function normalizeDigits(str) {
   if (!str) return '';
   return str.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, ch => {
@@ -86,7 +57,7 @@ function normalizeDigits(str) {
   });
 }
 
-// 8) إعداد Google Sheets
+// 6) إعداد Google Sheets (دوال مساعدة)
 let sheetCreds;
 try {
   sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY);
@@ -111,10 +82,8 @@ async function readSheet(title) {
   if (!sheet) throw new Error(`Sheet "${title}" غير موجود`);
   await sheet.loadHeaderRow();
 
-  // نيّف العناوين (trim)
-  const rawHeaders    = sheet.headerValues;
-  const cleanHeaders  = rawHeaders.map(h => h.trim());
-
+  const rawHeaders   = sheet.headerValues;
+  const cleanHeaders = rawHeaders.map(h => h.trim());
   const rows = await sheet.getRows();
   const data = rows.map(r =>
     cleanHeaders.map(h => r[h] != null ? r[h] : '')
@@ -123,7 +92,7 @@ async function readSheet(title) {
   return { headers: cleanHeaders, data };
 }
 
-// 9) JWT Middleware
+// 7) JWT Middleware
 function authenticate(req, res, next) {
   const h = req.headers.authorization;
   if (!h?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
@@ -134,16 +103,56 @@ function authenticate(req, res, next) {
     res.status(401).json({ error: 'Invalid token' });
   }
 }
-// 10) تسجيل الدخول
-// —————————————————————————————————————————
-// نقطة النهاية لتسجيل الدخول مع دعم CORS
+
+// -------------------------
+// إشعارات: الذاكرة + Firestore
+// -------------------------
+const tokens = new Map();              // token -> user (في الذاكرة)
+const userNotifications = {};          // userCode -> [ { title, body, time } ]
+const globalNotifications = [];        // سجل موحَّد (آخر 50)
+
+// حذف توكن من Firestore (عند الحاجة)
+async function deleteTokenFromFirestore(docId) {
+  try {
+    await db.collection('fcm_tokens').doc(docId).delete();
+    console.log(`🗑️ Deleted token doc ${docId} from Firestore`);
+  } catch (e) {
+    console.warn('⚠️ deleteTokenFromFirestore failed', e);
+  }
+}
+
+// دالة إرسال إشعار FCM مع تنظيف التوكنات غير الصالحة
+async function sendPushTo(token, title, body, data = {}) {
+  const message = {
+    token,
+    notification: { title, body },
+    android: { ttl: 48 * 60 * 60 * 1000, priority: 'high' },
+    data
+  };
+  try {
+    await admin.messaging().send(message);
+    console.log(`✅ تم الإرسال بنجاح إلى ${token}`);
+  } catch (err) {
+    console.error(`❌ فشل الإرسال إلى ${token}:`, err);
+    // احذف من الذاكرة مؤقتًا
+    tokens.delete(token);
+    // احذف من Firestore إذا التوكن غير مسجّل
+    if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
+      console.warn(`🗑️ حذف التوكن غير الصالح: ${token}`);
+      await deleteTokenFromFirestore(token);
+    }
+  }
+}
+
+// -------------------------
+// 10) تسجيل الدخول (نقطة النهاية)
+// -------------------------
 app.post('/api/login', cors(corsOptions), async (req, res) => {
   let { code, pass } = req.body;
   if (!code || !pass) {
     return res.status(400).json({ error: 'code and pass required' });
   }
 
-  // تطبيع الأرقام
   code = normalizeDigits(code.trim());
   pass = normalizeDigits(pass.trim());
 
@@ -153,19 +162,15 @@ app.post('/api/login', cors(corsOptions), async (req, res) => {
     const iP = headers.indexOf('كلمة المرور');
     const iN = headers.indexOf('الاسم');
 
-    // البحث عن السجل المطابق
     const row = data.find(r =>
       normalizeDigits((r[iC] || '').trim()) === code &&
       normalizeDigits((r[iP] || '').trim()) === pass
     );
 
-    if (!row) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
+    if (!row) return res.status(401).json({ error: 'Invalid credentials' });
 
-    // إنشاء الـ JWT
     const payload = { code, name: row[iN] };
-    const token   = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
 
     res.json({ token, user: payload });
   } catch (e) {
@@ -174,35 +179,26 @@ app.post('/api/login', cors(corsOptions), async (req, res) => {
   }
 });
 
-
+// -------------------------
 // 11) حضور + ملاحظات
+// -------------------------
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
 
-    // أعمدة البحث
     const idxEmp       = headers.indexOf('رقم الموظف');
     const colPersonal  = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
     const colGeneral   = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
 
-    // رمز الموظف الحالي
     const empCode = normalizeDigits(String(req.user.code).trim());
 
-    // صفوف هذا الموظف فقط
     const userRows = data.filter(r =>
       normalizeDigits((r[idxEmp] || '').trim()) === empCode
     );
 
-    // أول ملاحظة شخصية لهذا الموظف
     const personalNote = userRows[0]?.[colPersonal]?.toString().trim() || '';
-
-    // أول ملاحظة عامة (صفوف لا تحتوي على رقم موظف)
-    const generalRow = data.find(r =>
-      !(r[idxEmp] || '').toString().trim()
-    );
-    const generalNote = generalRow
-      ? (generalRow[colGeneral] || '').toString().trim()
-      : '';
+    const generalRow = data.find(r => !(r[idxEmp] || '').toString().trim());
+    const generalNote = generalRow ? (generalRow[colGeneral] || '').toString().trim() : '';
 
     res.json({
       headers,
@@ -216,7 +212,9 @@ app.get('/api/attendance', authenticate, async (req, res) => {
   }
 });
 
+// -------------------------
 // 12) الحوافز
+// -------------------------
 app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
@@ -232,7 +230,9 @@ app.get('/api/hwafez', authenticate, async (req, res) => {
   }
 });
 
+// -------------------------
 // 13) التقييم السنوي
+// -------------------------
 app.get('/api/tqeem', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('tqeem');
@@ -248,58 +248,113 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
   }
 });
 
-// 14) تسجيل توكن FCM
-const tokens = new Map();
+// -------------------------
+// 14) تسجيل توكن FCM (خزن في الذاكرة وفي Firestore)
+// -------------------------
 app.post(
   '/api/register-token',
-  cors(corsOptions),          // ← أضف هذه السطر
+  cors(corsOptions),
   authenticate,
-  (req, res) => {
+  async (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'token required' });
+
+    // خزن محليًا في الذاكرة
     tokens.set(token, req.user);
+
+    // خزن في Firestore (وثيقة مفتاحها هو التوكن)
+    try {
+      await db.collection('fcm_tokens').doc(token).set({
+        token,
+        user: req.user,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (e) {
+      console.warn('⚠️ failed to persist token to Firestore', e);
+    }
+
     res.json({ success: true });
   }
 );
 
-// 15) إشعار للجميع + تخزين
-const userNotifications = {};
+// -------------------------
+// 15) إشعار للجميع + تخزين (المشرف فقط)
+// -------------------------
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const { title, body } = req.body;
   if (!title || !body) return res.status(400).json({ error: 'title and body required' });
-  await Promise.allSettled(
-    Array.from(tokens.keys()).map(t => sendPushTo(t, title, body))
-  );
-  for (const user of tokens.values()) {
-    const c = user.code;
-    userNotifications[c] = userNotifications[c] || [];
-    userNotifications[c].unshift({ title, body, time: new Date().toISOString() });
-    if (userNotifications[c].length > 50) userNotifications[c].pop();
+
+  const time = new Date().toISOString();
+
+  // خزّن في السجل العام
+  globalNotifications.unshift({ title, body, time });
+  if (globalNotifications.length > 50) globalNotifications.pop();
+
+  // اقرأ كل التوكنات من Firestore ثم أرسل لكل توكن
+  try {
+    const snap = await db.collection('fcm_tokens').get();
+    const docs = snap.docs;
+    const tokensList = docs.map(d => d.id);
+
+    // أرسل FCM لكل توكن (عدم الإيقاف عند خطأ واحد)
+    await Promise.allSettled(tokensList.map(t => sendPushTo(t, title, body)));
+
+    // خزّن نسخة لكل مستخدم موجود في سجلات التوكنات
+    docs.forEach(d => {
+      const data = d.data();
+      const userCode = data?.user?.code;
+      if (!userCode) return;
+      userNotifications[userCode] = userNotifications[userCode] || [];
+      userNotifications[userCode].unshift({ title, body, time });
+      if (userNotifications[userCode].length > 50) userNotifications[userCode].pop();
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('❌ notify-all error:', e);
+    res.status(500).json({ error: 'notify failed' });
   }
-  res.json({ success: true });
 });
 
-// 16) سجل الإشعارات الموحد
+// -------------------------
+// 16) سجل الإشعارات الموحَّد
+// -------------------------
 app.get('/api/notifications', cors(corsOptions), authenticate, (req, res) => {
   const c = req.user.code;
-  res.json({ notifications: userNotifications[c] || [] });
+  const personal = userNotifications[c] || [];
+  const merged = [...personal, ...globalNotifications]
+    .sort((a,b) => new Date(b.time) - new Date(a.time))
+    .slice(0,50);
+  res.json({ notifications: merged });
 });
+
+// endpoint عام قبل الدخول لإظهار الإشعارات العامة
+app.get('/api/public-notifications', cors(corsOptions), (req, res) => {
+  const out = globalNotifications.slice(0,50);
+  res.json({ notifications: out });
+});
+
+// مسح الإشعارات (للمشرف) → يمسح personal + global
 app.delete('/api/notifications', cors(corsOptions), authenticate, (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) return res.status(403).json({ error: 'Forbidden' });
   Object.keys(userNotifications).forEach(k => delete userNotifications[k]);
+  globalNotifications.length = 0;
   res.json({ success: true });
 });
 
-// 17) إصدار التطبيق
+// -------------------------
+// 17) إصدار التطبيق + SPA fallback
+// -------------------------
 app.get('/api/version', (_, res) => res.json({ version: APP_VERSION }));
 
-// 18) SPA fallback
 app.get(/.*/, (_, res) =>
   res.sendFile(path.join(__dirname, 'public', 'index.html'))
 );
 
-// 19) بدء الخادم
+// -------------------------
+// 18) بدء الخادم
+// -------------------------
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
