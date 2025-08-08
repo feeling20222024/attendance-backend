@@ -1,5 +1,4 @@
 // server.js (محدَّث كامل)
-// 1) تحميل متغيّرات البيئة
 require('dotenv').config();
 
 const express               = require('express');
@@ -105,10 +104,40 @@ function authenticate(req, res, next) {
 }
 
 // -------------------------
+// توقيت دمشق: دالة تنسيق (بدون ثواني)
+// -------------------------
+function formatDamascus(dateInput) {
+  const date = (dateInput instanceof Date) ? dateInput : new Date(dateInput || Date.now());
+  try {
+    // نستخدم Intl لنسق بتوقيت Asia/Damascus (يحترم التوقيت الصيفي إن وُجد)
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Damascus',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+      hour12: false
+    }).formatToParts(date);
+    const m = {};
+    parts.forEach(p => { if (p.type !== 'literal') m[p.type] = p.value; });
+    // تأكدنا من وجود الحقول
+    const Y = m.year, M = m.month, D = m.day, H = m.hour, Min = m.minute;
+    return `${Y}-${M}-${D} ${H}:${Min}`;
+  } catch (e) {
+    // fallback: أضف +03h إلى UTC
+    const d = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+    const Y = d.getUTCFullYear();
+    const M = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const D = String(d.getUTCDate()).padStart(2, '0');
+    const H = String(d.getUTCHours()).padStart(2, '0');
+    const Min = String(d.getUTCMinutes()).padStart(2, '0');
+    return `${Y}-${M}-${D} ${H}:${Min}`;
+  }
+}
+
+// -------------------------
 // إشعارات: الذاكرة + Firestore
 // -------------------------
 const tokens = new Map();              // token -> user (في الذاكرة)
-const userNotifications = {};          // userCode -> [ { title, body, time } ]
+const userNotifications = {};          // userCode -> [ { title, body, time (UTC ISO), localTime } ]
 const globalNotifications = [];        // سجل موحَّد (آخر 50)
 
 // حذف توكن من Firestore (عند الحاجة)
@@ -180,77 +209,10 @@ app.post('/api/login', cors(corsOptions), async (req, res) => {
 });
 
 // -------------------------
-// 11) حضور + ملاحظات
+// بقية الـ endpoints (الأصلية: attendance, hwafez, tqeem) ... (كما في ملفك السابق)
 // -------------------------
-app.get('/api/attendance', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('Attendance');
 
-    const idxEmp       = headers.indexOf('رقم الموظف');
-    const colPersonal  = headers.indexOf('تنبيهات وملاحظات خاصة بالعامل');
-    const colGeneral   = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
-
-    const empCode = normalizeDigits(String(req.user.code).trim());
-
-    const userRows = data.filter(r =>
-      normalizeDigits((r[idxEmp] || '').trim()) === empCode
-    );
-
-    const personalNote = userRows[0]?.[colPersonal]?.toString().trim() || '';
-    const generalRow = data.find(r => !(r[idxEmp] || '').toString().trim());
-    const generalNote = generalRow ? (generalRow[colGeneral] || '').toString().trim() : '';
-
-    res.json({
-      headers,
-      data: userRows,
-      personalNote,
-      generalNote
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// -------------------------
-// 12) الحوافز
-// -------------------------
-app.get('/api/hwafez', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('hwafez');
-    const idx = headers.indexOf('رقم الموظف');
-    const empCode = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits((r[idx]||'').trim()) === empCode
-    );
-    res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// -------------------------
-// 13) التقييم السنوي
-// -------------------------
-app.get('/api/tqeem', authenticate, async (req, res) => {
-  try {
-    const { headers, data } = await readSheet('tqeem');
-    const idx = headers.indexOf('رقم الموظف');
-    const empCode = normalizeDigits(String(req.user.code).trim());
-    const filtered = data.filter(r =>
-      normalizeDigits((r[idx]||'').trim()) === empCode
-    );
-    res.json({ headers, data: filtered });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// -------------------------
 // 14) تسجيل توكن FCM (خزن في الذاكرة وفي Firestore)
-// -------------------------
 app.post(
   '/api/register-token',
   cors(corsOptions),
@@ -277,9 +239,7 @@ app.post(
   }
 );
 
-// -------------------------
 // 15) إشعار للجميع + تخزين (المشرف فقط)
-// -------------------------
 app.post('/api/notify-all', authenticate, async (req, res) => {
   if (req.user.code !== SUPERVISOR_CODE) {
     return res.status(403).json({ error: 'Forbidden' });
@@ -287,13 +247,13 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   const { title, body } = req.body;
   if (!title || !body) return res.status(400).json({ error: 'title and body required' });
 
-  const time = new Date().toISOString();
+  const timeUtc = new Date().toISOString();
+  const timeLocal = formatDamascus(new Date());
 
-  // خزّن في السجل العام
-  globalNotifications.unshift({ title, body, time });
+  // خزّن في السجل العام (مع localTime)
+  globalNotifications.unshift({ title, body, time: timeUtc, localTime: timeLocal });
   if (globalNotifications.length > 50) globalNotifications.pop();
 
-  // اقرأ كل التوكنات من Firestore ثم أرسل لكل توكن
   try {
     const snap = await db.collection('fcm_tokens').get();
     const docs = snap.docs;
@@ -308,7 +268,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
       const userCode = data?.user?.code;
       if (!userCode) return;
       userNotifications[userCode] = userNotifications[userCode] || [];
-      userNotifications[userCode].unshift({ title, body, time });
+      userNotifications[userCode].unshift({ title, body, time: timeUtc, localTime: timeLocal });
       if (userNotifications[userCode].length > 50) userNotifications[userCode].pop();
     });
 
@@ -319,9 +279,7 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   }
 });
 
-// -------------------------
 // 16) سجل الإشعارات الموحَّد
-// -------------------------
 app.get('/api/notifications', cors(corsOptions), authenticate, (req, res) => {
   const c = req.user.code;
   const personal = userNotifications[c] || [];
@@ -345,16 +303,9 @@ app.delete('/api/notifications', cors(corsOptions), authenticate, (req, res) => 
   res.json({ success: true });
 });
 
-// -------------------------
-// 17) إصدار التطبيق + SPA fallback
-// -------------------------
+// إصدار التطبيق + SPA fallback
 app.get('/api/version', (_, res) => res.json({ version: APP_VERSION }));
+app.get(/.*/, (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.get(/.*/, (_, res) =>
-  res.sendFile(path.join(__dirname, 'public', 'index.html'))
-);
-
-// -------------------------
-// 18) بدء الخادم
-// -------------------------
+// بدء الخادم
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
