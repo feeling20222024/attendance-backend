@@ -222,10 +222,6 @@ if (clearBtn) {
       document.getElementById('notificationsPanel')?.classList.add('hidden');
     };
   }
-
-// —————————————————————————————————————————
-// 2) دالة تسجيل الدخول
-// —————————————————————————————————————————
 async function login() {
   // (1) طلب الكود والرقم السري
   const code = normalizeDigits(document.getElementById('codeInput').value.trim());
@@ -234,8 +230,22 @@ async function login() {
     return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
-try {
-    const res = await fetch(LOGIN_ENDPOINT, { ... });
+  try {
+    // (2) إرسال بيانات الدخول للخادم
+    const res = await fetch(LOGIN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, pass })
+    });
+
+    if (res.status === 401) {
+      return alert('بيانات الدخول خاطئة');
+    }
+    if (!res.ok) {
+      throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
+    }
+
+    // (3) استلام الـ JWT
     const { token, user } = await res.json();
 
     jwtToken = token;
@@ -245,20 +255,23 @@ try {
     currentUser = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
 
-    // تهيئة الـ Push بعد الدخول فقط
+    // (4) تهيئة الـ Push بعد الدخول فقط
     if (!window.pushInitialized) {
       const swReg = await navigator.serviceWorker.ready;
       await window.initPush(swReg);
       window.pushInitialized = true;
     }
 
+    // (5) تحميل البيانات وبقية التهيئة
     await fetchAndRender();
     await initNotifications();
+
   } catch (e) {
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
 }
+
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
