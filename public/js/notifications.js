@@ -1,12 +1,12 @@
-// public/js/notifications.js
-
+// notifications.js (محدَّث)
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
-window.serverNotifications = []; // دائماً نبدأ بمصفوفة نظيفة
+window.serverNotifications = JSON.parse(localStorage.getItem('serverNotifications') || '[]') || [];
 
-// —————————————————————————————————————————
-// 1) رسم الإشعارات
-// —————————————————————————————————————————
+function persistNotifications() {
+  localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications));
+}
+
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
   const badge = document.getElementById('notifCount');
@@ -14,73 +14,74 @@ function renderNotifications() {
   if (!list || !badge || !clear) return;
 
   list.innerHTML = '';
-  if (window.serverNotifications.length === 0) {
+  if (!window.serverNotifications.length) {
     list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     badge.classList.add('hidden');
   } else {
-    window.serverNotifications.forEach(n => {
+    window.serverNotifications.slice(0,50).forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
-      const timeStr = new Date(n.time || n.timestamp).toLocaleString('ar-EG', {
-        dateStyle: 'short', timeStyle: 'short'
+      const timeStr = new Date(n.time || n.timestamp || Date.now()).toLocaleString('ar-EG',{
+        dateStyle:'short', timeStyle:'short'
       });
-      li.innerHTML = `
-        <strong>${n.title}</strong><br>
+      li.innerHTML = `<strong>${n.title}</strong><br>
         <small>${n.body}</small><br>
-        <small class="text-gray-400">${timeStr}</small>
-      `;
+        <small class="text-gray-400">${timeStr}</small>`;
       list.appendChild(li);
     });
     badge.textContent = window.serverNotifications.length;
     badge.classList.remove('hidden');
   }
 
-  clear.style.display = 
+  clear.style.display =
     (window.currentUser === SUPERVISOR_CODE && window.serverNotifications.length)
-      ? 'block'
-      : 'none';
+      ? 'block' : 'none';
 }
 
-// —————————————————————————————————————————
-// 2) جلب سجل الإشعارات من الخادم
-// —————————————————————————————————————————
-// جلب سجل الإشعارات
+window.addNotification = ({ title, body, timestamp }) => {
+  const time = timestamp || (new Date()).toISOString();
+  const arr = window.serverNotifications || [];
+  if (arr[0]?.title === title && arr[0]?.body === body) return;
+  arr.unshift({ title, body, time });
+  window.serverNotifications = arr.slice(0,50);
+  persistNotifications();
+  renderNotifications();
+};
+
+// جلب سجل الإشعارات من الخادم (بعد تسجيل الدخول)
 window.openNotificationLog = async () => {
-  if (window.jwtToken) {  // ← هنا تتحقّق من window.jwtToken
+  // إذا لدينا JWT، نطلب API الشخصي الذي يرجع personal+global
+  if (window.jwtToken) {
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
         headers: { Authorization: `Bearer ${window.jwtToken}` }
       });
       if (res.ok) {
         const { notifications } = await res.json();
-        window.serverNotifications = notifications;
+        window.serverNotifications = notifications || [];
+        persistNotifications();
+        renderNotifications();
+        return;
       }
-    } catch { /* ignore */ }
+    } catch (e) { /* ignore */ }
   }
+
+  // إن فشلنا أو لا يوجد JWT نطلب الإشعارات العامة (قبل الدخول)
+  try {
+    const res = await fetch(`${API_BASE}/public-notifications`);
+    if (res.ok) {
+      const { notifications } = await res.json();
+      window.serverNotifications = notifications || [];
+      persistNotifications();
+      renderNotifications();
+      return;
+    }
+  } catch (e) { /* ignore */ }
+
+  // أخيراً، اعرض ما في الـ localStorage
   renderNotifications();
 };
 
-
-// —————————————————————————————————————————
-// 3) إضافة إشعار جديد محليّاً (من الفيروسرسوكر أو push)
-// —————————————————————————————————————————
-window.addNotification = ({ title, body, timestamp, time }) => {
-  const t = timestamp || time || Date.now();
-  // تجنّب التكرار
-  if (window.serverNotifications[0]?.title === title &&
-      window.serverNotifications[0]?.body === body) {
-    return;
-  }
-  window.serverNotifications.unshift({ title, body, time: t });
-  if (window.serverNotifications.length > 50) {
-    window.serverNotifications.pop();
-  }
-  renderNotifications();
-};
-
-// —————————————————————————————————————————
-// 4) تعامل مع DOMContentLoaded
-// —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
   const panel = document.getElementById('notificationsPanel');
   const bell  = document.getElementById('notifBell');
@@ -101,16 +102,16 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     if (window.currentUser !== SUPERVISOR_CODE) return;
     if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
-    try {
-      await fetch(`${API_BASE}/notifications`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${window.jwtToken}` }
-      });
-      window.serverNotifications = [];
-      renderNotifications();
-    } catch { /* ignore */ }
+    await fetch(`${API_BASE}/notifications`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${window.jwtToken}` }
+    });
+    window.serverNotifications = [];
+    persistNotifications();
+    renderNotifications();
   });
 
-  // فور التحميل، حاول عرض أي إشعارات حتى لو لم يُسجّل المستخدم
+  // عند التحميل، نعرض ما في localStorage ثم نحاول جلب العام (حتى قبل الدخول)
   renderNotifications();
+  openNotificationLog().catch(()=>{});
 });
