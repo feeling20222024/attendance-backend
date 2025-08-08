@@ -223,7 +223,6 @@ if (clearBtn) {
     };
   }
 
-
 // —————————————————————————————————————————
 // 2) دالة تسجيل الدخول
 // —————————————————————————————————————————
@@ -251,19 +250,22 @@ async function login() {
 
     // (3) استلام الـ JWT
     const { token, user } = await res.json();
-   // ← داخل دالة login، فور استلام الـ token:
-jwtToken = token;
-localStorage.setItem('jwtToken', jwtToken);
-window.jwtToken = jwtToken;            // ← هذا السطر مفقود أصلًا
-currentUser = user.code ?? user['كود الموظف'];
-window.currentUser = currentUser;
 
+    // حفظ التوكن والمستخدم في المتغيرات العامة والتخزين المحلي
+    jwtToken = token;
+    window.jwtToken = jwtToken;
+    localStorage.setItem('jwtToken', jwtToken);
 
-    // (4) انتظر الـ SW يصير جاهز  initPush
-    const swReg = await navigator.serviceWorker.ready;
-    await window.initPush(swReg);
+    currentUser = user.code ?? user['كود الموظف'];
+    window.currentUser = currentUser;
 
-    // (5) بعد تسجيل التوكن بالفونت، جلب البيانات وتهيئة التنبيهات
+    // (4) تسجيل الـ Push مرة واحدة فقط إذا لم يكن لدينا fcmToken
+    if (!window.fcmToken) {
+      const swReg = await navigator.serviceWorker.ready;
+      await window.initPush(swReg);
+    }
+
+    // (5) بعد تسجيل التوكن، جلب البيانات وتهيئة التنبيهات
     await fetchAndRender();
     await initNotifications();
 
@@ -271,7 +273,7 @@ window.currentUser = currentUser;
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
-} // ← إغلاق دالة login()
+}
 
 
 // —————————————————————————————————————————
