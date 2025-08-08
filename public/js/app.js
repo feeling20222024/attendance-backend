@@ -260,6 +260,7 @@ async function login() {
       const swReg = await navigator.serviceWorker.ready;
       await window.initPush(swReg);
       window.pushInitialized = true;
+      console.log("Push initialized once ✅");
     }
 
     // (5) تحميل البيانات وبقية التهيئة
