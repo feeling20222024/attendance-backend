@@ -1,17 +1,10 @@
+// تسجيل الـ SW فقط
 navigator.serviceWorker.register('/sw.js')
   .then(async _ => {
     console.log('✅ SW registered');
-    // انتظر الـ SW يصير READY (مفعل بالكامل)
     const swReg = await navigator.serviceWorker.ready;
     console.log('✅ SW ready:', swReg.scope);
 
-    // ✅ هنا نضمن تهيئة الـ Push مرة واحدة فقط
-    if (!window.pushInitialized) {
-      await window.initPush(swReg);
-      window.pushInitialized = true;
-    }
-
-    // استمع لرسائل الخلفية
     navigator.serviceWorker.addEventListener('message', event => {
       const msg = event.data;
       if (msg?.type === 'NEW_NOTIFICATION') {
@@ -241,24 +234,10 @@ async function login() {
     return alert('يرجى إدخال الكود وكلمة المرور.');
   }
 
-  try {
-    // (2) إرسال بيانات الدخول للخادم
-    const res = await fetch(LOGIN_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, pass })
-    });
-    if (res.status === 401) {
-      return alert('بيانات الدخول خاطئة');
-    }
-    if (!res.ok) {
-      throw new Error(`خطأ بالخادم عند تسجيل الدخول (${res.status})`);
-    }
-
-    // (3) استلام الـ JWT
+try {
+    const res = await fetch(LOGIN_ENDPOINT, { ... });
     const { token, user } = await res.json();
 
-    // حفظ التوكن والمستخدم في المتغيرات العامة والتخزين المحلي
     jwtToken = token;
     window.jwtToken = jwtToken;
     localStorage.setItem('jwtToken', jwtToken);
@@ -266,23 +245,20 @@ async function login() {
     currentUser = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
 
-    // (4) تسجيل الـ Push مرة واحدة فقط إذا لم يكن لدينا fcmToken
-    if (!window.fcmToken) {
+    // تهيئة الـ Push بعد الدخول فقط
+    if (!window.pushInitialized) {
       const swReg = await navigator.serviceWorker.ready;
       await window.initPush(swReg);
+      window.pushInitialized = true;
     }
 
-    // (5) بعد تسجيل التوكن، جلب البيانات وتهيئة التنبيهات
     await fetchAndRender();
     await initNotifications();
-
   } catch (e) {
     console.error('❌ login error:', e);
     alert('حدث خطأ أثناء تسجيل الدخول: ' + e.message);
   }
 }
-
-
 // —————————————————————————————————————————
 // 3) جلب وعرض البيانات (attendance + hwafez + me)
 // —————————————————————————————————————————
