@@ -61,6 +61,16 @@ window.renderNotifications = function(arr = window.serverNotifications) {
 };
 
 // 3.2) جلب سجل الإشعارات من الخادم
+function filterDuplicates(arr) {
+  const seen = new Set();
+  return arr.filter(n => {
+    const key = `${n.title}|${n.body}|${n.time}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 window.openNotificationLog = async function() {
   if (!window.jwtToken) {
     window.renderNotifications();
@@ -74,7 +84,8 @@ window.openNotificationLog = async function() {
       }
     });
     if (!res.ok) throw new Error();
-    const { notifications } = await res.json();
+    let { notifications } = await res.json();
+    notifications = filterDuplicates(notifications);
     window.serverNotifications = notifications || [];
   } catch {
     window.serverNotifications = [];
