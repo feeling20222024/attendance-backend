@@ -1,55 +1,56 @@
-// notifications.js (مُحدَّث — يعرض الوقت محلياً +3 ساعات)
-// --------------------------------------------------------
+// notifications.js
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
+window.serverNotifications = [];
 
-// —————————————————————————————————————————
-// 0) تحميل الإشعارات المُخزَّنة (إن وُجدت) من localStorage
-// —————————————————————————————————————————
-window.serverNotifications = JSON.parse(
-  localStorage.getItem('serverNotifications') || '[]'
-);
-
-// دالة لمزامنة التخزين المحلي
+// حاول تحميل ما في localStorage إن وُجد (اختياري)
+window.serverNotifications = JSON.parse(localStorage.getItem('serverNotifications') || '[]');
 function persistNotifications() {
   localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications));
 }
 
-// —————————————————————————————————————————
-// مساعدة: استخراج طابع زمني صالح (millis) من كائن الإشعار
-// تدعم الحقول: timestamp (رقم) أو time (ISO string) أو عدم وجودها
-// —————————————————————————————————————————
-function getTimestampMillis(n) {
-  if (!n) return Date.now();
-  if (typeof n.timestamp === 'number') return n.timestamp;
-  if (typeof n.timestamp === 'string' && !isNaN(Number(n.timestamp))) return Number(n.timestamp);
-  if (typeof n.time === 'number') return n.time;
-  if (typeof n.time === 'string') {
-    const parsed = Date.parse(n.time);
-    if (!isNaN(parsed)) return parsed;
-  }
-  return Date.now();
-}
+// ===== دالة تحويل التوقيت إلى توقيت دمشق بدون ثواني =====
+function formatDamascus(timestamp) {
+  // تقبل رقم (ملّي) أو ISO-string أو undefined
+  const t = (typeof timestamp === 'number') ? timestamp
+          : (typeof timestamp === 'string' && /^\d+$/.test(timestamp)) ? Number(timestamp)
+          : Date.parse(timestamp) || Date.now();
 
-// —————————————————————————————————————————
-// دالة تنسيق الوقت: تضيف +3 ساعات (3 * 3600000 ms) ثم تعرض بالتنسيق العربي
-// —————————————————————————————————————————
-function formatTimestampWithGMTplus3(tsMillis) {
-  const ms = Number(tsMillis) || Date.now();
-  // أضف 3 ساعات (بالملّي)
-  const adjusted = new Date(ms + 3 * 60 * 60 * 1000);
-  // تنسيق عربي مختصر (تاريخ + وقت)
+  const date = new Date(t);
+
+  // حاول استخدام Intl.formatToParts للحصول على أجزاء ثابتة بتوقيت المنطقة
   try {
-    return adjusted.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+    const fmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Damascus',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+      hour12: false
+    });
+    const parts = fmt.formatToParts(date);
+    // اجمع الأجزاء للحصول على YYYY-MM-DD HH:MM
+    const map = {};
+    parts.forEach(p => { if (p.type !== 'literal') map[p.type] = p.value; });
+    // بعض المتصفحات قد تعطي day/month/year مختلفة في locale؛ هنا نستخدم names من map
+    const Y = map.year || String(date.getUTCFullYear());
+    const M = map.month || String(date.getUTCMonth() + 1).padStart(2, '0');
+    const D = map.day || String(date.getUTCDate()).padStart(2, '0');
+    const H = map.hour || String(date.getUTCHours()).padStart(2, '0');
+    const Min = map.minute || String(date.getUTCMinutes()).padStart(2, '0');
+
+    return `${Y}-${M}-${D} ${H}:${Min}`;
   } catch (e) {
-    // fallback بسيط
-    return adjusted.toLocaleString();
+    // fallback بسيط: أضف +3 ساعات إلى UTC (إذا لم يوجد دعم timeZone)
+    const d = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+    const Y = d.getUTCFullYear();
+    const M = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const D = String(d.getUTCDate()).padStart(2, '0');
+    const H = String(d.getUTCHours()).padStart(2, '0');
+    const Min = String(d.getUTCMinutes()).padStart(2, '0');
+    return `${Y}-${M}-${D} ${H}:${Min}`;
   }
 }
 
-// —————————————————————————————————————————
-// 1) رسم الإشعارات
-// —————————————————————————————————————————
+// ===== رسم الإشعارات =====
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
   const badge = document.getElementById('notifCount');
@@ -64,10 +65,10 @@ function renderNotifications() {
     window.serverNotifications.slice(0,50).forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
-      const millis = getTimestampMillis(n);
-      const timeStr = formatTimestampWithGMTplus3(millis);
-      li.innerHTML = `<strong>${escapeHtml(n.title)}</strong><br>
-        <small>${escapeHtml(n.body)}</small><br>
+      // استخدم formatDamascus بدون ثواني
+      const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
+      li.innerHTML = `<strong>${n.title}</strong><br>
+        <small>${n.body}</small><br>
         <small class="text-gray-400">${timeStr}</small>`;
       list.appendChild(li);
     });
@@ -80,26 +81,11 @@ function renderNotifications() {
       ? 'block' : 'none';
 }
 
-// مساعدة صغيرة لتجنّب XSS لو أن العناوين تأتي من مصدر خارجي
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-// —————————————————————————————————————————
-// 2) إضافة إشعار جديد محليًّا وتجنّب التكرار
-// يخزن الطابع الزمني كـ millis (رقمي)
-// —————————————————————————————————————————
-window.addNotification = ({ title, body, timestamp, time }) => {
-  const now = getTimestampMillis({ timestamp, time });
+// ===== إضافة إشعار جديد محليًّا وتجنّب التكرار =====
+window.addNotification = ({ title, body, timestamp }) => {
+  const now = timestamp || Date.now();
   const arr = window.serverNotifications || [];
 
-  // تجاهل التكرار الواضح
   if (arr[0]?.title === title && arr[0]?.body === body) return;
 
   arr.unshift({ title, body, timestamp: now });
@@ -110,13 +96,8 @@ window.addNotification = ({ title, body, timestamp, time }) => {
   renderNotifications();
 };
 
-// —————————————————————————————————————————
-// 3) جلب سجل الإشعارات من الخادم
-// إذا كان المستخدم مُسجَّلاً (jwtToken) نجلب السجل المُوَحَّد من الخادم
-// وإلا يمكننا جلب الإشعارات العامة من endpoint عام (optional)
-// —————————————————————————————————————————
+// ===== جلب سجل الإشعارات من الخادم إذا كان لدينا JWT =====
 window.openNotificationLog = async () => {
-  // إذا لدينا توكن تسجيل دخول، جلب سجل المستخدم المصادق
   if (window.jwtToken) {
     try {
       const res = await fetch(`${API_BASE}/notifications`, {
@@ -124,44 +105,22 @@ window.openNotificationLog = async () => {
       });
       if (res.ok) {
         const { notifications } = await res.json();
-        // نتوقع أن الخادم يرسل مصفوفة عناصر فيها title, body, time (ISO) أو timestamp
-        // لنحوّل كل عنصر إلى شكل يحتوي على numeric timestamp
-        window.serverNotifications = (notifications || []).map(n => {
-          const t = getTimestampMillis(n);
-          return { title: n.title, body: n.body, timestamp: t };
-        }).slice(0,50);
-        persistNotifications();
-      } else {
-        // في حال استجابة غير OK: لا نكسر العرض المحلي
-        console.warn('openNotificationLog: server returned', res.status);
+        if (Array.isArray(notifications)) {
+          // تأكد من أن الطوابع زمنية موجودة (استخدم الوقت الحالي إن لم يوجد)
+          window.serverNotifications = notifications.map(n => ({
+            title: n.title,
+            body:  n.body,
+            timestamp: n.time || n.timestamp || Date.now()
+          }));
+          persistNotifications();
+        }
       }
-    } catch (err) {
-      console.warn('openNotificationLog fetch failed', err);
-      // تجاهل الخطأ، اعرض ما في localStorage
-    }
-  } else {
-    // خيار: إذا أردت عرض الإشعارات العامة قبل الدخول
-    try {
-      const res = await fetch(`${API_BASE}/public-notifications`);
-      if (res.ok) {
-        const { notifications } = await res.json();
-        window.serverNotifications = (notifications || []).map(n => {
-          const t = getTimestampMillis(n);
-          return { title: n.title, body: n.body, timestamp: t };
-        }).slice(0,50);
-        persistNotifications();
-      }
-    } catch (e) {
-      // لا مشكلة: استمر بعرض المحلي
-    }
+    } catch (e) { /* ignore */ }
   }
-
   renderNotifications();
 };
 
-// —————————————————————————————————————————
-// 4) DOM ready: ربط زر الجرس وعمليات المسح
-// —————————————————————————————————————————
+// ===== تفعيل زر الجرس والعداد عند DOMContentLoaded =====
 document.addEventListener('DOMContentLoaded', () => {
   const panel = document.getElementById('notificationsPanel');
   const bell  = document.getElementById('notifBell');
@@ -182,21 +141,16 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     if (window.currentUser !== SUPERVISOR_CODE) return;
     if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
-    try {
-      await fetch(`${API_BASE}/notifications`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${window.jwtToken}` }
-      });
-      window.serverNotifications = [];
-      persistNotifications();
-      renderNotifications();
-    } catch (err) {
-      console.error('Failed to clear notifications', err);
-      alert('حدث خطأ أثناء مسح الإشعارات.');
-    }
+    await fetch(`${API_BASE}/notifications`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${window.jwtToken}` }
+    });
+    window.serverNotifications = [];
+    persistNotifications();
+    renderNotifications();
   });
 
-  // عند التحميل: إذا لدينا jwtToken نجيب السجل من الخادم وإلا نعرض ما بخزن المحلي
+  // عند التحميل: إن كان لدينا JWT — جلب السجل من الخادم، وإلا عرض المحلي
   if (window.jwtToken) {
     openNotificationLog();
   } else {
