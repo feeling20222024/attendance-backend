@@ -85,19 +85,61 @@ window.openNotificationLog = async function() {
 // 3.3) تهيئة التنبيهات عند تحميل الواجهة (تعبئة العداد أوليًّا)
 async function initNotifications() {
   if (!jwtToken) return;
+
+  // حماية لمنع إضافة مستمع الرسائل أكثر من مرة
+  if (!window.messageListenerAdded) {
+    // استمع لرسائل Service Worker (رسائل الخلفية)
+    navigator.serviceWorker.addEventListener('message', event => {
+      const msg = event.data;
+      if (msg?.type === 'NEW_NOTIFICATION') {
+        window.addNotification({
+          title: msg.title,
+          body: msg.body,
+          time: formatDamascusTime(new Date(msg.timestamp))
+        });
+      }
+    });
+    window.messageListenerAdded = true;
+  }
+
+  // حماية لمنع إضافة مستمع Firebase onMessage أكثر من مرة
+  if (!window.onMessageAdded && window.messagingInstance) {
+    onMessage(window.messagingInstance, payload => {
+      const { title = '', body = '' } = payload.notification || {};
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body });
+      }
+      window.addNotification({
+        title,
+        body,
+        time: formatDamascusTime(new Date())
+      });
+    });
+    window.onMessageAdded = true;
+  }
+
+  // جلب سجل الإشعارات من السيرفر
   await openNotificationLog();
 }
 
-// 3.4) إضافة إشعار جديد محليًّا وتجنّب التكرار
-window.addNotification = ({ title, body, time }) => {
-  const arr = window.serverNotifications || [];
-  if (arr[0]?.title === title && arr[0]?.body === body) return;
-  arr.unshift({ title, body, time });
-  if (arr.length > 50) arr.pop();
-  window.serverNotifications = arr;
-  window.renderNotifications();
-};
+// دالة لتنسيق الوقت بتوقيت دمشق بدون ثواني
+function formatDamascusTime(date) {
+  // تحويل الوقت إلى توقيت UTC+3
+  // التوقيت المحلي لدمشق +3 ساعات على UTC بدون التوقيت الصيفي المعقد
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const damascusTime = new Date(utc + 3 * 3600000);
 
+  // تنسيق التاريخ والوقت بدون ثواني
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  };
+  return damascusTime.toLocaleString('ar-SY', options);
+}
 // 4) ربط أحداث الـ DOM بعد التحميل
 // —————————————————————————————————————————
 document.addEventListener('DOMContentLoaded', () => {
