@@ -4,7 +4,13 @@ navigator.serviceWorker.register('/sw.js')
     // انتظر الـ SW يصير READY (مفعل بالكامل)
     const swReg = await navigator.serviceWorker.ready;
     console.log('✅ SW ready:', swReg.scope);
-    
+
+    // ✅ هنا نضمن تهيئة الـ Push مرة واحدة فقط
+    if (!window.pushInitialized) {
+      await window.initPush(swReg);
+      window.pushInitialized = true;
+    }
+
     // استمع لرسائل الخلفية
     navigator.serviceWorker.addEventListener('message', event => {
       const msg = event.data;
@@ -18,6 +24,7 @@ navigator.serviceWorker.register('/sw.js')
     });
   })
   .catch(err => console.warn('❌ SW register failed', err));
+
 // —————————————————————————————————————————
 // 1) إعداد نقاط النهاية والمتغيرات العامة
 // —————————————————————————————————————————
