@@ -24,11 +24,31 @@ const db = getFirestore();
 
 // 3) إنشاء التطبيق وإعداد CORS
 const app = express();
+
+// قائمة الأصول المسموحة (أضِف أو حرّم حسب حاجتك)
+const allowedOrigins = [
+  'https://dwam-app-by-omar.netlify.app', // الموقع الرسمي
+  'https://dwam-app-by-omar.onrender.com', // إن احتجت
+  'capacitor://localhost',
+  'http://localhost',
+  'http://localhost:8080',
+  'http://localhost:8100',
+  'ionic://localhost'
+];
+
+// دالة CORS مرنة: تسمح origins من القائمة أو طلبات بدون origin (native apps / curl)
 const corsOptions = {
-  origin: 'https://dwam-app-by-omar.netlify.app',
+  origin: function(origin, callback) {
+    // origin === undefined happens for native apps or direct curl/file requests
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+    console.warn('Blocked CORS request from origin:', origin);
+    return callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
+
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -118,7 +138,6 @@ function formatDamascus(dateInput) {
     }).formatToParts(date);
     const m = {};
     parts.forEach(p => { if (p.type !== 'literal') m[p.type] = p.value; });
-    // تأكدنا من وجود الحقول
     const Y = m.year, M = m.month, D = m.day, H = m.hour, Min = m.minute;
     return `${Y}-${M}-${D} ${H}:${Min}`;
   } catch (e) {
@@ -163,9 +182,7 @@ async function sendPushTo(token, title, body, data = {}) {
     console.log(`✅ تم الإرسال بنجاح إلى ${token}`);
   } catch (err) {
     console.error(`❌ فشل الإرسال إلى ${token}:`, err);
-    // احذف من الذاكرة مؤقتًا
     tokens.delete(token);
-    // احذف من Firestore إذا التوكن غير مسجّل
     if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
       console.warn(`🗑️ حذف التوكن غير الصالح: ${token}`);
       await deleteTokenFromFirestore(token);
@@ -221,10 +238,8 @@ app.post(
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: 'token required' });
 
-    // خزن محليًا في الذاكرة
     tokens.set(token, req.user);
 
-    // خزن في Firestore (وثيقة مفتاحها هو التوكن)
     try {
       await db.collection('fcm_tokens').doc(token).set({
         token,
@@ -250,7 +265,6 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
   const timeUtc = new Date().toISOString();
   const timeLocal = formatDamascus(new Date());
 
-  // خزّن في السجل العام (مع localTime)
   globalNotifications.unshift({ title, body, time: timeUtc, localTime: timeLocal });
   if (globalNotifications.length > 50) globalNotifications.pop();
 
@@ -259,10 +273,8 @@ app.post('/api/notify-all', authenticate, async (req, res) => {
     const docs = snap.docs;
     const tokensList = docs.map(d => d.id);
 
-    // أرسل FCM لكل توكن (عدم الإيقاف عند خطأ واحد)
     await Promise.allSettled(tokensList.map(t => sendPushTo(t, title, body)));
 
-    // خزّن نسخة لكل مستخدم موجود في سجلات التوكنات
     docs.forEach(d => {
       const data = d.data();
       const userCode = data?.user?.code;
