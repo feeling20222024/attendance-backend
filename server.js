@@ -26,31 +26,31 @@ const db = getFirestore();
 const app = express();
 
 // ---------------------
-// قائمة الأصول المسموحة (ضع هنا النطاقات التي تريد السماح بها)
-// ---------------------
+// --- استبدل تعريف corsOptions الحالي بهذا ---
 const allowedOrigins = [
-  'https://dwam-app-by-omar.netlify.app', // الموقع الرسمي
-  'https://dwam-app-by-omar.onrender.com', // (إذا لزم)
-  'capacitor://localhost',                 // Capacitor native
-  'ionic://localhost',
+  'https://dwam-app-by-omar.netlify.app',
+  'https://dwam-app-by-omar.onrender.com',
+  'capacitor://localhost',
   'http://localhost',
-  'http://localhost:3000',
-  'http://localhost:8080',
-  'https://localhost'
+  'http://localhost:8100',
+  'http://127.0.0.1:5500',
+  'ionic://localhost'
 ];
 
-// دالة origin ذكية لتعطي Access-Control-Allow-Origin فقط إن كان origin مسموحاً
 const corsOptions = {
   origin: function(origin, callback) {
-    // origin قد يكون undefined في حالات مثل Postman أو native requests
+    // origin قد يكون undefined في بعض الـ native apps أو curl
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
-    }
+    if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+
+    // للـ development: اقبل أي origin لو NODE_ENV !== 'production'
+    if (process.env.NODE_ENV !== 'production') return callback(null, true);
+
     return callback(new Error('الـ CORS origin غير مسموح: ' + origin), false);
   },
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 };
 
 app.options('*', cors(corsOptions));
