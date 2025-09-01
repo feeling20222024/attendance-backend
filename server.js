@@ -1,4 +1,4 @@
-// server.js (محدث - CORS ذكي)
+// server.js (محدث - كامل وجاهز)
 require('dotenv').config();
 
 const express = require('express');
@@ -8,32 +8,34 @@ const jwt = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin = require('firebase-admin');
 
-// ----- تحقق من متغيرات البيئة المطلوبة -----
+// ------------ قراءة متغيرات البيئة الأساسية ------------
 const {
   JWT_SECRET,
   SUPERVISOR_CODE,
   GOOGLE_SHEET_ID: SHEET_ID,
   GOOGLE_SERVICE_KEY,
   FIREBASE_SERVICE_ACCOUNT,
-  APP_VERSION = '1.0.0'
+  APP_VERSION = '1.0.0',
+  ALLOW_ALL_ORIGINS
 } = process.env;
 
 if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY || !FIREBASE_SERVICE_ACCOUNT) {
-  console.error('❌ بعض متغيرات البيئة مفقودة (JWT_SECRET, SUPERVISOR_CODE, SHEET_ID, GOOGLE_SERVICE_KEY, FIREBASE_SERVICE_ACCOUNT)');
+  console.error('❌ بعض متغيرات البيئة مفقودة. تأكد من ضبط JWT_SECRET, SUPERVISOR_CODE, GOOGLE_SHEET_ID, GOOGLE_SERVICE_KEY, FIREBASE_SERVICE_ACCOUNT');
   process.exit(1);
 }
 
-// ----- تهيئة Firebase Admin -----
+// ------------ تهيئة Firebase Admin ------------
 let serviceAccount;
 try {
   serviceAccount = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
   admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+  console.log('✅ Firebase Admin initialized');
 } catch (e) {
   console.error('❌ FIREBASE_SERVICE_ACCOUNT غير صالح:', e);
   process.exit(1);
 }
 
-// ----- دالة تحويل أرقام عربية/فارسية إلى لاتينية -----
+// ------------ دالة لتحويل الأرقام العربية/الفارسية إلى لاتينية ------------
 function normalizeDigits(str) {
   if (!str) return '';
   return String(str).replace(/[\u0660-\u0669\u06F0-\u06F9]/g, ch => {
@@ -42,10 +44,14 @@ function normalizeDigits(str) {
   });
 }
 
-// ----- إعداد Google Sheets -----
+// ------------ إعداد Google Sheets ------------
 let sheetCreds;
-try { sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY); } 
-catch (e) { console.error('❌ GOOGLE_SERVICE_KEY ليس JSON صالح:', e); process.exit(1); }
+try {
+  sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY);
+} catch (e) {
+  console.error('❌ GOOGLE_SERVICE_KEY ليس JSON صالح:', e);
+  process.exit(1);
+}
 
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
@@ -56,21 +62,21 @@ async function accessSheet() {
   await doc.loadInfo();
   return doc;
 }
+
 async function readSheet(title) {
   const doc = await accessSheet();
   const sheet = doc.sheetsByTitle[title];
   if (!sheet) throw new Error(`Sheet "${title}" غير موجود`);
   await sheet.loadHeaderRow();
-  const rawHeaders = sheet.headerValues.map(h => (h||'').toString().trim());
+  const rawHeaders = sheet.headerValues.map(h => (h || '').toString().trim());
   const rows = await sheet.getRows();
   const data = rows.map(r => rawHeaders.map(h => r[h] != null ? r[h] : ''));
   return { headers: rawHeaders, data };
 }
 
-// ----- إعداد Express و CORS ذكي -----
+// ------------ Express + CORS ذكي ------------
 const app = express();
 
-// قائمة أوّلية مسموح بها (أضف حسب حاجتك)
 const allowedOrigins = [
   'https://dwam-app-by-omar.netlify.app',
   'https://dwam-app-by-omar.onrender.com',
@@ -82,31 +88,18 @@ const allowedOrigins = [
   'https://localhost'
 ];
 
-// دالة origin ذكية
 const corsOptions = {
-  origin: function(origin, callback) {
-    // تفعيل اختبار التوسع (سهل للتجربة): اضبط ALLOW_ALL_ORIGINS=1 في env
-    if (process.env.ALLOW_ALL_ORIGINS === '1') {
-      return callback(null, true);
-    }
-    // origin قد يكون undefined (native apps, curl) — اسمح بها
-    if (!origin) return callback(null, true);
-    // تحقق من التطابق الحرفي
+  origin: function (origin, callback) {
+    if (ALLOW_ALL_ORIGINS === '1') return callback(null, true);
+    if (!origin) return callback(null, true); // native apps, curl, etc.
     if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
-    // سمح بأي localhost مهما كان المنفذ
-    if (/^https?:\/\/localhost(:\d+)?$/.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-    // capacitor/ionic schemes
+    if (/^https?:\/\/localhost(:\d+)?$/.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) return callback(null, true);
     if (/^(capacitor|ionic):\/\/localhost$/.test(origin)) return callback(null, true);
-
-    console.warn('CORS رفض Origin:', origin);
-    return callback(new Error('CORS origin غير مسموح: ' + origin), false);
+    console.warn('CORS refused origin:', origin);
+    callback(new Error('CORS origin غير مسموح: ' + origin), false);
   },
-  methods: ['GET','POST','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','Accept'],
-  exposedHeaders: ['Content-Length','X-Kuma-Revision'],
-  preflightContinue: false,
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   optionsSuccessStatus: 204
 };
 
@@ -115,7 +108,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ----- Middleware JWT -----
+// ------------ JWT middleware ------------
 function authenticate(req, res, next) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
@@ -127,17 +120,83 @@ function authenticate(req, res, next) {
   }
 }
 
-// ----- واجهات API (login, attendance, hwafez, tqeem, notifications, notify-all, register-token) -----
+// ------------ Notifications & FCM helper (in-memory tokens) ------------
+const tokens = new Map(); // token -> { userCode, createdAt }
+
+async function sendPushTo(token, title, body, data = {}) {
+  const message = {
+    token,
+    notification: { title: String(title || '').slice(0, 200), body: String(body || '').slice(0, 1000) },
+    data: Object.assign({}, data, { ts: Date.now().toString() }),
+    android: {
+      priority: 'high',
+      notification: { sound: 'default', channelId: 'default' }
+    },
+    apns: {
+      headers: { 'apns-priority': '10' },
+      payload: {
+        aps: { alert: { title: String(title || ''), body: String(body || '') }, sound: 'default', 'content-available': 1 }
+      }
+    },
+    webpush: {
+      headers: { Urgency: 'high' },
+      notification: { title: String(title || ''), body: String(body || '') }
+    }
+  };
+
+  try {
+    const resp = await admin.messaging().send(message);
+    console.log(`✅ sendPushTo success token=${token} resp=${resp}`);
+    return { ok: true, resp };
+  } catch (err) {
+    console.error('❌ sendPushTo failed for token', token, err);
+    // إزالة التوكن إن كان غير صالح
+    if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
+      tokens.delete(token);
+      try {
+        // لو تريد حذف من Firestore لو خزنت هناك
+        await admin.firestore().collection('fcm_tokens').doc(token).delete().catch(()=>{});
+      } catch(e){}
+    }
+    return { ok: false, error: err };
+  }
+}
+
+// Endpoint لتسجيل توكن (يتوقع JWT مصدق)
+app.post('/api/register-token', authenticate, async (req, res) => {
+  const { token } = req.body || {};
+  if (!token) return res.status(400).json({ error: 'token required' });
+  tokens.set(token, { userCode: req.user?.code || null, createdAt: new Date().toISOString() });
+
+  // خيار: خزن في Firestore (اختياري)
+  try {
+    await admin.firestore().collection('fcm_tokens').doc(token).set({
+      token,
+      user: req.user || null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (e) {
+    // غير حرج
+    console.warn('failed to persist token to Firestore (non-fatal)', e.message || e);
+  }
+
+  res.json({ success: true });
+});
+
+// ------------ In-memory notifications storage (مثال) ------------
+const userNotifications = {}; // userCode -> [{title,body,time}], __global__ for public
+
+// ------------ API endpoints ------------
 
 // login
 app.post('/api/login', async (req, res) => {
-  let { code, pass } = req.body || {};
-  if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
-
-  code = normalizeDigits(String(code).trim());
-  pass = normalizeDigits(String(pass).trim());
-
   try {
+    let { code, pass } = req.body || {};
+    if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
+
+    code = normalizeDigits(String(code).trim());
+    pass = normalizeDigits(String(pass).trim());
+
     const { headers, data } = await readSheet('Users');
     const iC = headers.indexOf('كود الموظف');
     const iP = headers.indexOf('كلمة المرور');
@@ -160,7 +219,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// attendance (محمية)
+// attendance (mprotected)
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
@@ -168,7 +227,7 @@ app.get('/api/attendance', authenticate, async (req, res) => {
     const target = normalizeDigits(String(req.user.code).trim());
     const userRows = data.filter(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
 
-    // عامّة الملاحظات (إن كانت موجودة)
+    // general note
     const noteCol = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
     const generalNote = (data.find(row => row[noteCol]) || [])[noteCol] || '';
 
@@ -207,18 +266,20 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
   }
 });
 
-// إشعارات في الذاكرة (مثال)
-const userNotifications = {};
+// public notifications (قبل login)
 app.get('/api/public-notifications', (req, res) => {
-  // إرجاع آخر 50 إشعار عام
-  res.json({ notifications: (userNotifications.__global__ || []).slice(0,50) });
+  res.json({ notifications: (userNotifications.__global__ || []).slice(0, 50) });
 });
+
+// get personal notifications (requires auth)
 app.get('/api/notifications', authenticate, (req, res) => {
   const personal = userNotifications[req.user.code] || [];
   const global = userNotifications.__global__ || [];
-  const merged = [...personal, ...global].slice(0,50);
-  return res.json({ notifications: merged });
+  const merged = [...personal, ...global].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 50);
+  res.json({ notifications: merged });
 });
+
+// post personal notification (for testing / storing)
 app.post('/api/notifications', authenticate, (req, res) => {
   const { title, body } = req.body || {};
   if (!title || !body) return res.status(400).json({ error: 'title and body required' });
@@ -231,21 +292,46 @@ app.post('/api/notifications', authenticate, (req, res) => {
   return res.json({ success: true });
 });
 
-// notify-all (للمشرف فقط)
+// notify-all (supervisor only) -> send push to all tokens + store in memory
 app.post('/api/notify-all', authenticate, async (req, res) => {
+  try {
+    if (String(req.user.code) !== String(SUPERVISOR_CODE)) return res.status(403).json({ error: 'Forbidden' });
+    const { title, body } = req.body || {};
+    if (!title || !body) return res.status(400).json({ error: 'title and body required' });
+
+    const t = new Date().toISOString();
+    userNotifications.__global__ = userNotifications.__global__ || [];
+    userNotifications.__global__.unshift({ title, body, time: t });
+
+    const tokenList = Array.from(tokens.keys());
+    const results = await Promise.allSettled(tokenList.map(tkn => sendPushTo(tkn, title, body)));
+    const failed = results.reduce((acc, r, i) => {
+      if (r.status === 'rejected' || (r.status === 'fulfilled' && !r.value?.ok)) acc.push(tokenList[i]);
+      return acc;
+    }, []);
+    failed.forEach(tk => tokens.delete(tk));
+
+    return res.json({ success: true, sent: tokenList.length - failed.length, failed: failed.length });
+  } catch (e) {
+    console.error('notify-all error:', e);
+    return res.status(500).json({ error: 'notify failed' });
+  }
+});
+
+// delete notifications (supervisor) - clears memory
+app.delete('/api/notifications', authenticate, (req, res) => {
   if (String(req.user.code) !== String(SUPERVISOR_CODE)) return res.status(403).json({ error: 'Forbidden' });
-  const { title, body } = req.body || {};
-  if (!title || !body) return res.status(400).json({ error: 'title and body required' });
-  const t = new Date().toISOString();
-  userNotifications.__global__ = userNotifications.__global__ || [];
-  userNotifications.__global__.unshift({ title, body, time: t });
+  Object.keys(userNotifications).forEach(k => delete userNotifications[k]);
+  userNotifications.__global__ = [];
   return res.json({ success: true });
 });
 
-// اسم الإصدار + SPA fallback
-app.get('/api/version', (_, res) => res.json({ version: APP_VERSION }));
+// version
+app.get('/api/version', (req, res) => res.json({ version: APP_VERSION }));
+
+// SPA fallback (serve index.html from public)
 app.get(/.*/, (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// بدء الخادم
+// start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
