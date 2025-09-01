@@ -1,6 +1,5 @@
-// server.js — مُحدّث (CORS مرن وآمن افتراضياً)
+// server.js (محدث - CORS ذكي)
 require('dotenv').config();
-'use strict';
 
 const express = require('express');
 const cors = require('cors');
@@ -8,134 +7,115 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const admin = require('firebase-admin');
-const { getFirestore } = require('firebase-admin/firestore');
 
-// -------------------------------
-// قراءة متغيرات البيئة الأساسية
-// -------------------------------
-const APP_VERSION = process.env.APP_VERSION || '1.0.0';
-const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET;
-const SUPERVISOR_CODE = process.env.SUPERVISOR_CODE;
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const GOOGLE_SERVICE_KEY = process.env.GOOGLE_SERVICE_KEY;
-const FIREBASE_SERVICE_ACCOUNT = process.env.FIREBASE_SERVICE_ACCOUNT || null;
+// ----- تحقق من متغيرات البيئة المطلوبة -----
+const {
+  JWT_SECRET,
+  SUPERVISOR_CODE,
+  GOOGLE_SHEET_ID: SHEET_ID,
+  GOOGLE_SERVICE_KEY,
+  FIREBASE_SERVICE_ACCOUNT,
+  APP_VERSION = '1.0.0'
+} = process.env;
 
-// تحقق أساسي
-if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY) {
-  console.error('❌ خطأ: بعض متغيرات البيئة مفقودة (JWT_SECRET, SUPERVISOR_CODE, GOOGLE_SHEET_ID, GOOGLE_SERVICE_KEY).');
+if (!JWT_SECRET || !SUPERVISOR_CODE || !SHEET_ID || !GOOGLE_SERVICE_KEY || !FIREBASE_SERVICE_ACCOUNT) {
+  console.error('❌ بعض متغيرات البيئة مفقودة (JWT_SECRET, SUPERVISOR_CODE, SHEET_ID, GOOGLE_SERVICE_KEY, FIREBASE_SERVICE_ACCOUNT)');
   process.exit(1);
 }
 
-// -------------------------------
-// CORS — إعداد مرن وآمن
-// ALLOWED_ORIGINS يمكن أن تكون متغيرة بيئة مفصولة بفواصل
-// مثال: ALLOWED_ORIGINS="https://example.com,http://localhost:3000,capacitor://localhost"
-// -------------------------------
-const DEFAULT_ALLOWED = [
-  'https://dwam-app-by-omar.netlify.app',
-  'https://dwam-app-by-omar.onrender.com',
-  'http://localhost',
-  'http://localhost:3000',
-  'http://127.0.0.1',
-  'https://localhost',
-  'capacitor://localhost',
-  'ionic://localhost'
-];
-const envList = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-const allowedOrigins = envList.length ? envList : DEFAULT_ALLOWED;
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // origin === undefined => native app (WebView without origin) أو same-origin non-browser (مثل curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
-    // رفض origin غير مسموح
-    return callback(new Error(`CORS blocked: ${origin}`), false);
-  },
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-// -------------------------------
-// تهيئة Firebase Admin (إن وُجد)
-let db = null;
-if (FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    const svc = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(svc)
-    });
-    db = getFirestore();
-    console.log('✅ Firebase Admin initialized.');
-  } catch (e) {
-    console.warn('⚠️ فشل تهيئة Firebase Admin — FIREBASE_SERVICE_ACCOUNT غير صالح؟', e.message);
-    db = null;
-  }
-} else {
-  console.log('ℹ️ Firebase Admin not configured (FIREBASE_SERVICE_ACCOUNT empty).');
+// ----- تهيئة Firebase Admin -----
+let serviceAccount;
+try {
+  serviceAccount = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
+  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+} catch (e) {
+  console.error('❌ FIREBASE_SERVICE_ACCOUNT غير صالح:', e);
+  process.exit(1);
 }
 
-// -------------------------------
-// دالة تحويل الأرقام العربية/الفارسية إلى لاتينية
-// -------------------------------
+// ----- دالة تحويل أرقام عربية/فارسية إلى لاتينية -----
 function normalizeDigits(str) {
-  if (!str && str !== 0) return '';
-  str = String(str);
-  return str.replace(/[\u0660-\u0669\u06F0-\u06F9]/g, ch => {
+  if (!str) return '';
+  return String(str).replace(/[\u0660-\u0669\u06F0-\u06F9]/g, ch => {
     const code = ch.charCodeAt(0);
-    if (code >= 0x0660 && code <= 0x0669) return String(code - 0x0660);
-    if (code >= 0x06F0 && code <= 0x06F9) return String(code - 0x06F0);
-    return ch;
+    return String(code & 0xF);
   });
 }
 
-// -------------------------------
-// Google Sheets helpers
-// -------------------------------
+// ----- إعداد Google Sheets -----
 let sheetCreds;
-try {
-  sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY);
-} catch (e) {
-  console.error('❌ GOOGLE_SERVICE_KEY ليس JSON صالح.');
-  process.exit(1);
-}
+try { sheetCreds = JSON.parse(GOOGLE_SERVICE_KEY); } 
+catch (e) { console.error('❌ GOOGLE_SERVICE_KEY ليس JSON صالح:', e); process.exit(1); }
 
 async function accessSheet() {
   const doc = new GoogleSpreadsheet(SHEET_ID);
   await doc.useServiceAccountAuth({
     client_email: sheetCreds.client_email,
-    private_key: (sheetCreds.private_key || '').replace(/\\n/g, '\n')
+    private_key: sheetCreds.private_key.replace(/\\n/g, '\n')
   });
   await doc.loadInfo();
   return doc;
 }
-
 async function readSheet(title) {
   const doc = await accessSheet();
   const sheet = doc.sheetsByTitle[title];
   if (!sheet) throw new Error(`Sheet "${title}" غير موجود`);
   await sheet.loadHeaderRow();
-  const rawHeaders = sheet.headerValues || [];
-  const cleanHeaders = rawHeaders.map(h => h.trim());
+  const rawHeaders = sheet.headerValues.map(h => (h||'').toString().trim());
   const rows = await sheet.getRows();
-  const data = rows.map(r => cleanHeaders.map(h => r[h] != null ? r[h] : ''));
-  return { headers: cleanHeaders, data };
+  const data = rows.map(r => rawHeaders.map(h => r[h] != null ? r[h] : ''));
+  return { headers: rawHeaders, data };
 }
 
-// -------------------------------
-// Express app
-// -------------------------------
+// ----- إعداد Express و CORS ذكي -----
 const app = express();
 
-app.use(express.json());
-app.use(cors(corsOptions));   // استخدم الخيارات الآمنة أعلاه
+// قائمة أوّلية مسموح بها (أضف حسب حاجتك)
+const allowedOrigins = [
+  'https://dwam-app-by-omar.netlify.app',
+  'https://dwam-app-by-omar.onrender.com',
+  'capacitor://localhost',
+  'ionic://localhost',
+  'http://localhost',
+  'http://localhost:3000',
+  'http://127.0.0.1:5500',
+  'https://localhost'
+];
+
+// دالة origin ذكية
+const corsOptions = {
+  origin: function(origin, callback) {
+    // تفعيل اختبار التوسع (سهل للتجربة): اضبط ALLOW_ALL_ORIGINS=1 في env
+    if (process.env.ALLOW_ALL_ORIGINS === '1') {
+      return callback(null, true);
+    }
+    // origin قد يكون undefined (native apps, curl) — اسمح بها
+    if (!origin) return callback(null, true);
+    // تحقق من التطابق الحرفي
+    if (allowedOrigins.indexOf(origin) !== -1) return callback(null, true);
+    // سمح بأي localhost مهما كان المنفذ
+    if (/^https?:\/\/localhost(:\d+)?$/.test(origin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+    // capacitor/ionic schemes
+    if (/^(capacitor|ionic):\/\/localhost$/.test(origin)) return callback(null, true);
+
+    console.warn('CORS رفض Origin:', origin);
+    return callback(new Error('CORS origin غير مسموح: ' + origin), false);
+  },
+  methods: ['GET','POST','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','Accept'],
+  exposedHeaders: ['Content-Length','X-Kuma-Revision'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
 app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// -------------------------------
-// JWT middleware
-// -------------------------------
+// ----- Middleware JWT -----
 function authenticate(req, res, next) {
   const h = req.headers.authorization;
   if (!h || !h.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
@@ -147,51 +127,10 @@ function authenticate(req, res, next) {
   }
 }
 
-// -------------------------------
-// In-memory structures (fallback)
-// -------------------------------
-const tokens = new Map();                // token -> user
-const userNotifications = {};            // code -> [ { title, body, time } ]
-const globalNotifications = [];          // unified list
+// ----- واجهات API (login, attendance, hwafez, tqeem, notifications, notify-all, register-token) -----
 
-// Helper: send push (uses Firebase Admin if available)
-async function sendPushTo(token, title, body, data = {}) {
-  if (!db) {
-    console.warn('No Firebase Admin configured — skipping FCM send');
-    return;
-  }
-  const message = {
-    token,
-    notification: { title, body },
-    android: { ttl: 48 * 60 * 60 * 1000, priority: 'high' },
-    data
-  };
-  try {
-    await admin.messaging().send(message);
-    console.log(`✅ pushed to ${token}`);
-  } catch (err) {
-    console.error(`❌ push failed to ${token}:`, err);
-    tokens.delete(token);
-    if (err?.errorInfo?.code === 'messaging/registration-token-not-registered' && db) {
-      try { await db.collection('fcm_tokens').doc(token).delete(); } catch(e){}
-    }
-  }
-}
-
-// -------------------------------
-// Endpoints
-// -------------------------------
-
-// Version
-app.get('/api/version', (req, res) => res.json({ version: APP_VERSION }));
-
-// Public notifications (no auth) — useful to check reachability before login
-app.get('/api/public-notifications', (req, res) => {
-  res.json({ notifications: globalNotifications.slice(0, 50) });
-});
-
-// Login
-app.post('/api/login', cors(corsOptions), async (req, res) => {
+// login
+app.post('/api/login', async (req, res) => {
   let { code, pass } = req.body || {};
   if (!code || !pass) return res.status(400).json({ error: 'code and pass required' });
 
@@ -212,141 +151,101 @@ app.post('/api/login', cors(corsOptions), async (req, res) => {
 
     if (!row) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const payload = { code, name: row[iN] ?? '' };
+    const payload = { code, name: row[iN] };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
-
     return res.json({ token, user: payload });
   } catch (e) {
-    console.error('Login error:', e);
+    console.error('login error:', e);
     return res.status(500).json({ error: 'Login failed' });
   }
 });
 
-// Attendance
-app.get('/api/attendance', cors(corsOptions), authenticate, async (req, res) => {
+// attendance (محمية)
+app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
-    const idx = headers.indexOf('رقم الموظف');
+    const idxCode = headers.indexOf('رقم الموظف');
     const target = normalizeDigits(String(req.user.code).trim());
+    const userRows = data.filter(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
 
-    // user rows
-    const userRows = data.filter(r => normalizeDigits(String(r[idx] ?? '').trim()) === target);
-
-    // general note (rows with empty code)
-    const generalRows = data.filter(r => !(r[idx] != null && String(r[idx]).trim()));
+    // عامّة الملاحظات (إن كانت موجودة)
     const noteCol = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
-    const generalNote = (noteCol !== -1 && generalRows[0] && generalRows[0][noteCol]) ? String(generalRows[0][noteCol]).trim() : '';
+    const generalNote = (data.find(row => row[noteCol]) || [])[noteCol] || '';
 
-    res.json({ headers, data: userRows, generalNote });
+    return res.json({ headers, data: userRows, generalNote });
   } catch (e) {
-    console.error('Attendance error:', e);
-    res.status(500).json({ error: e.message || 'Failed to read attendance' });
+    console.error('attendance error:', e);
+    return res.status(500).json({ error: e.message });
   }
 });
 
 // hwafez
-app.get('/api/hwafez', cors(corsOptions), authenticate, async (req, res) => {
+app.get('/api/hwafez', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('hwafez');
     const idx = headers.indexOf('رقم الموظف');
     const target = normalizeDigits(String(req.user.code).trim());
     const filtered = data.filter(r => normalizeDigits(String(r[idx] ?? '').trim()) === target);
-    res.json({ headers, data: filtered });
+    return res.json({ headers, data: filtered });
   } catch (e) {
     console.error('hwafez error:', e);
-    res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message });
   }
 });
 
 // tqeem
-app.get('/api/tqeem', cors(corsOptions), authenticate, async (req, res) => {
+app.get('/api/tqeem', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('tqeem');
     const idx = headers.indexOf('رقم الموظف');
     const target = normalizeDigits(String(req.user.code).trim());
     const filtered = data.filter(r => normalizeDigits(String(r[idx] ?? '').trim()) === target);
-    res.json({ headers, data: filtered });
+    return res.json({ headers, data: filtered });
   } catch (e) {
     console.error('tqeem error:', e);
-    res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message });
   }
 });
 
-// register-token (store in memory + Firestore if available)
-app.post('/api/register-token', cors(corsOptions), authenticate, async (req, res) => {
-  const { token } = req.body || {};
-  if (!token) return res.status(400).json({ error: 'token required' });
-  tokens.set(token, req.user);
-
-  // try persist
-  if (db) {
-    try {
-      await db.collection('fcm_tokens').doc(token).set({
-        token,
-        user: req.user,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    } catch (e) {
-      console.warn('Failed to persist token to Firestore:', e.message || e);
-    }
-  }
-
-  res.json({ success: true });
+// إشعارات في الذاكرة (مثال)
+const userNotifications = {};
+app.get('/api/public-notifications', (req, res) => {
+  // إرجاع آخر 50 إشعار عام
+  res.json({ notifications: (userNotifications.__global__ || []).slice(0,50) });
+});
+app.get('/api/notifications', authenticate, (req, res) => {
+  const personal = userNotifications[req.user.code] || [];
+  const global = userNotifications.__global__ || [];
+  const merged = [...personal, ...global].slice(0,50);
+  return res.json({ notifications: merged });
+});
+app.post('/api/notifications', authenticate, (req, res) => {
+  const { title, body } = req.body || {};
+  if (!title || !body) return res.status(400).json({ error: 'title and body required' });
+  const t = new Date().toISOString();
+  userNotifications[req.user.code] = userNotifications[req.user.code] || [];
+  userNotifications[req.user.code].unshift({ title, body, time: t });
+  userNotifications.__global__ = userNotifications.__global__ || [];
+  userNotifications.__global__.unshift({ title, body, time: t });
+  if (userNotifications.__global__.length > 200) userNotifications.__global__.length = 200;
+  return res.json({ success: true });
 });
 
-// notify-all (supervisor only)
-app.post('/api/notify-all', cors(corsOptions), authenticate, async (req, res) => {
+// notify-all (للمشرف فقط)
+app.post('/api/notify-all', authenticate, async (req, res) => {
   if (String(req.user.code) !== String(SUPERVISOR_CODE)) return res.status(403).json({ error: 'Forbidden' });
   const { title, body } = req.body || {};
   if (!title || !body) return res.status(400).json({ error: 'title and body required' });
-
-  const timeUtc = new Date().toISOString();
-  const item = { title, body, time: timeUtc };
-  globalNotifications.unshift(item);
-  if (globalNotifications.length > 50) globalNotifications.pop();
-
-  // add personal to each user from tokens map
-  for (const [t, user] of tokens.entries()) {
-    const ucode = user && user.code ? String(user.code) : null;
-    if (!ucode) continue;
-    userNotifications[ucode] = userNotifications[ucode] || [];
-    userNotifications[ucode].unshift(item);
-    if (userNotifications[ucode].length > 50) userNotifications[ucode].pop();
-  }
-
-  // try send push concurrently (non-blocking failures)
-  try {
-    const tokenList = Array.from(tokens.keys());
-    await Promise.allSettled(tokenList.map(t => sendPushTo(t, title, body)));
-  } catch (e) {
-    console.warn('notify-all partial error:', e);
-  }
-
-  res.json({ success: true });
+  const t = new Date().toISOString();
+  userNotifications.__global__ = userNotifications.__global__ || [];
+  userNotifications.__global__.unshift({ title, body, time: t });
+  return res.json({ success: true });
 });
 
-// get notifications for user
-app.get('/api/notifications', cors(corsOptions), authenticate, (req, res) => {
-  const c = String(req.user.code);
-  const personal = userNotifications[c] || [];
-  const merged = [...personal, ...globalNotifications]
-    .sort((a,b) => new Date(b.time) - new Date(a.time))
-    .slice(0,50);
-  res.json({ notifications: merged });
-});
+// اسم الإصدار + SPA fallback
+app.get('/api/version', (_, res) => res.json({ version: APP_VERSION }));
+app.get(/.*/, (_, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// clear notifications (supervisor)
-app.delete('/api/notifications', cors(corsOptions), authenticate, (req, res) => {
-  if (String(req.user.code) !== String(SUPERVISOR_CODE)) return res.status(403).json({ error: 'Forbidden' });
-  Object.keys(userNotifications).forEach(k => delete userNotifications[k]);
-  globalNotifications.length = 0;
-  res.json({ success: true });
-});
-
-// SPA fallback (serve index.html for other routes)
-app.get(/.*/, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Start server
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} (allowedOrigins: ${allowedOrigins.join(', ')})`));
+// بدء الخادم
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
