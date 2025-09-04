@@ -157,10 +157,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const panel    = document.getElementById('notificationsPanel');
   const clearBtn = document.getElementById('clearNotifications');
 
-    document.body.addEventListener('click', () => {
-      if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
-    });
-  
+  document.body.addEventListener('click', () => {
+    if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
+  });
+
+  // فقط إذا تم تسجيل الدخول
+  if (jwtToken && currentUser) {
+    window.renderNotifications();
+  }
 
   clearBtn?.addEventListener('click', async e => {
     e.stopPropagation();
