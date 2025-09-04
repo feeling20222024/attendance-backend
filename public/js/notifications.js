@@ -1,23 +1,15 @@
-// notifications.js — Part 1 (ضع هذا أولاً)
+// notifications.js (إصدار مصحَّح كامل)
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
+window.serverNotifications = [];
 
-// مكان تخزين إشعارات الجلسة
-window.serverNotifications = window.serverNotifications || [];
-
-// محاول قراءة المخزن المحلي بأمان
-(function loadLocal() {
-  try {
-    const raw = localStorage.getItem('serverNotifications');
-    if (raw) {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) window.serverNotifications = arr;
-    }
-  } catch (e) {
-    console.warn('notifications: failed to read localStorage', e);
-    window.serverNotifications = window.serverNotifications || [];
-  }
-})();
+// حاول تحميل ما في localStorage إن وُجد (آمن)
+try {
+  const saved = localStorage.getItem('serverNotifications');
+  window.serverNotifications = saved ? JSON.parse(saved) : [];
+} catch (e) {
+  window.serverNotifications = [];
+}
 
 function persistNotifications() {
   try {
@@ -25,7 +17,7 @@ function persistNotifications() {
   } catch (e) { /* ignore */ }
 }
 
-// ===== دالة تحويل التوقيت إلى توقيت دمشق بدون ثواني =====
+// تحويل التوقيت إلى توقيت دمشق بدون ثواني
 function formatDamascus(timestamp) {
   const t = (typeof timestamp === 'number') ? timestamp
           : (typeof timestamp === 'string' && /^\d+$/.test(timestamp)) ? Number(timestamp)
@@ -58,47 +50,40 @@ function formatDamascus(timestamp) {
   }
 }
 
-// ===== رسم الإشعارات في الـ DOM =====
+// رسم الإشعارات في الواجهة
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
   const badge = document.getElementById('notifCount');
   const clear = document.getElementById('clearNotifications');
-  // إذا لم توجد عناصر DOM، نخرج بهدوء (لا خطأ)
   if (!list || !badge || !clear) return;
 
   list.innerHTML = '';
-  const arr = (window.serverNotifications || []).slice(0,50);
-  if (!arr.length) {
+  if (!Array.isArray(window.serverNotifications) || window.serverNotifications.length === 0) {
     list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     badge.classList.add('hidden');
   } else {
-    arr.forEach(n => {
+    window.serverNotifications.slice(0,50).forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
       const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
-      li.innerHTML = `<strong>${escapeHtml(String(n.title || ''))}</strong><br>
-        <small>${escapeHtml(String(n.body || ''))}</small><br>
-        <small class="text-gray-400">${escapeHtml(String(timeStr))}</small>`;
+      li.innerHTML = `<strong>${n.title || ''}</strong><br>
+        <small>${n.body || ''}</small><br>
+        <small class="text-gray-400">${timeStr}</small>`;
       list.appendChild(li);
     });
     badge.textContent = String(window.serverNotifications.length);
     badge.classList.remove('hidden');
   }
 
-  clear.style.display = (window.currentUser === SUPERVISOR_CODE && window.serverNotifications.length) ? 'block' : 'none';
+  clear.style.display =
+    (String(window.currentUser) === String(SUPERVISOR_CODE) && window.serverNotifications.length)
+      ? 'block' : 'none';
 }
 
-// بسيط لتجنيب XSS عند إدخال النصوص في DOM
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  })[c]);
-}
-
-// ===== إضافة إشعار جديد محليًا وتجنّب التكرار =====
+// إضافة إشعار محليًا مع تجنّب التكرار
 window.addNotification = ({ title, body, timestamp }) => {
   const now = timestamp || Date.now();
-  const arr = window.serverNotifications || [];
+  const arr = Array.isArray(window.serverNotifications) ? window.serverNotifications : [];
   if (arr[0]?.title === title && arr[0]?.body === body) return;
   arr.unshift({ title: title || '', body: body || '', timestamp: now });
   if (arr.length > 50) arr.length = 50;
@@ -107,14 +92,12 @@ window.addNotification = ({ title, body, timestamp }) => {
   renderNotifications();
 };
 
-// ===== جلب سجل الإشعارات من الخادم (عام أو محمي حسب وجود JWT) =====
-// ===== جلب سجل الإشعارات (عام أو خاص) =====
+// جلب سجل الإشعارات: يستخدم /notifications لو هناك JWT وإلا /public-notifications
 window.openNotificationLog = async () => {
   try {
     let url = `${API_BASE}/public-notifications`;
     const opts = { headers: { 'Content-Type': 'application/json' } };
 
-    // لو لدينا JWT، نستخدم endpoint المحمي ونضيف الهيدر
     if (window.jwtToken) {
       url = `${API_BASE}/notifications`;
       opts.headers.Authorization = `Bearer ${window.jwtToken}`;
@@ -122,73 +105,62 @@ window.openNotificationLog = async () => {
 
     const res = await fetch(url, opts);
     if (!res.ok) {
-      // لو فشل الطلب المحمي (مثلاً 401) نت fallback للعامة
+      // fallback: لو كان محمي وفشل، نحاول العامة فقط
       if (window.jwtToken && res.status === 401) {
-        // حاول جلب العامة بدلًا من ذلك
-        const publicRes = await fetch(`${API_BASE}/public-notifications`);
-        if (publicRes.ok) {
-          const body = await publicRes.json();
-          window.serverNotifications = Array.isArray(body.notifications) ? body.notifications : [];
-          persistNotifications();
-          renderNotifications();
-          return;
-        }
+        try {
+          const pub = await fetch(`${API_BASE}/public-notifications`);
+          if (pub.ok) {
+            const body = await pub.json();
+            window.serverNotifications = Array.isArray(body.notifications) ? body.notifications : [];
+            persistNotifications();
+            renderNotifications();
+            return;
+          }
+        } catch (e) { /* ignore */ }
       }
-      // فشل عام — لا نكسر الواجهة، نرسم المحلي
-      console.warn('openNotificationLog: fetch failed', res.status);
+      // في حال فشل عام نرسم المخزن المحلي فقط
+      console.warn('openNotificationLog fetch failed', res.status);
       renderNotifications();
       return;
     }
 
     const json = await res.json();
     const notifications = Array.isArray(json.notifications) ? json.notifications : [];
-
-    // normalize: ensure each item has time/timestamp
     window.serverNotifications = notifications.map(n => ({
       title: n.title || '',
       body:  n.body  || '',
-      time:  n.time || n.timestamp || Date.now()
+      timestamp: n.time || n.timestamp || Date.now()
     }));
-
     persistNotifications();
     renderNotifications();
   } catch (err) {
     console.warn('openNotificationLog error:', err);
-    // عند الخطأ نعرض المخزن المحلي فقط
     renderNotifications();
   }
 };
-// notifications.js — Part 2 (ضع هذا بعد Part 1)
 
-// تفعيل أزرار الجرس والعداد ومسح الإشعارات بعد تحميل DOM
+// ضبط سلوك زر الجرس والعداد عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
   const panel = document.getElementById('notificationsPanel');
   const bell  = document.getElementById('notifBell');
   const clear = document.getElementById('clearNotifications');
+  if (!panel || !bell) return;
 
-  if (!bell) return; // لا نكمل إن لم يوجد زر الجرس
+  panel.addEventListener('click', e => e.stopPropagation());
 
-  // حماية: إن لم يوجد لوحة أو زر مسح، نكمل عمل الجرس لكن بتصرفات منقوصة
-  panel && panel.addEventListener('click', e => e.stopPropagation());
-
- bell.addEventListener('click', async e => {
+  bell.addEventListener('click', async e => {
     e.stopPropagation();
-    const panelWasHidden = panel.classList.contains('hidden');
+    const wasHidden = panel.classList.contains('hidden');
     panel.classList.toggle('hidden');
-    if (panelWasHidden) {
-      // لو فتحنا اللوحة الآن، جلب الإشعارات (سوف يعرض العامة لو لم يسجل المستخدم)
+    if (wasHidden) {
+      // نطلب الإشعارات (عام/خاص حسب وجود JWT)
       await openNotificationLog();
-    } catch (err) {
-      console.warn('bell click: openNotificationLog failed', err);
-      // لو فشل الشبك، سيُعرض المخزن المحلي بالفعل عبر renderNotifications داخل openNotificationLog
     }
   });
 
-  // إغلاق عند النقر خارج اللوحة
   document.body.addEventListener('click', () => {
-    if (panel) panel.classList.add('hidden');
+    if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
   });
-
     // زر المسح (إن وُجد)
   if (clear) {
     clear.addEventListener('click', async e => {
