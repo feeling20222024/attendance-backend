@@ -669,6 +669,7 @@ window.addNotification = ({ title, body, time }) => {
 
 // —————————————————————————————————————————
 // 7) تسجيل الخروج
+// 7) تسجيل الخروج
 function logout() {
   currentUser = null;
   jwtToken = null;
@@ -697,16 +698,19 @@ function logout() {
   if (loginSection) loginSection.classList.remove('hidden');
 
   // مسح الملاحظة العامة
-const gn = document.getElementById('generalNote');
-if (gn) { 
-  gn.textContent = ''; 
-  gn.classList.add('hidden'); 
+  const gn = document.getElementById('generalNote');
+  if (gn) { 
+    gn.textContent = ''; 
+    gn.classList.add('hidden'); 
+  }
+
+  // ✅ لا تعرض الإشعارات إلا إذا كان هناك مستخدم مسجل
+  if (jwtToken && window.renderNotifications) {
+    window.renderNotifications();
+  }
 }
 
-// ❌ لا تستدعي الإشعارات إذا لم يوجد مستخدم
-if (jwtToken && window.renderNotifications) {
-  window.renderNotifications();
-}
+// زر الجرس
 const notifBell = document.getElementById('notifBell');
 if (notifBell) {
   notifBell.addEventListener('click', function () {
@@ -714,6 +718,8 @@ if (notifBell) {
       alert('سجّل الدخول أولاً لرؤية الإشعارات');
       return;
     }
-    // هنا تترك الكود الحالي لعرض الإشعارات إن وجد
+    if (window.renderNotifications) {
+      window.renderNotifications();
+    }
   });
 }
