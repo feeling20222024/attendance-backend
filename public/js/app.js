@@ -229,12 +229,7 @@ function normalizeDigits(str) {
 
   // تسجيل الدخول / الخروج
   const loginBtn  = document.getElementById('loginBtn');
-const logoutBtn = document.getElementById('logoutBtn');
 if (loginBtn)  loginBtn.onclick  = login;
-if (logoutBtn) logoutBtn.addEventListener('click', () => {
-  try { window.logout && window.logout(); } catch (e) { console.error('logout click error', e); }
-});
-
 
 // أزرار القائمة الأخرى
 const aboutBtn  = document.getElementById('aboutBtn');
@@ -666,8 +661,6 @@ window.addNotification = ({ title, body, time }) => {
 
 // —————————————————————————————————————————
 // 7) تسجيل الخروج
-// —————————————————————————————————————————
-// استبدل logout() بهذه النسخة
 function logout() {
   currentUser = null;
   jwtToken = null;
@@ -691,7 +684,7 @@ function logout() {
     if (b) b.innerHTML = '';
   });
 
-  // ✅ إظهار شاشة الدخول
+  // إظهار شاشة الدخول
   const loginSection = getEl('loginSection');
   if (loginSection) loginSection.classList.remove('hidden');
 
@@ -701,4 +694,8 @@ function logout() {
 
   window.renderNotifications && window.renderNotifications();
 }
-window.logout = logout; // اجعلها متاحة عالمياً
+
+// ✅ اربط الزر مباشرة بعد تعريف الدالة
+window.logout = logout;
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) logoutBtn.addEventListener('click', logout);
