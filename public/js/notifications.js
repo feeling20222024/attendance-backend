@@ -1,14 +1,20 @@
+// notifications.js
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
 window.serverNotifications = [];
 
 // حاول تحميل ما في localStorage إن وُجد (اختياري)
-window.serverNotifications = JSON.parse(localStorage.getItem('serverNotifications') || '[]');
+try {
+  window.serverNotifications = JSON.parse(localStorage.getItem('serverNotifications') || '[]') || [];
+} catch (e) {
+  window.serverNotifications = [];
+}
 function persistNotifications() {
-  localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications));
+  try {
+    localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications));
+  } catch (e) { /* ignored */ }
 }
 
-// ===== دالة تحويل التوقيت إلى توقيت دمشق بدون ثواني =====
 function formatDamascus(timestamp) {
   const t = (typeof timestamp === 'number') ? timestamp
           : (typeof timestamp === 'string' && /^\d+$/.test(timestamp)) ? Number(timestamp)
@@ -41,7 +47,6 @@ function formatDamascus(timestamp) {
   }
 }
 
-// ===== رسم الإشعارات =====
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
   const badge = document.getElementById('notifCount');
@@ -49,98 +54,63 @@ function renderNotifications() {
   if (!list || !badge || !clear) return;
 
   list.innerHTML = '';
-  if (!window.serverNotifications.length) {
+  if (!window.serverNotifications || !window.serverNotifications.length) {
     list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     badge.classList.add('hidden');
   } else {
     window.serverNotifications.slice(0,50).forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
-           const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
+      const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
       li.innerHTML = `<strong>${n.title}</strong><br>
         <small>${n.body}</small><br>
         <small class="text-gray-400">${timeStr}</small>`;
       list.appendChild(li);
     });
-    badge.textContent = window.serverNotifications.length;
+    badge.textContent = String(window.serverNotifications.length);
     badge.classList.remove('hidden');
   }
 
   clear.style.display =
-    (window.currentUser === SUPERVISOR_CODE && window.serverNotifications.length)
+    (String(window.currentUser) === String(SUPERVISOR_CODE) && window.serverNotifications.length)
       ? 'block' : 'none';
 }
 
-// ===== إضافة إشعار جديد محليًّا وتجنّب التكرار =====
 window.addNotification = ({ title, body, timestamp }) => {
   const now = timestamp || Date.now();
   const arr = window.serverNotifications || [];
-
-  if (arr[0]?.title === title && arr[0]?.body === body) return;
-
+  if (arr[0] && arr[0].title === title && arr[0].body === body) return;
   arr.unshift({ title, body, timestamp: now });
-  if (arr.length > 50) arr.pop();
-
+  if (arr.length > 50) arr.length = 50;
   window.serverNotifications = arr;
   persistNotifications();
   renderNotifications();
 };
 
-// ===== جلب سجل الإشعارات من الخادم إذا كان لدينا JWT =====
-window.openNotificationLog = async () => {
-  if (window.jwtToken) {
-    try {
-      const res = await fetch(`${API_BASE}/notifications`, {
-        headers: { Authorization: `Bearer ${window.jwtToken}` }
+function mergeUnique(existing, incoming) {
+  const seen = new Set(existing.map(n => `${n.title}|${n.body}|${n.timestamp || n.time || ''}`));
+  incoming.forEach(n => {
+    const key = `${n.title}|${n.body}|${n.timestamp || n.time || ''}`;
+    if (!seen.has(key)) {
+      existing.unshift({
+        title: n.title,
+        body: n.body,
+        timestamp: n.timestamp || n.time || Date.now()
       });
-      if (res.ok) {
-        const { notifications } = await res.json();
-        if (Array.isArray(notifications)) {
-          window.serverNotifications = notifications.map(n => ({
-            title: n.title,
-            body:  n.body,
-            timestamp: n.time || n.timestamp || Date.now()
-          }));
-          persistNotifications();
-        }
-      }
-    } catch (e) { /* ignore */ }
-  }
-  renderNotifications();
-};
-
-// ===== تفعيل زر الجرس والعداد عند DOMContentLoaded =====
-document.addEventListener('DOMContentLoaded', () => {
-  const panel = document.getElementById('notificationsPanel');
-  const bell  = document.getElementById('notifBell');
-  const clear = document.getElementById('clearNotifications');
-  if (!panel || !bell) return;
-
-  panel.addEventListener('click', e => e.stopPropagation());
-  bell.addEventListener('click', async e => {
-    e.stopPropagation();
-    panel.classList.toggle('hidden');
-    if (!panel.classList.contains('hidden')) {
-      await openNotificationLog();
+      seen.add(key);
     }
   });
-  document.body.addEventListener('click', () => panel.classList.add('hidden'));
+  // keep max 50
+  if (existing.length > 50) existing.length = 50;
+  return existing;
+}
 
-  clear.addEventListener('click', async e => {
-    e.stopPropagation();
-    if (window.currentUser !== SUPERVISOR_CODE) return;
-    if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
-    await fetch(`${API_BASE}/notifications`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${window.jwtToken}` }
-    });
-    window.serverNotifications = [];
-    persistNotifications();
-    renderNotifications();
-  });
-
-  // عند التحميل: لا نفعل شيء إذا لم يسجل المستخدم الدخول
-  if (window.jwtToken && window.currentUser) {
-    openNotificationLog();
-  }
-});
+// جلب الإشعارات العامة من الخادم (لا تحتاج JWT)
+async function fetchPublicNotifications() {
+  try {
+    const res = await fetch(`${API_BASE}/public-notifications`);
+    if (!res.ok) return;
+    const json = await res.json();
+    const publicList = Array.isArray(json.notifications) ? json.notifications.map(n => ({
+      title: n.title || '',
+      body: n.body ||
