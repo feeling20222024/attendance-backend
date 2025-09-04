@@ -38,9 +38,7 @@ window.serverNotifications = [];
 // —————————————————————————————————————————
 
 // 3.1) رسم العداد وسجل الإشعارات
-if (jwtToken && currentUser && window.renderNotifications) {
-    window.renderNotifications();
-}
+window.renderNotifications = function(arr = window.serverNotifications) {
   const list       = document.getElementById('notificationsLog');
   const countBadge = document.getElementById('notifCount');
   const clearBtn   = document.getElementById('clearNotifications');
@@ -709,6 +707,9 @@ function logout() {
 }
 
 // زر الجرس
+// —————————————————————————————————————————
+// زر الجرس لإظهار الإشعارات
+// —————————————————————————————————————————
 const notifBell = document.getElementById('notifBell');
 if (notifBell) {
   notifBell.addEventListener('click', function () {
@@ -716,8 +717,8 @@ if (notifBell) {
       alert('سجّل الدخول أولاً لرؤية الإشعارات');
       return;
     }
-    if (jwtToken && currentUser && window.renderNotifications) {
-    window.renderNotifications();
-}
+    if (window.renderNotifications) {
+      window.renderNotifications();
+    }
   });
 }
