@@ -1,20 +1,31 @@
-// notifications.js
+// notifications.js — Part 1 (ضع هذا أولاً)
 const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
 const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
-window.serverNotifications = [];
 
-// حاول تحميل ما في localStorage إن وُجد (اختياري)
-try {
-  window.serverNotifications = JSON.parse(localStorage.getItem('serverNotifications') || '[]') || [];
-} catch (e) {
-  window.serverNotifications = [];
-}
+// مكان تخزين إشعارات الجلسة
+window.serverNotifications = window.serverNotifications || [];
+
+// محاول قراءة المخزن المحلي بأمان
+(function loadLocal() {
+  try {
+    const raw = localStorage.getItem('serverNotifications');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) window.serverNotifications = arr;
+    }
+  } catch (e) {
+    console.warn('notifications: failed to read localStorage', e);
+    window.serverNotifications = window.serverNotifications || [];
+  }
+})();
+
 function persistNotifications() {
   try {
-    localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications));
-  } catch (e) { /* ignored */ }
+    localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications || []));
+  } catch (e) { /* ignore */ }
 }
 
+// ===== دالة تحويل التوقيت إلى توقيت دمشق بدون ثواني =====
 function formatDamascus(timestamp) {
   const t = (typeof timestamp === 'number') ? timestamp
           : (typeof timestamp === 'string' && /^\d+$/.test(timestamp)) ? Number(timestamp)
@@ -47,70 +58,150 @@ function formatDamascus(timestamp) {
   }
 }
 
+// ===== رسم الإشعارات في الـ DOM =====
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
   const badge = document.getElementById('notifCount');
   const clear = document.getElementById('clearNotifications');
+  // إذا لم توجد عناصر DOM، نخرج بهدوء (لا خطأ)
   if (!list || !badge || !clear) return;
 
   list.innerHTML = '';
-  if (!window.serverNotifications || !window.serverNotifications.length) {
+  const arr = (window.serverNotifications || []).slice(0,50);
+  if (!arr.length) {
     list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     badge.classList.add('hidden');
   } else {
-    window.serverNotifications.slice(0,50).forEach(n => {
+    arr.forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
       const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
-      li.innerHTML = `<strong>${n.title}</strong><br>
-        <small>${n.body}</small><br>
-        <small class="text-gray-400">${timeStr}</small>`;
+      li.innerHTML = `<strong>${escapeHtml(String(n.title || ''))}</strong><br>
+        <small>${escapeHtml(String(n.body || ''))}</small><br>
+        <small class="text-gray-400">${escapeHtml(String(timeStr))}</small>`;
       list.appendChild(li);
     });
     badge.textContent = String(window.serverNotifications.length);
     badge.classList.remove('hidden');
   }
 
-  clear.style.display =
-    (String(window.currentUser) === String(SUPERVISOR_CODE) && window.serverNotifications.length)
-      ? 'block' : 'none';
+  clear.style.display = (window.currentUser === SUPERVISOR_CODE && window.serverNotifications.length) ? 'block' : 'none';
 }
 
+// بسيط لتجنيب XSS عند إدخال النصوص في DOM
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+
+// ===== إضافة إشعار جديد محليًا وتجنّب التكرار =====
 window.addNotification = ({ title, body, timestamp }) => {
   const now = timestamp || Date.now();
   const arr = window.serverNotifications || [];
-  if (arr[0] && arr[0].title === title && arr[0].body === body) return;
-  arr.unshift({ title, body, timestamp: now });
+  if (arr[0]?.title === title && arr[0]?.body === body) return;
+  arr.unshift({ title: title || '', body: body || '', timestamp: now });
   if (arr.length > 50) arr.length = 50;
   window.serverNotifications = arr;
   persistNotifications();
   renderNotifications();
 };
 
-function mergeUnique(existing, incoming) {
-  const seen = new Set(existing.map(n => `${n.title}|${n.body}|${n.timestamp || n.time || ''}`));
-  incoming.forEach(n => {
-    const key = `${n.title}|${n.body}|${n.timestamp || n.time || ''}`;
-    if (!seen.has(key)) {
-      existing.unshift({
-        title: n.title,
-        body: n.body,
-        timestamp: n.timestamp || n.time || Date.now()
-      });
-      seen.add(key);
+// ===== جلب سجل الإشعارات من الخادم (عام أو محمي حسب وجود JWT) =====
+window.openNotificationLog = async () => {
+  // اختر endpoint عام أو محمي حسب وجود JWT
+  const endpoint = window.jwtToken ? `${API_BASE}/notifications` : `${API_BASE}/public-notifications`;
+  try {
+    const headers = {};
+    if (window.jwtToken) headers['Authorization'] = `Bearer ${window.jwtToken}`;
+    const res = await fetch(endpoint, { headers });
+    if (res.ok) {
+      const body = await res.json();
+      const list = body.notifications || body || [];
+      if (Array.isArray(list)) {
+        // ضع البيانات كما يرسلها الخادم (تطبيع الحقول الأساسية)
+        window.serverNotifications = list.map(n => ({
+          title: n.title || '',
+          body: n.body || '',
+          timestamp: n.time || n.timestamp || Date.now()
+        }));
+        persistNotifications();
+      }
+    } else {
+      // لو الخادم أعطى خطأ (مثلاً 401 أو غيره) — احتفظ بالمخزن المحلي فقط
+      console.warn('openNotificationLog: server returned', res.status);
+    }
+  } catch (err) {
+    console.warn('openNotificationLog network/error:', err);
+  }
+  // عرض السجل (محلي أو الذي جلبناه)
+  renderNotifications();
+};
+// notifications.js — Part 2 (ضع هذا بعد Part 1)
+
+// تفعيل أزرار الجرس والعداد ومسح الإشعارات بعد تحميل DOM
+document.addEventListener('DOMContentLoaded', () => {
+  const panel = document.getElementById('notificationsPanel');
+  const bell  = document.getElementById('notifBell');
+  const clear = document.getElementById('clearNotifications');
+
+  if (!bell) return; // لا نكمل إن لم يوجد زر الجرس
+
+  // حماية: إن لم يوجد لوحة أو زر مسح، نكمل عمل الجرس لكن بتصرفات منقوصة
+  panel && panel.addEventListener('click', e => e.stopPropagation());
+
+  bell.addEventListener('click', async e => {
+    e.stopPropagation();
+    // بدل إظهار السجل فورًا؛ نطلب السجل من الخادم أولاً (سيستخدم public أو protected endpoint)
+    if (panel) panel.classList.toggle('hidden');
+
+    // مهم: جلب إشعارات الخادم دائماً عند فتح اللوحة (حتى قبل تسجيل الدخول)
+    try {
+      await openNotificationLog();
+    } catch (err) {
+      console.warn('bell click: openNotificationLog failed', err);
+      // لو فشل الشبك، سيُعرض المخزن المحلي بالفعل عبر renderNotifications داخل openNotificationLog
     }
   });
-  // keep max 50
-  if (existing.length > 50) existing.length = 50;
-  return existing;
-}
 
-// جلب الإشعارات العامة من الخادم (لا تحتاج JWT)
-async function fetchPublicNotifications() {
-  try {
-    const res = await fetch(`${API_BASE}/public-notifications`);
-    if (!res.ok) return;
-    const json = await res.json();
-    const publicList = Array.isArray(json.notifications) ? json.notifications.map(n => ({
-      title: n.title || '',
-      body: n.body ||
+  // إغلاق عند النقر خارج اللوحة
+  document.body.addEventListener('click', () => {
+    if (panel) panel.classList.add('hidden');
+  });
+
+    // زر المسح (إن وُجد)
+  if (clear) {
+    clear.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (window.currentUser !== SUPERVISOR_CODE) {
+        alert('غير مسموح لك بمسح الإشعارات.');
+        return;
+      }
+      if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
+
+      try {
+        await fetch(`${API_BASE}/notifications`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${window.jwtToken}`
+          }
+        });
+      } catch (err) {
+        console.warn('clear notifications failed', err);
+        // نستمر ليتم مسح السجل المحلي حتى إن فشل الطلب للخادم
+      }
+
+      window.serverNotifications = [];
+      persistNotifications();
+      renderNotifications();
+    });
+  }
+
+  // عند تحميل الصفحة: قم بمحاولة جلب إشعارات الخادم فورًا (تعمل قبل تسجيل الدخول أيضاً)
+  // هذا يضمن أن الزائر يرى إشعارات عامة في البداية.
+  openNotificationLog().catch(err => {
+    console.warn('initial openNotificationLog failed', err);
+    // لا نعرض أي خطأ للمستخدم هنا — سيتم عرض المخزن المحلي إن وجد
+  });
+}); // نهاية DOMContentLoaded
