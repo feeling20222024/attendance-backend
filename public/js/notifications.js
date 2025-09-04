@@ -108,34 +108,55 @@ window.addNotification = ({ title, body, timestamp }) => {
 };
 
 // ===== جلب سجل الإشعارات من الخادم (عام أو محمي حسب وجود JWT) =====
+// ===== جلب سجل الإشعارات (عام أو خاص) =====
 window.openNotificationLog = async () => {
-  // اختر endpoint عام أو محمي حسب وجود JWT
-  const endpoint = window.jwtToken ? `${API_BASE}/notifications` : `${API_BASE}/public-notifications`;
   try {
-    const headers = {};
-    if (window.jwtToken) headers['Authorization'] = `Bearer ${window.jwtToken}`;
-    const res = await fetch(endpoint, { headers });
-    if (res.ok) {
-      const body = await res.json();
-      const list = body.notifications || body || [];
-      if (Array.isArray(list)) {
-        // ضع البيانات كما يرسلها الخادم (تطبيع الحقول الأساسية)
-        window.serverNotifications = list.map(n => ({
-          title: n.title || '',
-          body: n.body || '',
-          timestamp: n.time || n.timestamp || Date.now()
-        }));
-        persistNotifications();
-      }
-    } else {
-      // لو الخادم أعطى خطأ (مثلاً 401 أو غيره) — احتفظ بالمخزن المحلي فقط
-      console.warn('openNotificationLog: server returned', res.status);
+    let url = `${API_BASE}/public-notifications`;
+    const opts = { headers: { 'Content-Type': 'application/json' } };
+
+    // لو لدينا JWT، نستخدم endpoint المحمي ونضيف الهيدر
+    if (window.jwtToken) {
+      url = `${API_BASE}/notifications`;
+      opts.headers.Authorization = `Bearer ${window.jwtToken}`;
     }
+
+    const res = await fetch(url, opts);
+    if (!res.ok) {
+      // لو فشل الطلب المحمي (مثلاً 401) نت fallback للعامة
+      if (window.jwtToken && res.status === 401) {
+        // حاول جلب العامة بدلًا من ذلك
+        const publicRes = await fetch(`${API_BASE}/public-notifications`);
+        if (publicRes.ok) {
+          const body = await publicRes.json();
+          window.serverNotifications = Array.isArray(body.notifications) ? body.notifications : [];
+          persistNotifications();
+          renderNotifications();
+          return;
+        }
+      }
+      // فشل عام — لا نكسر الواجهة، نرسم المحلي
+      console.warn('openNotificationLog: fetch failed', res.status);
+      renderNotifications();
+      return;
+    }
+
+    const json = await res.json();
+    const notifications = Array.isArray(json.notifications) ? json.notifications : [];
+
+    // normalize: ensure each item has time/timestamp
+    window.serverNotifications = notifications.map(n => ({
+      title: n.title || '',
+      body:  n.body  || '',
+      time:  n.time || n.timestamp || Date.now()
+    }));
+
+    persistNotifications();
+    renderNotifications();
   } catch (err) {
-    console.warn('openNotificationLog network/error:', err);
+    console.warn('openNotificationLog error:', err);
+    // عند الخطأ نعرض المخزن المحلي فقط
+    renderNotifications();
   }
-  // عرض السجل (محلي أو الذي جلبناه)
-  renderNotifications();
 };
 // notifications.js — Part 2 (ضع هذا بعد Part 1)
 
@@ -150,13 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // حماية: إن لم يوجد لوحة أو زر مسح، نكمل عمل الجرس لكن بتصرفات منقوصة
   panel && panel.addEventListener('click', e => e.stopPropagation());
 
-  bell.addEventListener('click', async e => {
+ bell.addEventListener('click', async e => {
     e.stopPropagation();
-    // بدل إظهار السجل فورًا؛ نطلب السجل من الخادم أولاً (سيستخدم public أو protected endpoint)
-    if (panel) panel.classList.toggle('hidden');
-
-    // مهم: جلب إشعارات الخادم دائماً عند فتح اللوحة (حتى قبل تسجيل الدخول)
-    try {
+    const panelWasHidden = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden');
+    if (panelWasHidden) {
+      // لو فتحنا اللوحة الآن، جلب الإشعارات (سوف يعرض العامة لو لم يسجل المستخدم)
       await openNotificationLog();
     } catch (err) {
       console.warn('bell click: openNotificationLog failed', err);
