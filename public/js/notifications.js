@@ -151,9 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // عند التحميل: إن كان لدينا JWT — جلب السجل من الخادم، وإلا عرض المحلي
-  if (window.jwtToken) {
-    openNotificationLog();
-  } else {
-    renderNotifications();
-  }
-});
+  // عند التحميل: لا تفعل شيء إذا لم يسجل المستخدم الدخول
+if (window.jwtToken && window.currentUser) {
+  openNotificationLog();
+}
+// إذا لم يسجل المستخدم الدخول، لا نفعل شيء، ولا نستدعي renderNotifications
+
