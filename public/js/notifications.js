@@ -101,22 +101,35 @@ window.addNotification = ({ title, body, timestamp }) => {
 // ===== جلب سجل الإشعارات (عام أو خاص) =====
 window.openNotificationLog = async () => {
   try {
-    let endpoint, headers = {};
+    // 🔹 هنا نتحقق: إذا هناك JWT نستخدم endpoint الخاص بالمستخدم، وإلا نستخدم العام
+    const endpoint = window.jwtToken
+      ? `${API_BASE}/notifications`       // إشعارات المستخدم بعد تسجيل الدخول
+      : `${API_BASE}/public-notifications`; // إشعارات عامة قبل الدخول
 
-    if (window.jwtToken) {
-      // مستخدم مسجل دخول
-      endpoint = `${API_BASE}/notifications`;
-      headers = { Authorization: `Bearer ${window.jwtToken}` };
-    } else {
-      // زائر
-      endpoint = `${API_BASE}/public-notifications`;
-    }
+    const headers = window.jwtToken ? { Authorization: `Bearer ${window.jwtToken}` } : {};
 
     const res = await fetch(endpoint, { headers, mode: 'cors' });
     if (!res.ok) {
-      console.warn('fetch failed', res.status);
-      return renderNotifications();
+      return renderNotifications(); // عرض المخزن المحلي إذا فشل الطلب
     }
+
+    const body = await res.json();
+    const notifications = body.notifications || [];
+
+    window.serverNotifications = notifications.map(n => ({
+      title: n.title || '',
+      body: n.body || '',
+      timestamp: n.time || n.timestamp || Date.now()
+    }));
+
+    persistNotifications();
+  } catch (e) {
+    console.warn('openNotificationLog error', e);
+  } finally {
+    renderNotifications();
+  }
+};
+
 
     const body = await res.json();
     const notifications = Array.isArray(body.notifications) ? body.notifications : [];
@@ -142,7 +155,7 @@ window.openNotificationLog = async () => {
 document.addEventListener('DOMContentLoaded', () => {
   const panel = document.getElementById('notificationsPanel');
   const bell  = document.getElementById('notifBell');
-  const clear = document.getElementById('clearNotifications');
+  
   if (!panel || !bell) return;
 
   panel.addEventListener('click', e => e.stopPropagation());
@@ -152,10 +165,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const wasHidden = panel.classList.contains('hidden');
     panel.classList.toggle('hidden');
     if (wasHidden) {
-      // نطلب الإشعارات (عام/خاص حسب وجود JWT)
+      // 🔹 طلب الإشعارات قبل أو بعد الدخول
       await openNotificationLog();
     }
   });
+
+  // 🔹 هنا نطلب الإشعارات فور تحميل الصفحة حتى قبل الدخول
+  openNotificationLog(); // لا تنتظر JWT، سيجلب /public-notifications
+});
+
 
   document.body.addEventListener('click', () => {
     if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
