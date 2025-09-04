@@ -314,6 +314,19 @@ async function login() {
     jwtToken = token;
     window.jwtToken = jwtToken;
     localStorage.setItem('jwtToken', jwtToken);
+    // جلب إشعارات المستخدم المحمية بعد تسجيل الدخول
+if (typeof openNotificationLog === 'function') {
+  try {
+    await openNotificationLog();
+  } catch (e) {
+    console.warn('openNotificationLog after login failed:', e);
+  }
+}
+
+// تأكد من تهيئة المستمعين/الـ push (إذا لم تكن مهيأة)
+if (typeof initNotifications === 'function') {
+  try { await initNotifications(); } catch(e){ console.warn('initNotifications error:', e); }
+}
 
     currentUser = user.code ?? user['كود الموظف'];
     window.currentUser = currentUser;
