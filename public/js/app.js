@@ -412,16 +412,7 @@ if (personalNote) {
     logout();
   }
 }
- headersHw = []; hwafezData = [];
-    headersTq = []; tqeemData = [];
-    const hwSection = getEl('hwafezSection');
-    if (hwSection) hwSection.classList.add('hidden');
-    const tqSection = getEl('tqeemSection');
-    if (tqSection) tqSection.classList.add('hidden');
-    const hwBody = getEl('hwafezBody'); if (hwBody) hwBody.innerHTML = '';
-    const tqBody = getEl('tqeemBody'); if (tqBody) tqBody.innerHTML = '';
-    const noHw = getEl('noHwafezMsg'); if (noHw) noHw.classList.add('hidden');
-    const noTq = getEl('noTqeemMsg'); if (noTq) noTq.classList.add('hidden');
+
 
 // —————————————————————————————————————————
 // 4) رسم سجلات الحضور للمستخدم الحالي
