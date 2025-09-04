@@ -1,183 +1,79 @@
-// notifications.js (إصدار مصحَّح كامل)
-const API_BASE        = 'https://dwam-app-by-omar.onrender.com/api';
-const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
+const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
 window.serverNotifications = [];
 
-// حاول تحميل ما في localStorage إن وُجد (آمن)
-try {
-  const saved = localStorage.getItem('serverNotifications');
-  window.serverNotifications = saved ? JSON.parse(saved) : [];
-} catch (e) {
-  window.serverNotifications = [];
-}
-
+// حفظ الإشعارات محليًا
 function persistNotifications() {
   try {
-    localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications || []));
-  } catch (e) { /* ignore */ }
+    localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications));
+  } catch(e){}
 }
 
-// تحويل التوقيت إلى توقيت دمشق بدون ثواني
-function formatDamascus(timestamp) {
-  const t = (typeof timestamp === 'number') ? timestamp
-          : (typeof timestamp === 'string' && /^\d+$/.test(timestamp)) ? Number(timestamp)
-          : Date.parse(timestamp) || Date.now();
-  const date = new Date(t);
-  try {
-    const fmt = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Asia/Damascus',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit',
-      hour12: false
-    });
-    const parts = fmt.formatToParts(date);
-    const map = {};
-    parts.forEach(p => { if (p.type !== 'literal') map[p.type] = p.value; });
-    const Y = map.year || String(date.getUTCFullYear());
-    const M = map.month || String(date.getUTCMonth() + 1).padStart(2, '0');
-    const D = map.day || String(date.getUTCDate()).padStart(2, '0');
-    const H = map.hour || String(date.getUTCHours()).padStart(2, '0');
-    const Min = map.minute || String(date.getUTCMinutes()).padStart(2, '0');
-    return `${Y}-${M}-${D} ${H}:${Min}`;
-  } catch (e) {
-    const d = new Date(date.getTime() + 3 * 60 * 60 * 1000);
-    const Y = d.getUTCFullYear();
-    const M = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const D = String(d.getUTCDate()).padStart(2, '0');
-    const H = String(d.getUTCHours()).padStart(2, '0');
-    const Min = String(d.getUTCMinutes()).padStart(2, '0');
-    return `${Y}-${M}-${D} ${H}:${Min}`;
-  }
-}
-
-// رسم الإشعارات في الواجهة
+// عرض الإشعارات في الواجهة
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
   const badge = document.getElementById('notifCount');
-  const clear = document.getElementById('clearNotifications');
-  if (!list || !badge || !clear) return;
+  if (!list || !badge) return;
 
   list.innerHTML = '';
-
-  if (!Array.isArray(window.serverNotifications) || window.serverNotifications.length === 0) {
-    // 👇 بدل "لا توجد إشعارات" بشرط إذا في jwtToken أو لا
-    if (window.jwtToken) {
-      list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
-    } else {
+  if (!window.serverNotifications.length) {
+    // 🔹 قبل تسجيل الدخول نعرض رسالة للزائر
+    if (!window.jwtToken) {
       list.innerHTML = '<li class="text-gray-500">🔑 سجّل الدخول لرؤية إشعاراتك</li>';
+    } else {
+      list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
     }
     badge.classList.add('hidden');
   } else {
-    window.serverNotifications.slice(0,50).forEach(n => {
+    window.serverNotifications.forEach(n => {
       const li = document.createElement('li');
       li.className = 'mb-2 border-b pb-1';
-      const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
-      li.innerHTML = `<strong>${n.title || ''}</strong><br>
-        <small>${n.body || ''}</small><br>
-        <small class="text-gray-400">${timeStr}</small>`;
+      li.innerHTML = `<strong>${n.title || ''}</strong><br><small>${n.body || ''}</small>`;
       list.appendChild(li);
     });
     badge.textContent = String(window.serverNotifications.length);
     badge.classList.remove('hidden');
   }
-
-  clear.style.display =
-    (String(window.currentUser) === String(SUPERVISOR_CODE) && window.serverNotifications.length)
-      ? 'block' : 'none';
 }
 
-// إضافة إشعار محليًا مع تجنّب التكرار
-window.addNotification = ({ title, body, timestamp }) => {
-  const now = timestamp || Date.now();
-  const arr = Array.isArray(window.serverNotifications) ? window.serverNotifications : [];
-  if (arr[0]?.title === title && arr[0]?.body === body) return;
-  arr.unshift({ title: title || '', body: body || '', timestamp: now });
-  if (arr.length > 50) arr.length = 50;
-  window.serverNotifications = arr;
-  persistNotifications();
-  renderNotifications();
-};
-
-// ===== جلب سجل الإشعارات (عام أو خاص) =====
-window.openNotificationLog = async () => {
+// جلب الإشعارات العامة (قبل تسجيل الدخول)
+async function fetchPublicNotifications() {
   try {
-    // 🔹 هنا نتحقق: إذا هناك JWT نستخدم endpoint الخاص بالمستخدم، وإلا نستخدم العام
-    const endpoint = window.jwtToken
-      ? `${API_BASE}/notifications`       // إشعارات المستخدم بعد تسجيل الدخول
-      : `${API_BASE}/public-notifications`; // إشعارات عامة قبل الدخول
-
-    const headers = window.jwtToken ? { Authorization: `Bearer ${window.jwtToken}` } : {};
-
-    const res = await fetch(endpoint, { headers, mode: 'cors' });
-    if (!res.ok) {
-      return renderNotifications(); // عرض المخزن المحلي إذا فشل الطلب
-    }
-
-    const body = await res.json();
-    const notifications = body.notifications || [];
-
-    window.serverNotifications = notifications.map(n => ({
-      title: n.title || '',
-      body: n.body || '',
-      timestamp: n.time || n.timestamp || Date.now()
-    }));
-
+    const res = await fetch(`${API_BASE}/public-notifications`);
+    if (!res.ok) throw new Error('فشل جلب الإشعارات العامة');
+    const data = await res.json();
+    window.serverNotifications = data.notifications || [];
     persistNotifications();
-  } catch (e) {
-    console.warn('openNotificationLog error', e);
-  } finally {
+    renderNotifications();
+  } catch(e) {
+    console.warn('fetchPublicNotifications failed', e);
     renderNotifications();
   }
-};
-
-
-    const body = await res.json();
-    const notifications = Array.isArray(body.notifications) ? body.notifications : [];
-
-    // خزّن الإشعارات القادمة من الخادم
-    window.serverNotifications = notifications.map(n => ({
-      title: n.title || '',
-      body: n.body || '',
-      timestamp: n.time || n.timestamp || Date.now()
-    }));
-
-    // خزنها محلياً
-    persistNotifications();
-  } catch (e) {
-    console.warn('openNotificationLog error', e);
-  } finally {
-    // عرضها على واجهة المستخدم
-    renderNotifications();
-  }
-};
+}
 
 // ضبط سلوك زر الجرس والعداد عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
+  // جلب إشعارات عامة فور تحميل الصفحة
+  fetchPublicNotifications();
+
+  const bell = document.getElementById('notifBell');
   const panel = document.getElementById('notificationsPanel');
-  const bell  = document.getElementById('notifBell');
-  
-  if (!panel || !bell) return;
 
-  panel.addEventListener('click', e => e.stopPropagation());
+  if (bell && panel) {
+    bell.addEventListener('click', async e => {
+      e.stopPropagation();
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        // بعد فتح اللوحة نطلب الإشعارات الخاصة إذا موجود JWT
+        if (window.jwtToken) await openNotificationLog();
+      }
+    });
 
-  bell.addEventListener('click', async e => {
-    e.stopPropagation();
-    const wasHidden = panel.classList.contains('hidden');
-    panel.classList.toggle('hidden');
-    if (wasHidden) {
-      // 🔹 طلب الإشعارات قبل أو بعد الدخول
-      await openNotificationLog();
-    }
-  });
-
-  // 🔹 هنا نطلب الإشعارات فور تحميل الصفحة حتى قبل الدخول
-  openNotificationLog(); // لا تنتظر JWT، سيجلب /public-notifications
+    document.body.addEventListener('click', () => {
+      if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
+    });
+  }
 });
 
-
-  document.body.addEventListener('click', () => {
-    if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
-  });
 
   // زر المسح (إن وُجد)
   if (clear) {
