@@ -231,8 +231,14 @@ function normalizeDigits(str) {
 const loginBtn  = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 if (loginBtn)  loginBtn.onclick  = login;
-if (logoutBtn) logoutBtn.onclick = logout; // ✅ مثل القديم
-
+if (logoutBtn) logoutBtn.onclick = logout;
+// ✅ إضافة دعم زر Enter لتسجيل الدخول
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') {
+    e.preventDefault(); // لا تعمل refresh
+    if (loginBtn) loginBtn.click();
+  }
+});
 // أزرار القائمة الأخرى
 const aboutBtn  = document.getElementById('aboutBtn');
 const hwafezBtn = document.getElementById('hwafezBtn');
