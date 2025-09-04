@@ -58,8 +58,14 @@ function renderNotifications() {
   if (!list || !badge || !clear) return;
 
   list.innerHTML = '';
+
   if (!Array.isArray(window.serverNotifications) || window.serverNotifications.length === 0) {
-    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    // 👇 بدل "لا توجد إشعارات" بشرط إذا في jwtToken أو لا
+    if (window.jwtToken) {
+      list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    } else {
+      list.innerHTML = '<li class="text-gray-500">🔑 سجّل الدخول لرؤية إشعاراتك</li>';
+    }
     badge.classList.add('hidden');
   } else {
     window.serverNotifications.slice(0,50).forEach(n => {
