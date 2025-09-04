@@ -95,26 +95,29 @@ window.addNotification = ({ title, body, timestamp }) => {
 // جلب سجل الإشعارات: يستخدم /notifications لو هناك JWT وإلا /public-notifications
 // ===== جلب سجل الإشعارات من الخادم (عام إذا لم يكن هناك JWT) =====
 // جلب سجل الإشعارات: يستخدم /notifications لو هناك JWT وإلا /public-notifications
+// ===== جلب سجل الإشعارات من الخادم (للمسجلين والزوّار أيضاً) =====
 window.openNotificationLog = async () => {
   try {
-    const endpoint = window.jwtToken
-      ? `${API_BASE}/notifications`
-      : `${API_BASE}/public-notifications`;
-
-    const headers = window.jwtToken ? { Authorization: `Bearer ${window.jwtToken}` } : {};
+    const endpoint = `${API_BASE}/notifications`; // نفس المسار للجميع
+    const headers = window.jwtToken 
+      ? { Authorization: `Bearer ${window.jwtToken}` } 
+      : {};
 
     const res = await fetch(endpoint, { headers, mode: 'cors' });
     if (!res.ok) {
-      // لا تفسد التجربة إن فشل الطلب — نترك الإشعارات المحلية كما هي
+      // لو فشل الطلب، نعرض المخزن المحلي
       return renderNotifications();
     }
+
     const body = await res.json();
-    const notifications = body.notifications || [];
+    const notifications = Array.isArray(body.notifications) ? body.notifications : [];
+
     window.serverNotifications = notifications.map(n => ({
       title: n.title || '',
       body:  n.body  || '',
       timestamp: n.time || n.timestamp || Date.now()
     }));
+
     persistNotifications();
   } catch (e) {
     console.warn('openNotificationLog error', e);
@@ -122,7 +125,6 @@ window.openNotificationLog = async () => {
     renderNotifications();
   }
 };
-
 
 // ضبط سلوك زر الجرس والعداد عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
