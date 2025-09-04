@@ -123,20 +123,6 @@ window.openNotificationLog = async () => {
   }
 };
 
-    const json = await res.json();
-    const notifications = Array.isArray(json.notifications) ? json.notifications : [];
-    window.serverNotifications = notifications.map(n => ({
-      title: n.title || '',
-      body:  n.body  || '',
-      timestamp: n.time || n.timestamp || Date.now()
-    }));
-    persistNotifications();
-    renderNotifications();
-  } catch (err) {
-    console.warn('openNotificationLog error:', err);
-    renderNotifications();
-  }
-};
 
 // ضبط سلوك زر الجرس والعداد عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
