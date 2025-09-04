@@ -702,3 +702,13 @@ function logout() {
 
   if (window.renderNotifications) window.renderNotifications();
 }
+const notifBell = document.getElementById('notifBell');
+if (notifBell) {
+  notifBell.addEventListener('click', function () {
+    if (!jwtToken) {
+      alert('سجّل الدخول أولاً لرؤية الإشعارات');
+      return;
+    }
+    // هنا تترك الكود الحالي لعرض الإشعارات إن وجد
+  });
+}
