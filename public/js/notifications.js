@@ -93,36 +93,35 @@ window.addNotification = ({ title, body, timestamp }) => {
 };
 
 // جلب سجل الإشعارات: يستخدم /notifications لو هناك JWT وإلا /public-notifications
+// ===== جلب سجل الإشعارات من الخادم (عام إذا لم يكن هناك JWT) =====
 window.openNotificationLog = async () => {
   try {
-    let url = `${API_BASE}/public-notifications`;
-    const opts = { headers: { 'Content-Type': 'application/json' } };
+    const endpoint = window.jwtToken
+      ? `${API_BASE}/notifications`
+      : `${API_BASE}/public-notifications`;
 
-    if (window.jwtToken) {
-      url = `${API_BASE}/notifications`;
-      opts.headers.Authorization = `Bearer ${window.jwtToken}`;
-    }
+    const headers = window.jwtToken ? { Authorization: `Bearer ${window.jwtToken}` } : {};
 
-    const res = await fetch(url, opts);
+    const res = await fetch(endpoint, { headers, mode: 'cors' });
     if (!res.ok) {
-      // fallback: لو كان محمي وفشل، نحاول العامة فقط
-      if (window.jwtToken && res.status === 401) {
-        try {
-          const pub = await fetch(`${API_BASE}/public-notifications`);
-          if (pub.ok) {
-            const body = await pub.json();
-            window.serverNotifications = Array.isArray(body.notifications) ? body.notifications : [];
-            persistNotifications();
-            renderNotifications();
-            return;
-          }
-        } catch (e) { /* ignore */ }
-      }
-      // في حال فشل عام نرسم المخزن المحلي فقط
-      console.warn('openNotificationLog fetch failed', res.status);
-      renderNotifications();
-      return;
+      // لا تفسد التجربة إن فشل الطلب — نترك الإشعارات المحلية كما هي
+      return renderNotifications();
     }
+    const body = await res.json();
+    const notifications = body.notifications || [];
+    window.serverNotifications = notifications.map(n => ({
+      title: n.title || '',
+      body:  n.body  || '',
+      timestamp: n.time || n.timestamp || Date.now()
+    }));
+    persistNotifications();
+  } catch (e) {
+    // network / parse error — نكتفي بعرض المخزن محلياً
+    console.warn('openNotificationLog error', e);
+  } finally {
+    renderNotifications();
+  }
+};
 
     const json = await res.json();
     const notifications = Array.isArray(json.notifications) ? json.notifications : [];
@@ -161,7 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('click', () => {
     if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
   });
-    // زر المسح (إن وُجد)
+
+  // زر المسح (إن وُجد)
   if (clear) {
     clear.addEventListener('click', async e => {
       e.stopPropagation();
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       } catch (err) {
         console.warn('clear notifications failed', err);
-        // نستمر ليتم مسح السجل المحلي حتى إن فشل الطلب للخادم
+        // نتابع لمسح السجل المحلي حتى إن فشل الطلب
       }
 
       window.serverNotifications = [];
@@ -194,6 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // هذا يضمن أن الزائر يرى إشعارات عامة في البداية.
   openNotificationLog().catch(err => {
     console.warn('initial openNotificationLog failed', err);
-    // لا نعرض أي خطأ للمستخدم هنا — سيتم عرض المخزن المحلي إن وجد
   });
 }); // نهاية DOMContentLoaded
+
