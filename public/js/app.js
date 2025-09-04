@@ -673,6 +673,7 @@ function logout() {
   jwtToken = null;
   window.jwtToken = null;
   localStorage.removeItem('jwtToken');
+
   // مسح بيانات الجداول في الذاكرة
   headersAtt = []; attendanceData = [];
   headersHw = []; hwafezData = [];
@@ -690,7 +691,7 @@ function logout() {
     if (b) b.innerHTML = '';
   });
 
-  // إظهار شاشة الدخول
+  // ✅ إظهار شاشة الدخول
   const loginSection = getEl('loginSection');
   if (loginSection) loginSection.classList.remove('hidden');
 
@@ -700,3 +701,4 @@ function logout() {
 
   window.renderNotifications && window.renderNotifications();
 }
+window.logout = logout; // اجعلها متاحة عالمياً
