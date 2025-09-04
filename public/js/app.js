@@ -157,14 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const panel    = document.getElementById('notificationsPanel');
   const clearBtn = document.getElementById('clearNotifications');
 
-  document.body.addEventListener('click', () => {
-    if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
-  });
-
-  // فقط إذا تم تسجيل الدخول
-  if (jwtToken && currentUser) {
-    window.renderNotifications();
-  }
+    document.body.addEventListener('click', () => {
+      if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
+    });
+  
 
   clearBtn?.addEventListener('click', async e => {
     e.stopPropagation();
@@ -711,9 +707,6 @@ function logout() {
 }
 
 // زر الجرس
-// —————————————————————————————————————————
-// زر الجرس لإظهار الإشعارات
-// —————————————————————————————————————————
 const notifBell = document.getElementById('notifBell');
 if (notifBell) {
   notifBell.addEventListener('click', function () {
