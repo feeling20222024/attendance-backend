@@ -697,10 +697,15 @@ function logout() {
   if (loginSection) loginSection.classList.remove('hidden');
 
   // مسح الملاحظة العامة
-  const gn = document.getElementById('generalNote');
-  if (gn) { gn.textContent = ''; gn.classList.add('hidden'); }
+const gn = document.getElementById('generalNote');
+if (gn) { 
+  gn.textContent = ''; 
+  gn.classList.add('hidden'); 
+}
 
-  if (window.renderNotifications) window.renderNotifications();
+// ❌ لا تستدعي الإشعارات إذا لم يوجد مستخدم
+if (jwtToken && window.renderNotifications) {
+  window.renderNotifications();
 }
 const notifBell = document.getElementById('notifBell');
 if (notifBell) {
