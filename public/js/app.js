@@ -673,12 +673,36 @@ window.addNotification = ({ title, body, time }) => {
 // —————————————————————————————————————————
 // 7) تسجيل الخروج
 // —————————————————————————————————————————
+// استبدل logout() بهذه النسخة
 function logout() {
   currentUser = null;
-  jwtToken     = null;
+  jwtToken = null;
+  window.jwtToken = null;
   localStorage.removeItem('jwtToken');
-  ['records','pushSection','hwafezSection'].forEach(id =>
-    document.getElementById(id).classList.add('hidden')
-  );
-  document.getElementById('loginSection').classList.remove('hidden');
+  // مسح بيانات الجداول في الذاكرة
+  headersAtt = []; attendanceData = [];
+  headersHw = []; hwafezData = [];
+  headersTq = []; tqeemData = [];
+
+  // إخفاء/تفريغ أقسام الواجهة
+  ['records', 'pushSection', 'hwafezSection', 'tqeemSection'].forEach(function (id) {
+    const el = getEl(id);
+    if (el) el.classList.add('hidden');
+  });
+
+  const elemsToClear = ['attendanceBody', 'hwafezBody', 'tqeemBody'];
+  elemsToClear.forEach(id => {
+    const b = getEl(id);
+    if (b) b.innerHTML = '';
+  });
+
+  // إظهار شاشة الدخول
+  const loginSection = getEl('loginSection');
+  if (loginSection) loginSection.classList.remove('hidden');
+
+  // مسح أي حالة عرض ملاحظة عامة
+  const gn = getEl('generalNote');
+  if (gn) { gn.textContent = ''; gn.classList.add('hidden'); }
+
+  window.renderNotifications && window.renderNotifications();
 }
