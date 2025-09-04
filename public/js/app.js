@@ -227,9 +227,11 @@ function normalizeDigits(str) {
 // —————————————————————————————————————————
 
 
-  // تسجيل الدخول / الخروج
-  const loginBtn  = document.getElementById('loginBtn');
+// تسجيل الدخول / الخروج
+const loginBtn  = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 if (loginBtn)  loginBtn.onclick  = login;
+if (logoutBtn) logoutBtn.onclick = logout; // ✅ مثل القديم
 
 // أزرار القائمة الأخرى
 const aboutBtn  = document.getElementById('aboutBtn');
@@ -694,8 +696,3 @@ function logout() {
 
   window.renderNotifications && window.renderNotifications();
 }
-
-// ✅ اربط الزر مباشرة بعد تعريف الدالة
-window.logout = logout;
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) logoutBtn.addEventListener('click', logout);
