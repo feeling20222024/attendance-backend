@@ -674,25 +674,25 @@ function logout() {
   headersHw = []; hwafezData = [];
   headersTq = []; tqeemData = [];
 
-  // إخفاء/تفريغ أقسام الواجهة
+  // إخفاء الأقسام
   ['records', 'pushSection', 'hwafezSection', 'tqeemSection'].forEach(function (id) {
-    const el = getEl(id);
+    const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
 
-  const elemsToClear = ['attendanceBody', 'hwafezBody', 'tqeemBody'];
-  elemsToClear.forEach(id => {
-    const b = getEl(id);
+  // تفريغ الجداول
+  ['attendanceBody', 'hwafezBody', 'tqeemBody'].forEach(function (id) {
+    const b = document.getElementById(id);
     if (b) b.innerHTML = '';
   });
 
   // إظهار شاشة الدخول
-  const loginSection = getEl('loginSection');
+  const loginSection = document.getElementById('loginSection');
   if (loginSection) loginSection.classList.remove('hidden');
 
-  // مسح أي حالة عرض ملاحظة عامة
-  const gn = getEl('generalNote');
+  // مسح الملاحظة العامة
+  const gn = document.getElementById('generalNote');
   if (gn) { gn.textContent = ''; gn.classList.add('hidden'); }
 
-  window.renderNotifications && window.renderNotifications();
+  if (window.renderNotifications) window.renderNotifications();
 }
