@@ -92,36 +92,42 @@ window.addNotification = ({ title, body, timestamp }) => {
   renderNotifications();
 };
 
-// جلب سجل الإشعارات: يستخدم /notifications لو هناك JWT وإلا /public-notifications
-// ===== جلب سجل الإشعارات من الخادم (عام إذا لم يكن هناك JWT) =====
-// جلب سجل الإشعارات: يستخدم /notifications لو هناك JWT وإلا /public-notifications
-// ===== جلب سجل الإشعارات من الخادم (للمسجلين والزوّار أيضاً) =====
+// ===== جلب سجل الإشعارات (عام أو خاص) =====
 window.openNotificationLog = async () => {
   try {
-    const endpoint = `${API_BASE}/notifications`; // نفس المسار للجميع
-    const headers = window.jwtToken 
-      ? { Authorization: `Bearer ${window.jwtToken}` } 
-      : {};
+    let endpoint, headers = {};
+
+    if (window.jwtToken) {
+      // مستخدم مسجل دخول
+      endpoint = `${API_BASE}/notifications`;
+      headers = { Authorization: `Bearer ${window.jwtToken}` };
+    } else {
+      // زائر
+      endpoint = `${API_BASE}/public-notifications`;
+    }
 
     const res = await fetch(endpoint, { headers, mode: 'cors' });
     if (!res.ok) {
-      // لو فشل الطلب، نعرض المخزن المحلي
+      console.warn('fetch failed', res.status);
       return renderNotifications();
     }
 
     const body = await res.json();
     const notifications = Array.isArray(body.notifications) ? body.notifications : [];
 
+    // خزّن الإشعارات القادمة من الخادم
     window.serverNotifications = notifications.map(n => ({
       title: n.title || '',
-      body:  n.body  || '',
+      body: n.body || '',
       timestamp: n.time || n.timestamp || Date.now()
     }));
 
+    // خزنها محلياً
     persistNotifications();
   } catch (e) {
     console.warn('openNotificationLog error', e);
   } finally {
+    // عرضها على واجهة المستخدم
     renderNotifications();
   }
 };
