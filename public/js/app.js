@@ -38,7 +38,9 @@ window.serverNotifications = [];
 // —————————————————————————————————————————
 
 // 3.1) رسم العداد وسجل الإشعارات
-window.renderNotifications = function(arr = window.serverNotifications) {
+if (jwtToken && currentUser && window.renderNotifications) {
+    window.renderNotifications();
+}
   const list       = document.getElementById('notificationsLog');
   const countBadge = document.getElementById('notifCount');
   const clearBtn   = document.getElementById('clearNotifications');
@@ -714,8 +716,8 @@ if (notifBell) {
       alert('سجّل الدخول أولاً لرؤية الإشعارات');
       return;
     }
-    if (window.renderNotifications) {
-      window.renderNotifications();
-    }
+    if (jwtToken && currentUser && window.renderNotifications) {
+    window.renderNotifications();
+}
   });
 }
