@@ -709,17 +709,3 @@ function logout() {
 
   // **لا نستدعي renderNotifications بعد الخروج**
 }
-
-// زر الجرس
-const notifBell = document.getElementById('notifBell');
-if (notifBell) {
-  notifBell.addEventListener('click', function () {
-    if (!jwtToken || !currentUser) {
-      alert('سجّل الدخول أولاً لرؤية الإشعارات');
-      return;
-    }
-    if (window.renderNotifications) {
-      window.renderNotifications();
-    }
-  });
-}
