@@ -268,8 +268,19 @@ app.get('/api/tqeem', authenticate, async (req, res) => {
 
 // public notifications (قبل login)
 app.get('/api/public-notifications', (req, res) => {
+  if (!userNotifications.__global__ || userNotifications.__global__.length === 0) {
+    // إشعارات افتراضية تظهر دائماً
+    return res.json({
+      notifications: [
+        { title: "📢 تنبيه", body: "سجل الدخول أولاً لرؤية الإشعارات", time: new Date().toISOString() },
+    
+      ]
+    });
+  }
+
   res.json({ notifications: (userNotifications.__global__ || []).slice(0, 50) });
 });
+
 
 // get personal notifications (requires auth)
 app.get('/api/notifications', authenticate, (req, res) => {
