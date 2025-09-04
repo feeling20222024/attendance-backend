@@ -94,6 +94,7 @@ window.addNotification = ({ title, body, timestamp }) => {
 
 // جلب سجل الإشعارات: يستخدم /notifications لو هناك JWT وإلا /public-notifications
 // ===== جلب سجل الإشعارات من الخادم (عام إذا لم يكن هناك JWT) =====
+// جلب سجل الإشعارات: يستخدم /notifications لو هناك JWT وإلا /public-notifications
 window.openNotificationLog = async () => {
   try {
     const endpoint = window.jwtToken
@@ -116,7 +117,6 @@ window.openNotificationLog = async () => {
     }));
     persistNotifications();
   } catch (e) {
-    // network / parse error — نكتفي بعرض المخزن محلياً
     console.warn('openNotificationLog error', e);
   } finally {
     renderNotifications();
