@@ -231,7 +231,10 @@ function normalizeDigits(str) {
   const loginBtn  = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 if (loginBtn)  loginBtn.onclick  = login;
-if (logoutBtn) logoutBtn.onclick = logout;
+if (logoutBtn) logoutBtn.addEventListener('click', () => {
+  try { window.logout && window.logout(); } catch (e) { console.error('logout click error', e); }
+});
+
 
 // أزرار القائمة الأخرى
 const aboutBtn  = document.getElementById('aboutBtn');
