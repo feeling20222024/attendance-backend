@@ -1,4 +1,5 @@
 const API_BASE = 'https://dwam-app-by-omar.onrender.com/api';
+const SUPERVISOR_CODE = window.SUPERVISOR_CODE || '35190';
 window.serverNotifications = [];
 
 // حفظ الإشعارات محليًا
@@ -12,11 +13,11 @@ function persistNotifications() {
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
   const badge = document.getElementById('notifCount');
+  const clear = document.getElementById('clearNotifications');
   if (!list || !badge) return;
 
   list.innerHTML = '';
   if (!window.serverNotifications.length) {
-    // 🔹 قبل تسجيل الدخول نعرض رسالة للزائر
     if (!window.jwtToken) {
       list.innerHTML = '<li class="text-gray-500">🔑 سجّل الدخول لرؤية إشعاراتك</li>';
     } else {
@@ -32,6 +33,13 @@ function renderNotifications() {
     });
     badge.textContent = String(window.serverNotifications.length);
     badge.classList.remove('hidden');
+  }
+
+  // زر المسح يظهر فقط للمشرف
+  if (clear) {
+    clear.style.display =
+      (String(window.currentUser) === String(SUPERVISOR_CODE) && window.serverNotifications.length)
+      ? 'block' : 'none';
   }
 }
 
@@ -50,21 +58,42 @@ async function fetchPublicNotifications() {
   }
 }
 
-// ضبط سلوك زر الجرس والعداد عند تحميل الصفحة
-document.addEventListener('DOMContentLoaded', () => {
-  // جلب إشعارات عامة فور تحميل الصفحة
-  fetchPublicNotifications();
+// جلب إشعارات المستخدم بعد تسجيل الدخول
+async function openNotificationLog() {
+  if (!window.jwtToken) return; // لا نفعل شيئاً إذا لا يوجد JWT
 
+  try {
+    const res = await fetch(`${API_BASE}/notifications`, {
+      headers: { Authorization: `Bearer ${window.jwtToken}` },
+      mode: 'cors'
+    });
+    if (!res.ok) return;
+
+    const data = await res.json();
+    window.serverNotifications = data.notifications || [];
+    persistNotifications();
+  } catch(e) {
+    console.warn('openNotificationLog failed', e);
+  } finally {
+    renderNotifications();
+  }
+}
+
+// عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', () => {
   const bell = document.getElementById('notifBell');
   const panel = document.getElementById('notificationsPanel');
+  const clear = document.getElementById('clearNotifications');
+
+  // جلب إشعارات عامة فور التحميل
+  fetchPublicNotifications();
 
   if (bell && panel) {
     bell.addEventListener('click', async e => {
       e.stopPropagation();
       panel.classList.toggle('hidden');
-      if (!panel.classList.contains('hidden')) {
-        // بعد فتح اللوحة نطلب الإشعارات الخاصة إذا موجود JWT
-        if (window.jwtToken) await openNotificationLog();
+      if (!panel.classList.contains('hidden') && window.jwtToken) {
+        await openNotificationLog();
       }
     });
 
@@ -72,10 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!panel.classList.contains('hidden')) panel.classList.add('hidden');
     });
   }
-});
 
-
-  // زر المسح (إن وُجد)
+  // زر المسح
   if (clear) {
     clear.addEventListener('click', async e => {
       e.stopPropagation();
@@ -95,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       } catch (err) {
         console.warn('clear notifications failed', err);
-        // نتابع لمسح السجل المحلي حتى إن فشل الطلب
       }
 
       window.serverNotifications = [];
@@ -103,11 +129,4 @@ document.addEventListener('DOMContentLoaded', () => {
       renderNotifications();
     });
   }
-
-  // عند تحميل الصفحة: قم بمحاولة جلب إشعارات الخادم فورًا (تعمل قبل تسجيل الدخول أيضاً)
-  // هذا يضمن أن الزائر يرى إشعارات عامة في البداية.
-  openNotificationLog().catch(err => {
-    console.warn('initial openNotificationLog failed', err);
-  });
-}); // نهاية DOMContentLoaded
-
+});
