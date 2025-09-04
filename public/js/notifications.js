@@ -156,4 +156,4 @@ if (window.jwtToken && window.currentUser) {
   openNotificationLog();
 }
 // إذا لم يسجل المستخدم الدخول، لا نفعل شيء، ولا نستدعي renderNotifications
-
+});
