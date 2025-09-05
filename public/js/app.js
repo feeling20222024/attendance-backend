@@ -395,7 +395,6 @@ headersHw      = hwJson.headers;
 hwafezData     = hwJson.data;
 
 // ————————— عرض تنبيهات وملاحظات عامة لجميع العاملين —————————
-if (generalNote) {
 const generalBox  = document.getElementById('generalNoteBox');
 const generalText = document.getElementById('generalNoteText');
 if (generalBox && generalText) {
@@ -409,7 +408,6 @@ if (generalBox && generalText) {
 }
 
 // ————————— عرض تنبيهات وملاحظات خاصة بالعامل —————————
-if (personalNote) {
 const personalSection = document.getElementById('supervisorNotesSection');
 const personalDiv     = document.getElementById('supervisorNotes');
 if (personalSection && personalDiv) {
@@ -421,7 +419,6 @@ if (personalSection && personalDiv) {
     personalSection.classList.add('hidden');
   }
 }
-
     // تحديث الواجهة
     document.getElementById('loginSection').classList.add('hidden');
     document.getElementById('records').classList.remove('hidden');
