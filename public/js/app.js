@@ -396,21 +396,29 @@ hwafezData     = hwJson.data;
 
 // ————————— عرض تنبيهات وملاحظات عامة لجميع العاملين —————————
 if (generalNote) {
-  const generalBox  = document.getElementById('generalNoteBox');
-  const generalText = document.getElementById('generalNoteText');
-  if (generalBox && generalText) {
-    generalText.textContent = generalNote;
+const generalBox  = document.getElementById('generalNoteBox');
+const generalText = document.getElementById('generalNoteText');
+if (generalBox && generalText) {
+  if (generalNote && String(generalNote).trim()) {
+    generalText.textContent = String(generalNote);
     generalBox.classList.remove('hidden');
+  } else {
+    generalText.textContent = '';
+    generalBox.classList.add('hidden');
   }
 }
 
 // ————————— عرض تنبيهات وملاحظات خاصة بالعامل —————————
 if (personalNote) {
-  const personalSection = document.getElementById('supervisorNotesSection');
-  const personalDiv     = document.getElementById('supervisorNotes');
-  if (personalSection && personalDiv) {
-    personalDiv.textContent = personalNote;
+const personalSection = document.getElementById('supervisorNotesSection');
+const personalDiv     = document.getElementById('supervisorNotes');
+if (personalSection && personalDiv) {
+  if (personalNote && String(personalNote).trim()) {
+    personalDiv.textContent = String(personalNote);
     personalSection.classList.remove('hidden');
+  } else {
+    personalDiv.textContent = '';
+    personalSection.classList.add('hidden');
   }
 }
 
