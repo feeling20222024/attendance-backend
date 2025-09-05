@@ -223,15 +223,46 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/attendance', authenticate, async (req, res) => {
   try {
     const { headers, data } = await readSheet('Attendance');
+
     const idxCode = headers.indexOf('رقم الموظف');
     const target = normalizeDigits(String(req.user.code).trim());
+
+    // صفوف المستخدم
     const userRows = data.filter(r => normalizeDigits(String(r[idxCode] ?? '').trim()) === target);
 
-    // general note
-    const noteCol = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
-    const generalNote = (data.find(row => row[noteCol]) || [])[noteCol] || '';
+    // ملاحظة عامة (كما عندك حالياً)
+    const generalCol = headers.indexOf('تنبيهات وملاحظات عامة لجميع العاملين');
+    const generalNote = (data.find(row => row[generalCol]) || [])[generalCol] || '';
 
-    return res.json({ headers, data: userRows, generalNote });
+    // محاولة إيجاد عمود الملاحظة الخاصة (مرن: يبحث بكلمة "خاص" أو "ملاحظة" إن لم يطابق الاسم تماماً)
+    let personalNote = '';
+    const possibleNames = [
+      'تنبيهات وملاحظات خاصة بالعامل',
+      'تنبيهات خاصة',
+      'ملاحظات خاصة',
+      'ملاحظات العامل',
+      'تنبيهات وملاحظات خاصة'
+    ];
+    let personalCol = -1;
+    for (const name of possibleNames) {
+      personalCol = headers.indexOf(name);
+      if (personalCol !== -1) break;
+    }
+    // لو لم نجد مباشرة، حاول بحث مرن باستخدام كلمة "خاص"
+    if (personalCol === -1) {
+      personalCol = headers.findIndex(h => typeof h === 'string' && /خاص|ملاحظات\s*خاصة/i.test(h));
+    }
+
+    if (personalCol !== -1) {
+      // نبحث أول صف يخص هذا المستخدم ويحتوي الملاحظة الخاصة
+      const rowWithPersonal = data.find(r =>
+        normalizeDigits(String(r[idxCode] ?? '').trim()) === target && (r[personalCol] || '').toString().trim() !== ''
+      );
+      if (rowWithPersonal) personalNote = rowWithPersonal[personalCol] || '';
+    }
+
+    // أرجع كل شيء (مواكب لواجهة العميل التي تتوقع generalNote و personalNote)
+    return res.json({ headers, data: userRows, generalNote, personalNote });
   } catch (e) {
     console.error('attendance error:', e);
     return res.status(500).json({ error: e.message });
