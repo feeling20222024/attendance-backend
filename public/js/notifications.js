@@ -33,16 +33,21 @@ if (!window.serverNotifications.length) {
     return true;
   });
 
-  filtered.forEach(n => {
-    const li = document.createElement('li');
-    li.className = 'mb-2 border-b pb-1';
-    const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
-li.innerHTML = `<strong>${n.title || ''}</strong><br>
-                <small>${n.body || ''}</small><br>
-                <em class="text-gray-400 text-xs">${timeStr}</em>`;
+ filtered.forEach(n => {
+  const li = document.createElement('li');
+  li.className = 'mb-2 border-b pb-1';
 
-    list.appendChild(li);
-  });
+  // ✅ نأخذ الوقت من السيرفر أو من الآن إذا ما فيه
+  const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
+
+  li.innerHTML = `
+    <strong>${n.title || ''}</strong><br>
+    <small>${n.body || ''}</small><br>
+    <em class="text-gray-400 text-xs">${timeStr}</em>
+  `;
+  list.appendChild(li);
+});
+
 
   badge.textContent = String(filtered.length);
   badge.classList.remove('hidden');
