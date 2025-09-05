@@ -36,7 +36,11 @@ if (!window.serverNotifications.length) {
   filtered.forEach(n => {
     const li = document.createElement('li');
     li.className = 'mb-2 border-b pb-1';
-    li.innerHTML = `<strong>${n.title || ''}</strong><br><small>${n.body || ''}</small>`;
+    const timeStr = formatDamascus(n.timestamp || n.time || Date.now());
+li.innerHTML = `<strong>${n.title || ''}</strong><br>
+                <small>${n.body || ''}</small><br>
+                <em class="text-gray-400 text-xs">${timeStr}</em>`;
+
     list.appendChild(li);
   });
 
@@ -133,6 +137,27 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       window.serverNotifications = [];
+      // تنسيق التاريخ والوقت بتوقيت دمشق
+function formatDamascus(ts) {
+  const t = (typeof ts === 'number') ? ts
+          : (typeof ts === 'string' && /^\d+$/.test(ts)) ? Number(ts)
+          : (typeof ts === 'string') ? Date.parse(ts) : NaN;
+
+  const date = isNaN(t) ? new Date() : new Date(t);
+
+  // توقيت دمشق = UTC+3
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const dam = new Date(utc + 3 * 3600 * 1000);
+
+  const Y = dam.getFullYear();
+  const M = String(dam.getMonth() + 1).padStart(2, '0');
+  const D = String(dam.getDate()).padStart(2, '0');
+  const H = String(dam.getHours()).padStart(2, '0');
+  const Min = String(dam.getMinutes()).padStart(2, '0');
+
+  return `${Y}-${M}-${D} ${H}:${Min}`;
+}
+
       persistNotifications();
       renderNotifications();
     });
