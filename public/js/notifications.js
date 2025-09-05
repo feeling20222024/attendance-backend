@@ -16,25 +16,33 @@ function renderNotifications() {
   const clear = document.getElementById('clearNotifications');
   if (!list || !badge) return;
 
-  list.innerHTML = '';
-  if (!window.serverNotifications.length) {
-    if (!window.jwtToken) {
-      list.innerHTML = '<li class="text-gray-500">🔑 سجّل الدخول لرؤية إشعاراتك</li>';
-    } else {
-      list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
-    }
-    badge.classList.add('hidden');
-  } else {
-    window.serverNotifications.forEach(n => {
-      const li = document.createElement('li');
-      li.className = 'mb-2 border-b pb-1';
-      li.innerHTML = `<strong>${n.title || ''}</strong><br><small>${n.body || ''}</small>`;
-      list.appendChild(li);
-    });
-    badge.textContent = String(window.serverNotifications.length);
-    badge.classList.remove('hidden');
-  }
+list.innerHTML = '';
 
+if (!window.serverNotifications.length) {
+  if (!window.jwtToken) {
+    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+  }
+  badge.classList.add('hidden');
+} else {
+  // ✅ مصفاة لمنع التكرار (العنوان + النص)
+  const seen = new Set();
+  const filtered = window.serverNotifications.filter(n => {
+    const key = (n.title || '') + '|' + (n.body || '');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  filtered.forEach(n => {
+    const li = document.createElement('li');
+    li.className = 'mb-2 border-b pb-1';
+    li.innerHTML = `<strong>${n.title || ''}</strong><br><small>${n.body || ''}</small>`;
+    list.appendChild(li);
+  });
+
+  badge.textContent = String(filtered.length);
+  badge.classList.remove('hidden');
+}
   // زر المسح يظهر فقط للمشرف
   if (clear) {
     clear.style.display =
