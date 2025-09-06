@@ -10,49 +10,49 @@ function persistNotifications() {
 }
 
 // عرض الإشعارات في الواجهة
+// عرض الإشعارات في الواجهة
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
   const badge = document.getElementById('notifCount');
   const clear = document.getElementById('clearNotifications');
   if (!list || !badge) return;
 
-list.innerHTML = '';
+  list.innerHTML = '';
 
-if (!window.serverNotifications.length) {
-  if (!window.jwtToken) {
-    list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+  if (!window.serverNotifications.length) {
+    if (!window.jwtToken) {
+      list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    }
+    badge.classList.add('hidden');
+  } else {
+    // ✅ مصفاة لمنع التكرار (العنوان + النص)
+    const seen = new Set();
+    const filtered = window.serverNotifications.filter(n => {
+      const key = (n.title || '') + '|' + (n.body || '');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    filtered.forEach(n => {
+      const li = document.createElement('li');
+      li.className = 'mb-2 border-b pb-1';
+
+      // 🕒 خذ الوقت من السيرفر إذا موجود
+      const time = n.time || n.timestamp || '';
+
+      li.innerHTML = `
+        <strong>${n.title || ''}</strong><br>
+        <small>${n.body || ''}</small><br>
+        <small class="text-gray-400">${time}</small>
+      `;
+      list.appendChild(li);
+    });
+
+    badge.textContent = String(filtered.length);
+    badge.classList.remove('hidden');
   }
-  badge.classList.add('hidden');
-} else {
-  // ✅ مصفاة لمنع التكرار (العنوان + النص)
-  const seen = new Set();
-  const filtered = window.serverNotifications.filter(n => {
-    const key = (n.title || '') + '|' + (n.body || '');
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 
-filtered.forEach(n => {
-  const li = document.createElement('li');
-  li.className = 'mb-2 border-b pb-1';
-
-  // استخدم time من السيرفر إن وجد
-  const time = n.time || n.timestamp || '';
-  
-  li.innerHTML = `
-    <strong>${n.title || ''}</strong><br>
-    <small>${n.body || ''}</small><br>
-    <small class="text-gray-400">${time}</small>
-  `;
-  list.appendChild(li);
-});
-
-
-
-  badge.textContent = String(filtered.length);
-  badge.classList.remove('hidden');
-}
   // زر المسح يظهر فقط للمشرف
   if (clear) {
     clear.style.display =
@@ -60,7 +60,6 @@ filtered.forEach(n => {
       ? 'block' : 'none';
   }
 }
-
 // جلب الإشعارات العامة (قبل تسجيل الدخول)
 async function fetchPublicNotifications() {
   try {
