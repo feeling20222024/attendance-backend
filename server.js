@@ -123,11 +123,33 @@ function authenticate(req, res, next) {
 // ------------ Notifications & FCM helper (in-memory tokens) ------------
 const tokens = new Map(); // token -> { userCode, createdAt }
 
+
+// helper: صيغ وقت دمشق بدون ثواني
+function damascusTimeString(ts = Date.now()) {
+  return new Date(Number(ts)).toLocaleString('en-GB', {
+    timeZone: 'Asia/Damascus',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
 async function sendPushTo(token, title, body, data = {}) {
+  const now = Date.now();
   const message = {
     token,
-    notification: { title: String(title || '').slice(0, 200), body: String(body || '').slice(0, 1000) },
-    data: Object.assign({}, data, { ts: Date.now().toString() }),
+    notification: {
+      title: String(title || '').slice(0, 200),
+      body:  String(body  || '').slice(0, 1000)
+    },
+    // نضيف كل من الطابع الخام ونسخة منسقة بتوقيت دمشق داخل حقل data
+    data: Object.assign({}, data, {
+      ts: String(now),                 // epoch ms (خام)
+      time: damascusTimeString(now)    // منسق بتوقيت دمشق، مثال: "2025-09-06 03:46"
+    }),
     android: {
       priority: 'high',
       notification: { sound: 'default', channelId: 'default' }
@@ -135,7 +157,11 @@ async function sendPushTo(token, title, body, data = {}) {
     apns: {
       headers: { 'apns-priority': '10' },
       payload: {
-        aps: { alert: { title: String(title || ''), body: String(body || '') }, sound: 'default', 'content-available': 1 }
+        aps: {
+          alert: { title: String(title || ''), body: String(body || '') },
+          sound: 'default',
+          'content-available': 1
+        }
       }
     },
     webpush: {
@@ -154,14 +180,12 @@ async function sendPushTo(token, title, body, data = {}) {
     if (err?.errorInfo?.code === 'messaging/registration-token-not-registered') {
       tokens.delete(token);
       try {
-        // لو تريد حذف من Firestore لو خزنت هناك
         await admin.firestore().collection('fcm_tokens').doc(token).delete().catch(()=>{});
       } catch(e){}
     }
     return { ok: false, error: err };
   }
 }
-
 // Endpoint لتسجيل توكن (يتوقع JWT مصدق)
 app.post('/api/register-token', authenticate, async (req, res) => {
   const { token } = req.body || {};
