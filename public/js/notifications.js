@@ -142,29 +142,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // زر المسح
-  if (clear) {
-    clear.addEventListener('click', async e => {
-      e.stopPropagation();
-      if (window.currentUser !== SUPERVISOR_CODE) {
-        alert('غير مسموح لك بمسح الإشعارات.');
-        return;
-      }
-      if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
-
-try {
-  await fetch(`${API_BASE}/notifications`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${window.jwtToken}`
+// زر المسح
+if (clear) {
+  clear.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (window.currentUser !== SUPERVISOR_CODE) {
+      alert('غير مسموح لك بمسح الإشعارات.');
+      return;
     }
-  });
-} catch (err) {
-  console.warn('clear notifications failed', err);
-}
+    if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
 
-window.serverNotifications = [];
-persistNotifications();
-renderNotifications();
-}); // نهاية addEventListener
+    try {
+      await fetch(`${API_BASE}/notifications`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.jwtToken}`
+        }
+      });
+    } catch (err) {
+      console.warn('clear notifications failed', err);
+    }
+
+    window.serverNotifications = [];
+    persistNotifications();
+    renderNotifications();
+  }); // نهاية addEventListener
+} // نهاية if(clear)
 }); // نهاية DOMContentLoaded
