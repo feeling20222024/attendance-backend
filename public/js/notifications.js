@@ -151,14 +151,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (!confirm('هل أنت متأكد من مسح جميع الإشعارات؟')) return;
 
-      try {
-        await fetch(`${API_BASE}/notifications`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${window.jwtToken}`
-          }
-        });
-      } catch (err) {
-        console.warn('clear notifications failed', err);
-      }
+try {
+  await fetch(`${API_BASE}/notifications`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${window.jwtToken}`
+    }
+  });
+} catch (err) {
+  console.warn('clear notifications failed', err);
+}
+
+window.serverNotifications = [];
+persistNotifications();
+renderNotifications();
+}); // نهاية addEventListener
+}); // نهاية DOMContentLoaded
