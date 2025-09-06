@@ -8,8 +8,30 @@ function persistNotifications() {
     localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications));
   } catch(e){}
 }
+// حفظ الإشعارات محليًا
+function persistNotifications() {
+  try {
+    localStorage.setItem('serverNotifications', JSON.stringify(window.serverNotifications));
+  } catch(e){}
+}
 
-// عرض الإشعارات في الواجهة
+// تحويل الوقت لتوقيت دمشق
+function formatDamascus(ts) {
+  try {
+    return new Date(ts).toLocaleString('en-GB', {
+      timeZone: 'Asia/Damascus',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  } catch (e) {
+    return ts;
+  }
+}
+
 // عرض الإشعارات في الواجهة
 function renderNotifications() {
   const list  = document.getElementById('notificationsLog');
@@ -140,71 +162,3 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.warn('clear notifications failed', err);
       }
-
-      window.serverNotifications = [];
-      // تنسيق التاريخ والوقت بتوقيت دمشق
-function formatDamascus(ts) {
-  try {
-    return new Date(ts).toLocaleString('en-GB', {
-      timeZone: 'Asia/Damascus',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  } catch (e) {
-    return ts; // لو صار خطأ، نرجع النص كما هو
-  }
-}
-
-function renderNotifications() {
-  const list  = document.getElementById('notificationsLog');
-  const badge = document.getElementById('notifCount');
-  const clear = document.getElementById('clearNotifications');
-  if (!list || !badge) return;
-
-  list.innerHTML = '';
-
-  if (!window.serverNotifications.length) {
-    if (!window.jwtToken) {
-      list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
-    }
-    badge.classList.add('hidden');
-  } else {
-    const seen = new Set();
-    const filtered = window.serverNotifications.filter(n => {
-      const key = (n.title || '') + '|' + (n.body || '');
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
-    filtered.forEach(n => {
-      const li = document.createElement('li');
-      li.className = 'mb-2 border-b pb-1';
-
-      // 📌 نأخذ الوقت من السيرفر وننسقه
-      const rawTime = n.time || n.timestamp || n.createdAt || '';
-      const time = rawTime ? formatDamascus(rawTime) : '';
-
-      li.innerHTML = `
-        <strong>${n.title || ''}</strong><br>
-        <small>${n.body || ''}</small><br>
-        <small class="text-gray-400">${time}</small>
-      `;
-      list.appendChild(li);
-    });
-
-    badge.textContent = String(filtered.length);
-    badge.classList.remove('hidden');
-  }
-
-  if (clear) {
-    clear.style.display =
-      (String(window.currentUser) === String(SUPERVISOR_CODE) && window.serverNotifications.length)
-      ? 'block' : 'none';
-  }
-}
-
