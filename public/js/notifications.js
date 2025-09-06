@@ -144,27 +144,67 @@ document.addEventListener('DOMContentLoaded', () => {
       window.serverNotifications = [];
       // تنسيق التاريخ والوقت بتوقيت دمشق
 function formatDamascus(ts) {
-  const t = (typeof ts === 'number') ? ts
-          : (typeof ts === 'string' && /^\d+$/.test(ts)) ? Number(ts)
-          : (typeof ts === 'string') ? Date.parse(ts) : NaN;
-
-  const date = isNaN(t) ? new Date() : new Date(t);
-
-  // توقيت دمشق = UTC+3
-  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-  const dam = new Date(utc + 3 * 3600 * 1000);
-
-  const Y = dam.getFullYear();
-  const M = String(dam.getMonth() + 1).padStart(2, '0');
-  const D = String(dam.getDate()).padStart(2, '0');
-  const H = String(dam.getHours()).padStart(2, '0');
-  const Min = String(dam.getMinutes()).padStart(2, '0');
-
-  return `${Y}-${M}-${D} ${H}:${Min}`;
+  try {
+    return new Date(ts).toLocaleString('en-GB', {
+      timeZone: 'Asia/Damascus',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  } catch (e) {
+    return ts; // لو صار خطأ، نرجع النص كما هو
+  }
 }
 
-      persistNotifications();
-      renderNotifications();
+function renderNotifications() {
+  const list  = document.getElementById('notificationsLog');
+  const badge = document.getElementById('notifCount');
+  const clear = document.getElementById('clearNotifications');
+  if (!list || !badge) return;
+
+  list.innerHTML = '';
+
+  if (!window.serverNotifications.length) {
+    if (!window.jwtToken) {
+      list.innerHTML = '<li class="text-gray-500">لا توجد إشعارات</li>';
+    }
+    badge.classList.add('hidden');
+  } else {
+    const seen = new Set();
+    const filtered = window.serverNotifications.filter(n => {
+      const key = (n.title || '') + '|' + (n.body || '');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
+
+    filtered.forEach(n => {
+      const li = document.createElement('li');
+      li.className = 'mb-2 border-b pb-1';
+
+      // 📌 نأخذ الوقت من السيرفر وننسقه
+      const rawTime = n.time || n.timestamp || n.createdAt || '';
+      const time = rawTime ? formatDamascus(rawTime) : '';
+
+      li.innerHTML = `
+        <strong>${n.title || ''}</strong><br>
+        <small>${n.body || ''}</small><br>
+        <small class="text-gray-400">${time}</small>
+      `;
+      list.appendChild(li);
+    });
+
+    badge.textContent = String(filtered.length);
+    badge.classList.remove('hidden');
   }
-});
+
+  if (clear) {
+    clear.style.display =
+      (String(window.currentUser) === String(SUPERVISOR_CODE) && window.serverNotifications.length)
+      ? 'block' : 'none';
+  }
+}
+
